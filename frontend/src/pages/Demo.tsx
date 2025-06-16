@@ -16,8 +16,8 @@ interface User {
 
 export default function Demo(): JSX.Element {
   const { user, loading: authLoading, error: authError, signOut } = useAuth();
-  const [subject, setSubject] = useState<string>('Mathematics');
-  const [prompt, setPrompt] = useState<string>('');
+  const [subject, setSubject] = useState<string>('Physics');
+  const [prompt, setPrompt] = useState<string>('Show how a pendulum behaves under the influence of gravity and explain the energy transformations during its swing');
   const [followUpPrompt, setFollowUpPrompt] = useState<string>('');
   const [loading, setLoading] = useState<boolean>(false);
   const [simulationData, setSimulationData] = useState<SimulationResponse | null>(null);
@@ -84,12 +84,23 @@ export default function Demo(): JSX.Element {
     setError(null);
     
     try {
-      console.log('Sending request to Supabase Edge Function...');
+      console.log('🚀 Starting simulation request...');
       const { data: { session } } = await supabase.auth.getSession();
       
       if (!session) {
         throw new Error('No valid session found. Please log in again.');
       }
+
+      console.log('📡 Sending request to edge function:', {
+        prompt: currentPrompt.substring(0, 50) + '...',
+        subject,
+        timestamp: new Date().toISOString()
+      });
+
+      const requestBody = {
+        prompt: currentPrompt.trim(),
+        subject: subject
+      };
 
       const response = await fetch(
         'https://zurfhydnztcxlomdyqds.supabase.co/functions/v1/simulate',
@@ -99,50 +110,60 @@ export default function Demo(): JSX.Element {
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${session.access_token}`,
           },
-          body: JSON.stringify({
-            prompt: currentPrompt.trim(),
-            subject: subject
-          }),
+          body: JSON.stringify(requestBody),
         }
       );
 
+      console.log('📥 Response received:', {
+        status: response.status,
+        statusText: response.statusText,
+        contentType: response.headers.get('content-type')
+      });
+
       if (!response.ok) {
         const errorText = await response.text();
-        console.error('API Error Response:', errorText);
-        throw new Error(`Simulation failed: ${response.status} ${response.statusText}. ${errorText}`);
+        console.error('❌ API Error:', {
+          status: response.status,
+          statusText: response.statusText,
+          body: errorText
+        });
+        throw new Error(`Simulation failed: ${response.status} ${response.statusText}`);
+      }
+
+      const contentType = response.headers.get('content-type');
+      if (!contentType?.includes('application/json')) {
+        const textResponse = await response.text();
+        console.error('❌ Non-JSON response:', textResponse);
+        throw new Error(`Expected JSON response, got: ${contentType}`);
       }
 
       const data: SimulationResponse = await response.json();
       
-      // Add comprehensive debugging logs
-      console.log('API Response received:', {
+      console.log('✅ Parsed response data:', {
         hasCanvasHtml: !!data.canvasHtml,
-        canvasHtmlLength: data.canvasHtml?.length || 0,
-        canvasHtmlPreview: data.canvasHtml?.substring(0, 200) + '...',
+        canvasLength: data.canvasHtml?.length || 0,
         hasJsCode: !!data.jsCode,
-        jsCodeLength: data.jsCode?.length || 0,
-        jsCodePreview: data.jsCode?.substring(0, 200) + '...',
+        jsLength: data.jsCode?.length || 0,
         hasExplanation: !!data.explanation,
         explanationLength: data.explanation?.length || 0,
-        explanationPreview: data.explanation?.substring(0, 200) + '...'
+        hasError: !!(data as any).error
       });
 
+      // Check for error in response
+      if ((data as any).error) {
+        throw new Error(`Simulation error: ${(data as any).error}`);
+      }
+
       if (!data.canvasHtml || !data.jsCode) {
+        console.error('❌ Missing required fields:', data);
         throw new Error('Invalid response format from simulation service');
       }
 
-      // Check if explanation is missing or empty
-      if (!data.explanation || data.explanation.trim() === '') {
-        console.warn('No explanation provided in API response');
-        // Set a fallback explanation
-        data.explanation = 'Simulation loaded successfully. The explanation for this simulation was not provided by the API.';
-      }
-
-      console.log('Simulation generated successfully');
+      console.log('🎨 Setting simulation data...');
       setSimulationData(data);
       setTokenUsage(prev => prev + 1);
 
-      // Inject the simulation into the iframe with improved error handling
+      // Load simulation into iframe
       if (iframeRef.current) {
         const combinedContent = `
           <!DOCTYPE html>
@@ -157,102 +178,111 @@ export default function Demo(): JSX.Element {
                 padding: 20px; 
                 font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
                 background: #f8fafc;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
                 min-height: 100vh;
               }
-              .error-display {
-                background: #fee2e2;
-                border: 1px solid #fecaca;
-                color: #dc2626;
-                padding: 12px;
-                border-radius: 6px;
-                margin: 10px 0;
-                font-family: monospace;
-                font-size: 12px;
-                white-space: pre-wrap;
+              canvas {
+                border: 1px solid #e5e7eb;
+                border-radius: 8px;
+                background: white;
+                box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
               }
-              .loading-indicator {
-                background: #dbeafe;
-                border: 1px solid #bfdbfe;
-                color: #1e40af;
-                padding: 12px;
-                border-radius: 6px;
+              .status {
                 margin: 10px 0;
-                text-align: center;
+                padding: 8px 16px;
+                border-radius: 6px;
+                font-size: 14px;
+                font-weight: 500;
+              }
+              .status.loading {
+                background: #dbeafe;
+                color: #1e40af;
+              }
+              .status.success {
+                background: #d1fae5;
+                color: #059669;
+              }
+              .status.error {
+                background: #fee2e2;
+                color: #dc2626;
               }
             </style>
           </head>
           <body>
-            <div class="loading-indicator">Loading simulation...</div>
+            <div class="status loading" id="status">Loading simulation...</div>
             ${data.canvasHtml}
             <script>
-              console.log('Starting simulation script execution...');
+              console.log('🎬 Iframe script starting...');
               
-              // Remove loading indicator
-              const loadingIndicator = document.querySelector('.loading-indicator');
-              if (loadingIndicator) {
-                setTimeout(() => loadingIndicator.remove(), 1000);
-              }
+              const statusEl = document.getElementById('status');
               
               // Enhanced error handling
               window.onerror = function(message, source, lineno, colno, error) {
-                console.error('JavaScript Error:', message, 'Line:', lineno);
-                const errorDiv = document.createElement('div');
-                errorDiv.className = 'error-display';
-                errorDiv.textContent = 'JavaScript Error: ' + message + '\\nLine: ' + lineno + (error ? '\\nStack: ' + error.stack : '');
-                document.body.appendChild(errorDiv);
+                console.error('❌ JavaScript Error:', message, 'Line:', lineno);
+                if (statusEl) {
+                  statusEl.className = 'status error';
+                  statusEl.textContent = 'Error: ' + message;
+                }
                 return true;
               };
               
               window.addEventListener('unhandledrejection', function(event) {
-                console.error('Promise Rejection:', event.reason);
-                const errorDiv = document.createElement('div');
-                errorDiv.className = 'error-display';
-                errorDiv.textContent = 'Promise Rejection: ' + event.reason;
-                document.body.appendChild(errorDiv);
+                console.error('❌ Promise Rejection:', event.reason);
+                if (statusEl) {
+                  statusEl.className = 'status error';
+                  statusEl.textContent = 'Promise Error: ' + event.reason;
+                }
               });
               
               try {
-                // Execute the simulation code
+                // Execute simulation code
                 ${data.jsCode}
-                console.log('Simulation script executed successfully');
                 
-                // Add a success indicator
+                console.log('✅ Simulation code executed successfully');
+                
+                // Update status
                 setTimeout(() => {
-                  const successDiv = document.createElement('div');
-                  successDiv.style.cssText = 'position: fixed; top: 10px; right: 10px; background: #10b981; color: white; padding: 8px 12px; border-radius: 4px; font-size: 12px; z-index: 1000;';
-                  successDiv.textContent = 'Simulation Ready';
-                  document.body.appendChild(successDiv);
-                  setTimeout(() => successDiv.remove(), 3000);
-                }, 500);
+                  if (statusEl) {
+                    statusEl.className = 'status success';
+                    statusEl.textContent = 'Simulation active';
+                    setTimeout(() => statusEl.style.display = 'none', 2000);
+                  }
+                }, 1000);
                 
               } catch (error) {
-                console.error('Execution Error:', error);
-                const errorDiv = document.createElement('div');
-                errorDiv.className = 'error-display';
-                errorDiv.textContent = 'Execution Error: ' + error.message + '\\nStack: ' + error.stack;
-                document.body.appendChild(errorDiv);
+                console.error('❌ Execution Error:', error);
+                if (statusEl) {
+                  statusEl.className = 'status error';
+                  statusEl.textContent = 'Execution Error: ' + error.message;
+                }
               }
             </script>
           </body>
           </html>
         `;
         
-        // Create blob URL instead of data URI for better compatibility
-        const blob = new Blob([combinedContent], { type: 'text/html' });
-        const blobUrl = URL.createObjectURL(blob);
+        console.log('🖼️ Loading content into iframe...');
         
-        // Set up cleanup
-        const cleanup = () => {
-          URL.revokeObjectURL(blobUrl);
+        // Use srcdoc for better reliability
+        iframeRef.current.srcdoc = combinedContent;
+        
+        // Fallback to blob URL if srcdoc fails
+        iframeRef.current.onload = () => {
+          console.log('✅ iframe loaded successfully');
         };
         
-        iframeRef.current.onload = cleanup;
         iframeRef.current.onerror = (e) => {
-          console.error('iframe loading error:', e);
-          cleanup();
+          console.error('❌ iframe loading error:', e);
+          // Try blob URL as fallback
+          const blob = new Blob([combinedContent], { type: 'text/html' });
+          const blobUrl = URL.createObjectURL(blob);
+          if (iframeRef.current) {
+            iframeRef.current.src = blobUrl;
+            setTimeout(() => URL.revokeObjectURL(blobUrl), 5000);
+          }
         };
-        
-        iframeRef.current.src = blobUrl;
       }
 
       // Clear follow-up prompt if it was used
@@ -261,8 +291,8 @@ export default function Demo(): JSX.Element {
       }
 
     } catch (err: any) {
-      console.error('Simulation error:', err);
-      setError(err.message || 'An error occurred');
+      console.error('❌ Simulation error:', err);
+      setError(err.message || 'An error occurred while generating the simulation');
     } finally {
       setLoading(false);
     }
@@ -287,6 +317,7 @@ export default function Demo(): JSX.Element {
     setFollowUpPrompt('');
     setError(null);
     if (iframeRef.current) {
+      iframeRef.current.srcdoc = '';
       iframeRef.current.src = 'about:blank';
     }
   };
@@ -331,7 +362,7 @@ export default function Demo(): JSX.Element {
             {/* Panel Header */}
             <div className="flex items-center space-x-2 pb-3 border-b border-gray-700">
               <Monitor className="w-5 h-5 text-yellow-500" />
-              <h2 className="text-sm font-semibold">Simulation Controls</h2>
+              <h2 className="text-sm font-semibold">Controls</h2>
             </div>
 
             {/* Subject Selection */}
@@ -359,7 +390,7 @@ export default function Demo(): JSX.Element {
               <textarea
                 value={prompt}
                 onChange={(e) => setPrompt(e.target.value)}
-                placeholder="Describe what you want to simulate... (e.g., 'Show how gravity affects projectile motion')"
+                placeholder="Describe what you want to simulate..."
                 className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white h-28 resize-none text-sm focus:ring-2 focus:ring-yellow-500 focus:border-transparent transition-colors placeholder-gray-400"
               />
               <div className="text-xs text-gray-400 mt-1">
@@ -392,7 +423,7 @@ export default function Demo(): JSX.Element {
                 <div className="flex items-center space-x-2 mb-2">
                   <MessageSquare className="w-4 h-4 text-blue-400" />
                   <label className="text-sm font-medium text-gray-300">
-                    Follow-up Question
+                    Follow-up
                   </label>
                 </div>
                 <div className="flex space-x-2">
@@ -469,7 +500,7 @@ export default function Demo(): JSX.Element {
                 id="simulation-iframe"
                 className="w-full h-full border-0"
                 title="Interactive Simulation"
-                sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-modals"
+                sandbox="allow-scripts allow-same-origin allow-forms"
                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
               />
             ) : (
@@ -495,11 +526,11 @@ export default function Demo(): JSX.Element {
           <div className="bg-white border-b border-gray-200 px-4 py-3">
             <div className="flex items-center space-x-2">
               <BookOpen className="w-5 h-5 text-blue-600" />
-              <h2 className="text-lg font-semibold text-gray-800">Simulation Explanation</h2>
+              <h2 className="text-lg font-semibold text-gray-800">Explanation</h2>
               {simulationData?.explanation && (
                 <div className="ml-auto">
                   <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded-full">
-                    {simulationData.explanation.length} chars
+                    Ready
                   </span>
                 </div>
               )}
