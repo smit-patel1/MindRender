@@ -84,14 +84,14 @@ export default function Demo(): JSX.Element {
     setError(null);
     
     try {
-      console.log('🚀 Starting simulation request...');
+      console.log('Starting simulation request...');
       const { data: { session } } = await supabase.auth.getSession();
       
       if (!session) {
         throw new Error('No valid session found. Please log in again.');
       }
 
-      console.log('📡 Sending request to edge function:', {
+      console.log('Sending request to edge function:', {
         prompt: currentPrompt.substring(0, 50) + '...',
         subject,
         timestamp: new Date().toISOString()
@@ -114,7 +114,7 @@ export default function Demo(): JSX.Element {
         }
       );
 
-      console.log('📥 Response received:', {
+      console.log('Response received:', {
         status: response.status,
         statusText: response.statusText,
         contentType: response.headers.get('content-type')
@@ -122,7 +122,7 @@ export default function Demo(): JSX.Element {
 
       if (!response.ok) {
         const errorText = await response.text();
-        console.error('❌ API Error:', {
+        console.error('API Error:', {
           status: response.status,
           statusText: response.statusText,
           body: errorText
@@ -133,13 +133,13 @@ export default function Demo(): JSX.Element {
       const contentType = response.headers.get('content-type');
       if (!contentType?.includes('application/json')) {
         const textResponse = await response.text();
-        console.error('❌ Non-JSON response:', textResponse);
+        console.error('Non-JSON response:', textResponse);
         throw new Error(`Expected JSON response, got: ${contentType}`);
       }
 
       const data: SimulationResponse = await response.json();
       
-      console.log('✅ Parsed response data:', {
+      console.log('Parsed response data:', {
         hasCanvasHtml: !!data.canvasHtml,
         canvasLength: data.canvasHtml?.length || 0,
         hasJsCode: !!data.jsCode,
@@ -149,21 +149,20 @@ export default function Demo(): JSX.Element {
         hasError: !!(data as any).error
       });
 
-      // Check for error in response
       if ((data as any).error) {
         throw new Error(`Simulation error: ${(data as any).error}`);
       }
 
       if (!data.canvasHtml || !data.jsCode) {
-        console.error('❌ Missing required fields:', data);
+        console.error('Missing required fields:', data);
         throw new Error('Invalid response format from simulation service');
       }
 
-      console.log('🎨 Setting simulation data...');
+      console.log('Setting simulation data...');
       setSimulationData(data);
       setTokenUsage(prev => prev + 1);
 
-      // Load simulation into iframe
+      // Load simulation into iframe with improved canvas handling
       if (iframeRef.current) {
         const combinedContent = `
           <!DOCTYPE html>
@@ -173,28 +172,42 @@ export default function Demo(): JSX.Element {
             <meta name="viewport" content="width=device-width, initial-scale=1.0">
             <title>MindRender Simulation</title>
             <style>
-              body { 
-                margin: 0; 
-                padding: 20px; 
+              * {
+                margin: 0;
+                padding: 0;
+                box-sizing: border-box;
+              }
+              html, body {
+                height: 100vh;
+                width: 100vw;
+                overflow: hidden;
                 font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
                 background: #f8fafc;
                 display: flex;
                 flex-direction: column;
                 align-items: center;
-                min-height: 100vh;
+                justify-content: center;
               }
               canvas {
                 border: 1px solid #e5e7eb;
                 border-radius: 8px;
                 background: white;
                 box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+                display: block !important;
+                margin: 0 auto;
+                max-width: calc(100vw - 40px);
+                max-height: calc(100vh - 40px);
               }
               .status {
-                margin: 10px 0;
-                padding: 8px 16px;
-                border-radius: 6px;
-                font-size: 14px;
+                position: fixed;
+                top: 10px;
+                right: 10px;
+                padding: 6px 12px;
+                border-radius: 4px;
+                font-size: 11px;
                 font-weight: 500;
+                z-index: 1000;
+                opacity: 0.9;
               }
               .status.loading {
                 background: #dbeafe;
@@ -211,51 +224,68 @@ export default function Demo(): JSX.Element {
             </style>
           </head>
           <body>
-            <div class="status loading" id="status">Loading simulation...</div>
+            <div class="status loading" id="status">Loading...</div>
             ${data.canvasHtml}
             <script>
-              console.log('🎬 Iframe script starting...');
+              console.log('Iframe script starting...');
               
               const statusEl = document.getElementById('status');
+              let canvas = null;
               
-              // Enhanced error handling
+              // Find canvas element
+              setTimeout(() => {
+                canvas = document.querySelector('canvas');
+                if (canvas) {
+                  console.log('Canvas found:', canvas.id, canvas.width + 'x' + canvas.height);
+                  canvas.style.display = 'block';
+                  canvas.style.margin = '0 auto';
+                } else {
+                  console.error('No canvas element found in DOM');
+                  if (statusEl) {
+                    statusEl.className = 'status error';
+                    statusEl.textContent = 'Canvas not found';
+                  }
+                }
+              }, 100);
+              
               window.onerror = function(message, source, lineno, colno, error) {
-                console.error('❌ JavaScript Error:', message, 'Line:', lineno);
+                console.error('JavaScript Error:', message, 'Line:', lineno);
                 if (statusEl) {
                   statusEl.className = 'status error';
-                  statusEl.textContent = 'Error: ' + message;
+                  statusEl.textContent = 'JS Error: ' + message;
                 }
                 return true;
               };
               
               window.addEventListener('unhandledrejection', function(event) {
-                console.error('❌ Promise Rejection:', event.reason);
+                console.error('Promise Rejection:', event.reason);
                 if (statusEl) {
                   statusEl.className = 'status error';
-                  statusEl.textContent = 'Promise Error: ' + event.reason;
+                  statusEl.textContent = 'Promise Error';
                 }
               });
               
               try {
-                // Execute simulation code
+                console.log('Executing simulation code...');
                 ${data.jsCode}
                 
-                console.log('✅ Simulation code executed successfully');
+                console.log('Simulation code executed successfully');
                 
-                // Update status
                 setTimeout(() => {
                   if (statusEl) {
                     statusEl.className = 'status success';
-                    statusEl.textContent = 'Simulation active';
-                    setTimeout(() => statusEl.style.display = 'none', 2000);
+                    statusEl.textContent = 'Active';
+                    setTimeout(() => {
+                      statusEl.style.opacity = '0.5';
+                    }, 3000);
                   }
-                }, 1000);
+                }, 1500);
                 
               } catch (error) {
-                console.error('❌ Execution Error:', error);
+                console.error('Execution Error:', error);
                 if (statusEl) {
                   statusEl.className = 'status error';
-                  statusEl.textContent = 'Execution Error: ' + error.message;
+                  statusEl.textContent = 'Error: ' + error.message;
                 }
               }
             </script>
@@ -263,35 +293,24 @@ export default function Demo(): JSX.Element {
           </html>
         `;
         
-        console.log('🖼️ Loading content into iframe...');
-        
-        // Use srcdoc for better reliability
+        console.log('Loading content into iframe...');
         iframeRef.current.srcdoc = combinedContent;
         
-        // Fallback to blob URL if srcdoc fails
         iframeRef.current.onload = () => {
-          console.log('✅ iframe loaded successfully');
+          console.log('iframe loaded successfully');
         };
         
         iframeRef.current.onerror = (e) => {
-          console.error('❌ iframe loading error:', e);
-          // Try blob URL as fallback
-          const blob = new Blob([combinedContent], { type: 'text/html' });
-          const blobUrl = URL.createObjectURL(blob);
-          if (iframeRef.current) {
-            iframeRef.current.src = blobUrl;
-            setTimeout(() => URL.revokeObjectURL(blobUrl), 5000);
-          }
+          console.error('iframe loading error:', e);
         };
       }
 
-      // Clear follow-up prompt if it was used
       if (inputPrompt) {
         setFollowUpPrompt('');
       }
 
     } catch (err: any) {
-      console.error('❌ Simulation error:', err);
+      console.error('Simulation error:', err);
       setError(err.message || 'An error occurred while generating the simulation');
     } finally {
       setLoading(false);
@@ -323,7 +342,7 @@ export default function Demo(): JSX.Element {
   };
 
   return (
-    <div className="min-h-screen bg-gray-900 text-white">
+    <div className="h-screen bg-gray-900 text-white overflow-hidden">
       {/* Header */}
       <div className="border-b border-gray-700 bg-gray-800/50 backdrop-blur-sm">
         <div className="flex justify-between items-center px-6 py-4">
@@ -357,7 +376,7 @@ export default function Demo(): JSX.Element {
       <div className="grid grid-cols-12 h-[calc(100vh-73px)]">
         
         {/* Left Panel - Simulation Controls */}
-        <div className="col-span-12 md:col-span-4 lg:col-span-3 xl:col-span-3 bg-gray-800 border-r border-gray-700 flex flex-col">
+        <div className="col-span-12 md:col-span-4 lg:col-span-3 xl:col-span-3 bg-gray-800 border-r border-gray-700 flex flex-col h-full">
           <div className="p-4 space-y-4 flex-1 overflow-y-auto">
             {/* Panel Header */}
             <div className="flex items-center space-x-2 pb-3 border-b border-gray-700">
@@ -460,10 +479,10 @@ export default function Demo(): JSX.Element {
             {error && (
               <div className="bg-red-500/10 border border-red-500/20 rounded-lg p-3">
                 <div className="flex items-start space-x-2">
-                  <div className="text-red-400 mt-0.5 text-sm">⚠️</div>
+                  <div className="text-red-400 mt-0.5 text-sm">Warning</div>
                   <div>
                     <div className="text-red-400 font-medium text-sm">Error</div>
-                    <div className="text-red-300 text-sm mt-1">{error}</div>
+                    <div className="text-red-300 text-sm mt-1 break-words">{error}</div>
                     <button
                       onClick={() => setError(null)}
                       className="text-red-400 hover:text-red-300 text-sm mt-1 underline"
@@ -478,8 +497,8 @@ export default function Demo(): JSX.Element {
         </div>
 
         {/* Center Panel - Simulation Viewer */}
-        <div className="col-span-12 md:col-span-5 lg:col-span-6 xl:col-span-6 bg-white border-r border-gray-300 flex flex-col">
-          <div className="bg-gray-50 border-b border-gray-200 px-4 py-3">
+        <div className="col-span-12 md:col-span-5 lg:col-span-6 xl:col-span-6 bg-white border-r border-gray-300 flex flex-col h-full">
+          <div className="bg-gray-50 border-b border-gray-200 px-4 py-3 flex-shrink-0">
             <div className="flex items-center space-x-2">
               <Monitor className="w-5 h-5 text-gray-600" />
               <h2 className="text-lg font-semibold text-gray-800">Simulation Viewer</h2>
@@ -493,15 +512,21 @@ export default function Demo(): JSX.Element {
             </div>
           </div>
           
-          <div className="flex-1 relative">
+          <div className="flex-1 relative overflow-hidden bg-gray-50">
             {simulationData ? (
               <iframe
                 ref={iframeRef}
                 id="simulation-iframe"
                 className="w-full h-full border-0"
                 title="Interactive Simulation"
-                sandbox="allow-scripts allow-same-origin allow-forms"
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                sandbox="allow-scripts allow-same-origin"
+                scrolling="no"
+                style={{ 
+                  overflow: 'hidden',
+                  border: 'none',
+                  width: '100%',
+                  height: '100%'
+                }}
               />
             ) : (
               <div className="h-full flex items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100">
@@ -521,9 +546,9 @@ export default function Demo(): JSX.Element {
           </div>
         </div>
 
-        {/* Right Panel - Explanation Area */}
-        <div className="col-span-12 md:col-span-3 lg:col-span-3 xl:col-span-3 bg-gray-50 flex flex-col">
-          <div className="bg-white border-b border-gray-200 px-4 py-3">
+        {/* Right Panel - Explanation Area with Proper Scrolling */}
+        <div className="col-span-12 md:col-span-3 lg:col-span-3 xl:col-span-3 bg-gray-50 flex flex-col h-full">
+          <div className="bg-white border-b border-gray-200 px-4 py-3 flex-shrink-0">
             <div className="flex items-center space-x-2">
               <BookOpen className="w-5 h-5 text-blue-600" />
               <h2 className="text-lg font-semibold text-gray-800">Explanation</h2>
@@ -537,12 +562,17 @@ export default function Demo(): JSX.Element {
             </div>
           </div>
           
-          <div className="flex-1 overflow-y-auto p-4">
+          <div className="flex-1 overflow-y-auto overflow-x-hidden p-4">
             {simulationData?.explanation ? (
               <div className="prose prose-sm max-w-none">
                 <div className="bg-white rounded-lg p-4 shadow-sm border border-gray-200">
                   <div 
-                    className="text-gray-700 leading-relaxed whitespace-pre-wrap"
+                    className="text-gray-700 leading-relaxed text-sm whitespace-pre-wrap break-words hyphens-auto"
+                    style={{
+                      wordWrap: 'break-word',
+                      overflowWrap: 'break-word',
+                      wordBreak: 'break-word'
+                    }}
                     dangerouslySetInnerHTML={{ 
                       __html: simulationData.explanation.replace(/\n/g, '<br/>') 
                     }}
@@ -557,7 +587,7 @@ export default function Demo(): JSX.Element {
                     Explanation Ready
                   </h3>
                   <p className="text-gray-500">
-                    Run a simulation to see a detailed explanation of the concepts and mechanics involved.
+                    Run a simulation to see a concise explanation of the concepts and mechanics involved.
                   </p>
                 </div>
               </div>
