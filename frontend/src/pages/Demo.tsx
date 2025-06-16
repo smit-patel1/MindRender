@@ -376,11 +376,11 @@ export default function Demo(): JSX.Element {
       </div>
 
       {/* Main Layout */}
-      <div className="grid grid-cols-12 h-[calc(100vh-73px)]">
+        <div className="flex flex-col md:grid md:grid-cols-12 h-[calc(100vh-73px)]">
         
         {/* Left Panel - Simulation Controls */}
-        <div className="col-span-12 md:col-span-4 lg:col-span-3 xl:col-span-3 bg-gray-800 border-r border-gray-700 flex flex-col h-full">
-          <div className="p-4 space-y-4 flex-1 overflow-y-auto">
+        <div className="col-span-12 md:col-span-3 lg:col-span-2 xl:col-span-2 2xl:col-span-1 bg-gray-800 border-r border-gray-700 flex flex-col h-full">
+          <div className="p-4 space-y-4 flex-1 overflow-y-auto overflow-x-hidden">
             {/* Panel Header */}
             <div className="flex items-center space-x-2 pb-3 border-b border-gray-700">
               <Monitor className="w-5 h-5 text-yellow-500" />
@@ -500,7 +500,7 @@ export default function Demo(): JSX.Element {
         </div>
 
         {/* Center Panel - Simulation Viewer */}
-        <div className="col-span-12 md:col-span-5 lg:col-span-6 xl:col-span-6 bg-white border-r border-gray-300 flex flex-col h-full">
+        <div className="col-span-12 md:col-span-6 lg:col-span-7 xl:col-span-8 2xl:col-span-10 bg-white border-r border-gray-300 flex flex-col h-full">
           <div className="bg-gray-50 border-b border-gray-200 px-4 py-3 flex-shrink-0">
             <div className="flex items-center space-x-2">
               <Monitor className="w-5 h-5 text-gray-600" />
@@ -515,7 +515,7 @@ export default function Demo(): JSX.Element {
             </div>
           </div>
           
-          <div className="flex-1 relative overflow-hidden bg-gray-50">
+          <div className="flex-1 relative overflow-auto bg-gray-50">
             {simulationData ? (
               <iframe
                 ref={iframeRef}
@@ -550,7 +550,7 @@ export default function Demo(): JSX.Element {
         </div>
 
         {/* Right Panel - Explanation Area with Proper Scrolling */}
-        <div className="col-span-12 md:col-span-3 lg:col-span-3 xl:col-span-3 bg-gray-50 flex flex-col h-full">
+        <div className="col-span-12 md:col-span-3 lg:col-span-3 xl:col-span-2 2xl:col-span-1 bg-gray-50 flex flex-col h-full">
           <div className="bg-white border-b border-gray-200 px-4 py-3 flex-shrink-0">
             <div className="flex items-center space-x-2">
               <BookOpen className="w-5 h-5 text-blue-600" />
