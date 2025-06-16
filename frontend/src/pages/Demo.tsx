@@ -25,6 +25,152 @@ export default function Demo(): JSX.Element {
   const [tokenUsage, setTokenUsage] = useState<number>(0);
   const iframeRef = useRef<HTMLIFrameElement>(null);
 
+  // Helper to build the iframe HTML from simulation data
+  const buildIframeContent = (sim: SimulationResponse): string => `
+          <!DOCTYPE html>
+          <html lang="en">
+          <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>MindRender Simulation</title>
+            <style>
+              * {
+                margin: 0;
+                padding: 0;
+                box-sizing: border-box;
+              }
+              html, body {
+                height: 100vh;
+                width: 100vw;
+                overflow: hidden;
+                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+                background: #f8fafc;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                justify-content: center;
+              }
+              canvas {
+                border: 1px solid #e5e7eb;
+                border-radius: 8px;
+                background: white;
+                box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+                display: block !important;
+                margin: 0 auto;
+                max-width: calc(100vw - 40px);
+                max-height: calc(100vh - 40px);
+              }
+              .status {
+                position: fixed;
+                top: 10px;
+                right: 10px;
+                padding: 6px 12px;
+                border-radius: 4px;
+                font-size: 11px;
+                font-weight: 500;
+                z-index: 1000;
+                opacity: 0.9;
+              }
+              .status.loading {
+                background: #dbeafe;
+                color: #1e40af;
+              }
+              .status.success {
+                background: #d1fae5;
+                color: #059669;
+              }
+              .status.error {
+                background: #fee2e2;
+                color: #dc2626;
+              }
+            </style>
+          </head>
+          <body>
+            <div class="status loading" id="status">Loading...</div>
+            ${sim.canvasHtml}
+            <script>
+              console.log('Iframe script starting...');
+
+              const statusEl = document.getElementById('status');
+              let canvas = null;
+
+              // Find canvas element
+              setTimeout(() => {
+                canvas = document.querySelector('canvas');
+                if (canvas) {
+                  console.log('Canvas found:', canvas.id, canvas.width + 'x' + canvas.height);
+                  canvas.style.display = 'block';
+                  canvas.style.margin = '0 auto';
+                } else {
+                  console.error('No canvas element found in DOM');
+                  if (statusEl) {
+                    statusEl.className = 'status error';
+                    statusEl.textContent = 'Canvas not found';
+                  }
+                }
+              }, 100);
+
+              window.onerror = function(message, source, lineno, colno, error) {
+                console.error('JavaScript Error:', message, 'Line:', lineno);
+                if (statusEl) {
+                  statusEl.className = 'status error';
+                  statusEl.textContent = 'JS Error: ' + message;
+                }
+                return true;
+              };
+
+              window.addEventListener('unhandledrejection', function(event) {
+                console.error('Promise Rejection:', event.reason);
+                if (statusEl) {
+                  statusEl.className = 'status error';
+                  statusEl.textContent = 'Promise Error';
+                }
+              });
+
+              try {
+                console.log('Executing simulation code...');
+                ${sim.jsCode}
+
+                console.log('Simulation code executed successfully');
+
+                setTimeout(() => {
+                  if (statusEl) {
+                    statusEl.className = 'status success';
+                    statusEl.textContent = 'Active';
+                    setTimeout(() => {
+                      statusEl.style.opacity = '0.5';
+                    }, 3000);
+                  }
+                }, 1500);
+
+              } catch (error) {
+                console.error('Execution Error:', error);
+                if (statusEl) {
+                  statusEl.className = 'status error';
+                  statusEl.textContent = 'Error: ' + error.message;
+                }
+              }
+            </script>
+          </body>
+          </html>`;
+
+  // Update iframe whenever new simulation data arrives
+  useEffect(() => {
+    if (simulationData && iframeRef.current) {
+      console.log('Loading content into iframe...');
+      const content = buildIframeContent(simulationData);
+      iframeRef.current.srcdoc = content;
+
+      iframeRef.current.onload = () => {
+        console.log('iframe loaded successfully');
+      };
+
+      iframeRef.current.onerror = (e) => {
+        console.error('iframe loading error:', e);
+      };
+    }
+  }, [simulationData]);
+
   // Show loading state
   if (authLoading) {
     return (
@@ -161,149 +307,6 @@ export default function Demo(): JSX.Element {
       console.log('Setting simulation data...');
       setSimulationData(data);
       setTokenUsage(prev => prev + 1);
-
-      // Load simulation into iframe with improved canvas handling
-      if (iframeRef.current) {
-        const combinedContent = `
-          <!DOCTYPE html>
-          <html lang="en">
-          <head>
-            <meta charset="UTF-8">
-            <meta name="viewport" content="width=device-width, initial-scale=1.0">
-            <title>MindRender Simulation</title>
-            <style>
-              * {
-                margin: 0;
-                padding: 0;
-                box-sizing: border-box;
-              }
-              html, body {
-                height: 100vh;
-                width: 100vw;
-                overflow: hidden;
-                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-                background: #f8fafc;
-                display: flex;
-                flex-direction: column;
-                align-items: center;
-                justify-content: center;
-              }
-              canvas {
-                border: 1px solid #e5e7eb;
-                border-radius: 8px;
-                background: white;
-                box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-                display: block !important;
-                margin: 0 auto;
-                max-width: calc(100vw - 40px);
-                max-height: calc(100vh - 40px);
-              }
-              .status {
-                position: fixed;
-                top: 10px;
-                right: 10px;
-                padding: 6px 12px;
-                border-radius: 4px;
-                font-size: 11px;
-                font-weight: 500;
-                z-index: 1000;
-                opacity: 0.9;
-              }
-              .status.loading {
-                background: #dbeafe;
-                color: #1e40af;
-              }
-              .status.success {
-                background: #d1fae5;
-                color: #059669;
-              }
-              .status.error {
-                background: #fee2e2;
-                color: #dc2626;
-              }
-            </style>
-          </head>
-          <body>
-            <div class="status loading" id="status">Loading...</div>
-            ${data.canvasHtml}
-            <script>
-              console.log('Iframe script starting...');
-              
-              const statusEl = document.getElementById('status');
-              let canvas = null;
-              
-              // Find canvas element
-              setTimeout(() => {
-                canvas = document.querySelector('canvas');
-                if (canvas) {
-                  console.log('Canvas found:', canvas.id, canvas.width + 'x' + canvas.height);
-                  canvas.style.display = 'block';
-                  canvas.style.margin = '0 auto';
-                } else {
-                  console.error('No canvas element found in DOM');
-                  if (statusEl) {
-                    statusEl.className = 'status error';
-                    statusEl.textContent = 'Canvas not found';
-                  }
-                }
-              }, 100);
-              
-              window.onerror = function(message, source, lineno, colno, error) {
-                console.error('JavaScript Error:', message, 'Line:', lineno);
-                if (statusEl) {
-                  statusEl.className = 'status error';
-                  statusEl.textContent = 'JS Error: ' + message;
-                }
-                return true;
-              };
-              
-              window.addEventListener('unhandledrejection', function(event) {
-                console.error('Promise Rejection:', event.reason);
-                if (statusEl) {
-                  statusEl.className = 'status error';
-                  statusEl.textContent = 'Promise Error';
-                }
-              });
-              
-              try {
-                console.log('Executing simulation code...');
-                ${data.jsCode}
-                
-                console.log('Simulation code executed successfully');
-                
-                setTimeout(() => {
-                  if (statusEl) {
-                    statusEl.className = 'status success';
-                    statusEl.textContent = 'Active';
-                    setTimeout(() => {
-                      statusEl.style.opacity = '0.5';
-                    }, 3000);
-                  }
-                }, 1500);
-                
-              } catch (error) {
-                console.error('Execution Error:', error);
-                if (statusEl) {
-                  statusEl.className = 'status error';
-                  statusEl.textContent = 'Error: ' + error.message;
-                }
-              }
-            </script>
-          </body>
-          </html>
-        `;
-        
-        console.log('Loading content into iframe...');
-        iframeRef.current.srcdoc = combinedContent;
-        
-        iframeRef.current.onload = () => {
-          console.log('iframe loaded successfully');
-        };
-        
-        iframeRef.current.onerror = (e) => {
-          console.error('iframe loading error:', e);
-        };
-      }
 
       if (inputPrompt) {
         setFollowUpPrompt('');
