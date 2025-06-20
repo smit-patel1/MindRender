@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../contexts/AuthProvider';
 import { supabase } from '../lib/supabaseClient';
-import { Play, LogOut, Send, Loader2, BookOpen, Monitor, MessageSquare } from 'lucide-react';
+import { Play, LogOut, Send, Loader2, BookOpen, Monitor, MessageSquare, AlertTriangle } from 'lucide-react';
 
 interface SimulationResponse {
   canvasHtml: string;
@@ -17,6 +17,8 @@ interface User {
   id: string;
 }
 
+const TOKEN_LIMIT = 2000;
+
 export default function Demo(): JSX.Element {
   const { user, loading: authLoading, error: authError, signOut } = useAuth();
   const [subject, setSubject] = useState<string>('Physics');
@@ -27,6 +29,9 @@ export default function Demo(): JSX.Element {
   const [error, setError] = useState<string | null>(null);
   const [tokenUsage, setTokenUsage] = useState<number>(0);
   const iframeRef = useRef<HTMLIFrameElement>(null);
+
+  const isTokenLimitReached = tokenUsage >= TOKEN_LIMIT;
+  const tokensRemaining = Math.max(0, TOKEN_LIMIT - tokenUsage);
 
   if (authLoading) {
     return (
@@ -79,6 +84,11 @@ export default function Demo(): JSX.Element {
   const handleRunSimulation = async (inputPrompt?: string): Promise<void> => {
     const currentPrompt = inputPrompt || prompt;
     if (!currentPrompt.trim()) return;
+    
+    if (isTokenLimitReached) {
+      setError(`Token limit reached (${tokenUsage}/${TOKEN_LIMIT}). Cannot run more simulations.`);
+      return;
+    }
     
     setLoading(true);
     setError(null);
@@ -163,8 +173,14 @@ export default function Demo(): JSX.Element {
       setSimulationData(data);
       
       if (data.usage?.totalTokens) {
-        setTokenUsage(prev => prev + data.usage!.totalTokens);
+        const newTokenUsage = tokenUsage + data.usage.totalTokens;
+        setTokenUsage(newTokenUsage);
         console.log('Tokens used this request:', data.usage.totalTokens);
+        console.log('Total tokens used:', newTokenUsage);
+        
+        if (newTokenUsage >= TOKEN_LIMIT) {
+          setError(`Token limit reached (${newTokenUsage}/${TOKEN_LIMIT}). This was your last simulation.`);
+        }
       } else {
         setTokenUsage(prev => prev + 1);
       }
@@ -324,6 +340,10 @@ export default function Demo(): JSX.Element {
 
   const handleFollowUpSubmit = async (): Promise<void> => {
     if (!followUpPrompt.trim()) return;
+    if (isTokenLimitReached) {
+      setError(`Token limit reached (${tokenUsage}/${TOKEN_LIMIT}). Cannot run more simulations.`);
+      return;
+    }
     await handleRunSimulation(followUpPrompt);
   };
 
@@ -359,10 +379,27 @@ export default function Demo(): JSX.Element {
           </div>
           
           <div className="flex items-center space-x-4">
-            <div className="bg-gray-700/50 rounded-lg px-3 py-1">
+            <div className={`rounded-lg px-3 py-1 ${
+              isTokenLimitReached 
+                ? 'bg-red-500/20 border border-red-500/30' 
+                : tokenUsage > TOKEN_LIMIT * 0.8
+                  ? 'bg-yellow-500/20 border border-yellow-500/30'
+                  : 'bg-gray-700/50'
+            }`}>
               <span className="text-sm text-gray-300">
-                Tokens: <span className="text-yellow-400 font-medium">{tokenUsage}</span> / 2000
+                Tokens: <span className={`font-medium ${
+                  isTokenLimitReached 
+                    ? 'text-red-400' 
+                    : tokenUsage > TOKEN_LIMIT * 0.8
+                      ? 'text-yellow-400'
+                      : 'text-yellow-400'
+                }`}>{tokenUsage}</span> / {TOKEN_LIMIT}
               </span>
+              {isTokenLimitReached && (
+                <div className="text-xs text-red-300 mt-1">
+                  Limit reached
+                </div>
+              )}
             </div>
             <div className="text-sm text-gray-300 hidden lg:block">{user.email}</div>
             <button
@@ -385,6 +422,30 @@ export default function Demo(): JSX.Element {
               <h2 className="text-sm font-semibold">Controls</h2>
             </div>
 
+            {isTokenLimitReached && (
+              <div className="bg-red-500/10 border border-red-500/20 rounded-lg p-3">
+                <div className="flex items-center space-x-2 mb-2">
+                  <AlertTriangle className="w-4 h-4 text-red-400" />
+                  <div className="text-red-400 font-medium text-sm">Token Limit Reached</div>
+                </div>
+                <div className="text-red-300 text-xs">
+                  You have used {tokenUsage} out of {TOKEN_LIMIT} tokens. Contact support to increase your limit.
+                </div>
+              </div>
+            )}
+
+            {!isTokenLimitReached && tokenUsage > TOKEN_LIMIT * 0.8 && (
+              <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-lg p-3">
+                <div className="flex items-center space-x-2 mb-2">
+                  <AlertTriangle className="w-4 h-4 text-yellow-400" />
+                  <div className="text-yellow-400 font-medium text-sm">Token Limit Warning</div>
+                </div>
+                <div className="text-yellow-300 text-xs">
+                  {tokensRemaining} tokens remaining. Use wisely.
+                </div>
+              </div>
+            )}
+
             <div>
               <label className="block text-sm font-medium text-gray-300 mb-2">
                 Subject Area
@@ -392,7 +453,8 @@ export default function Demo(): JSX.Element {
               <select
                 value={subject}
                 onChange={(e) => setSubject(e.target.value)}
-                className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white text-sm focus:ring-2 focus:ring-yellow-500 focus:border-transparent transition-colors"
+                disabled={isTokenLimitReached}
+                className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white text-sm focus:ring-2 focus:ring-yellow-500 focus:border-transparent transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <option value="Mathematics">Mathematics</option>
                 <option value="Physics">Physics</option>
@@ -409,7 +471,8 @@ export default function Demo(): JSX.Element {
                 value={prompt}
                 onChange={(e) => setPrompt(e.target.value)}
                 placeholder="Describe what you want to simulate..."
-                className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white h-28 resize-none text-sm focus:ring-2 focus:ring-yellow-500 focus:border-transparent transition-colors placeholder-gray-400"
+                disabled={isTokenLimitReached}
+                className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white h-28 resize-none text-sm focus:ring-2 focus:ring-yellow-500 focus:border-transparent transition-colors placeholder-gray-400 disabled:opacity-50 disabled:cursor-not-allowed"
               />
               <div className="text-xs text-gray-400 mt-1">
                 {prompt.length}/500 characters
@@ -418,13 +481,18 @@ export default function Demo(): JSX.Element {
 
             <button
               onClick={() => handleRunSimulation()}
-              disabled={loading || !prompt.trim()}
-              className="w-full bg-yellow-500 text-black py-3 rounded-lg hover:bg-yellow-400 transition-colors flex items-center justify-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed font-medium text-sm"
+              disabled={loading || !prompt.trim() || isTokenLimitReached}
+              className="w-full bg-yellow-500 text-black py-3 rounded-lg hover:bg-yellow-400 transition-colors flex items-center justify-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed font-medium text-sm disabled:bg-gray-600 disabled:text-gray-400"
             >
               {loading ? (
                 <>
                   <Loader2 className="w-4 h-4 animate-spin" />
                   <span>Running...</span>
+                </>
+              ) : isTokenLimitReached ? (
+                <>
+                  <AlertTriangle className="w-4 h-4" />
+                  <span>Token Limit Reached</span>
                 </>
               ) : (
                 <>
@@ -434,7 +502,7 @@ export default function Demo(): JSX.Element {
               )}
             </button>
 
-            {simulationData && (
+            {simulationData && !isTokenLimitReached && (
               <div className="pt-3 border-t border-gray-700">
                 <div className="flex items-center space-x-2 mb-2">
                   <MessageSquare className="w-4 h-4 text-blue-400" />
@@ -448,13 +516,14 @@ export default function Demo(): JSX.Element {
                     value={followUpPrompt}
                     onChange={(e) => setFollowUpPrompt(e.target.value)}
                     placeholder="Ask more..."
-                    className="flex-1 bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors placeholder-gray-400"
+                    disabled={isTokenLimitReached}
+                    className="flex-1 bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors placeholder-gray-400 disabled:opacity-50 disabled:cursor-not-allowed"
                     onKeyPress={(e) => e.key === 'Enter' && handleFollowUpSubmit()}
                   />
                   <button
                     onClick={handleFollowUpSubmit}
-                    disabled={loading || !followUpPrompt.trim()}
-                    className="bg-blue-500 text-white px-3 py-2 rounded-lg hover:bg-blue-400 transition-colors flex items-center disabled:opacity-50 disabled:cursor-not-allowed"
+                    disabled={loading || !followUpPrompt.trim() || isTokenLimitReached}
+                    className="bg-blue-500 text-white px-3 py-2 rounded-lg hover:bg-blue-400 transition-colors flex items-center disabled:opacity-50 disabled:cursor-not-allowed disabled:bg-gray-600"
                   >
                     <Send className="w-4 h-4" />
                   </button>
@@ -532,7 +601,10 @@ export default function Demo(): JSX.Element {
                     Ready to Simulate
                   </h3>
                   <p className="text-gray-600 text-lg leading-relaxed">
-                    Enter a prompt describing what you'd like to learn about, then click "Run Simulation" to see it come to life.
+                    {isTokenLimitReached 
+                      ? `Token limit reached (${tokenUsage}/${TOKEN_LIMIT}). Contact support to continue.`
+                      : "Enter a prompt describing what you'd like to learn about, then click 'Run Simulation' to see it come to life."
+                    }
                   </p>
                 </div>
               </div>
