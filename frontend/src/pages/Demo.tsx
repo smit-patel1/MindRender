@@ -26,176 +26,7 @@ export default function Demo(): JSX.Element {
   const [simulationData, setSimulationData] = useState<SimulationResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [tokenUsage, setTokenUsage] = useState<number>(0);
-  const [simulationTitle, setSimulationTitle] = useState<string>('');
   const iframeRef = useRef<HTMLIFrameElement>(null);
-
-  const buildIframeContent = (sim: SimulationResponse): string => `
-          <!DOCTYPE html>
-          <html lang="en">
-          <head>
-            <meta charset="UTF-8">
-            <meta name="viewport" content="width=device-width, initial-scale=1.0">
-            <title>MindRender Simulation</title>
-            <style>
-              * {
-                margin: 0;
-                padding: 0;
-                box-sizing: border-box;
-              }
-              html, body {
-                height: 100vh;
-                width: 100vw;
-                overflow: hidden;
-                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-                background: #f8fafc;
-                display: flex;
-                flex-direction: column;
-                align-items: center;
-                justify-content: center;
-              }
-              canvas {
-                border: 1px solid #e5e7eb;
-                border-radius: 8px;
-                background: white;
-                box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-                display: block !important;
-                margin: 0 auto;
-                max-width: calc(100vw - 40px);
-                max-height: calc(100vh - 40px);
-              }
-              .status {
-                position: fixed;
-                top: 10px;
-                right: 10px;
-                padding: 6px 12px;
-                border-radius: 4px;
-                font-size: 11px;
-                font-weight: 500;
-                z-index: 1000;
-                opacity: 0.9;
-              }
-              .status.loading {
-                background: #dbeafe;
-                color: #1e40af;
-              }
-              .status.success {
-                background: #d1fae5;
-                color: #059669;
-              }
-              .status.error {
-                background: #fee2e2;
-                color: #dc2626;
-              }
-              .error-display {
-                position: fixed;
-                bottom: 10px;
-                left: 10px;
-                right: 10px;
-                background: #fee2e2;
-                border: 1px solid #fecaca;
-                border-radius: 8px;
-                padding: 12px;
-                font-family: monospace;
-                font-size: 12px;
-                color: #dc2626;
-                max-height: 200px;
-                overflow-y: auto;
-                z-index: 1001;
-                white-space: pre-wrap;
-                word-break: break-word;
-              }
-            </style>
-          </head>
-          <body>
-            <div class="status loading" id="status">Loading...</div>
-            ${sim.canvasHtml}
-            <script>
-              console.log('Iframe script starting...');
-
-              const statusEl = document.getElementById('status');
-              let canvas = null;
-              let errorContainer = null;
-
-              function showError(message, details = '') {
-                console.error('Error:', message, details);
-                if (!errorContainer) {
-                  errorContainer = document.createElement('div');
-                  errorContainer.className = 'error-display';
-                  document.body.appendChild(errorContainer);
-                }
-                const timestamp = new Date().toLocaleTimeString();
-                const errorText = timestamp + ' - ' + message + (details ? '\\n' + details : '');
-                errorContainer.textContent = errorContainer.textContent + '\\n' + errorText;
-                
-                if (statusEl) {
-                  statusEl.className = 'status error';
-                  statusEl.textContent = 'Error occurred';
-                }
-              }
-
-              window.onerror = function(message, source, lineno, colno, error) {
-                const details = 'Line: ' + lineno + (colno ? ', Column: ' + colno : '') + 
-                               (error && error.stack ? '\\nStack: ' + error.stack : '');
-                showError('JavaScript Error: ' + message, details);
-                return true;
-              };
-
-              window.addEventListener('unhandledrejection', function(event) {
-                const reason = event.reason;
-                const details = reason && reason.stack ? reason.stack : String(reason);
-                showError('Promise Rejection: ' + (reason.message || reason), details);
-              });
-
-              setTimeout(() => {
-                canvas = document.querySelector('canvas');
-                if (canvas) {
-                  console.log('Canvas found:', canvas.id, canvas.width + 'x' + canvas.height);
-                  canvas.style.display = 'block';
-                  canvas.style.margin = '0 auto';
-                } else {
-                  showError('No canvas element found in DOM');
-                }
-              }, 100);
-
-              try {
-                console.log('Executing simulation code...');
-                ${sim.jsCode}
-
-                console.log('Simulation code executed successfully');
-
-                setTimeout(() => {
-                  if (statusEl && !errorContainer) {
-                    statusEl.className = 'status success';
-                    statusEl.textContent = 'Active';
-                    setTimeout(() => {
-                      statusEl.style.opacity = '0.5';
-                    }, 3000);
-                  }
-                }, 1500);
-
-              } catch (error) {
-                const details = error.stack || error.toString();
-                showError('Execution Error: ' + error.message, details);
-              }
-            </script>
-          </body>
-          </html>`;
-
-  useEffect(() => {
-    if (simulationData && iframeRef.current) {
-      console.log('Loading content into iframe...');
-      const content = buildIframeContent(simulationData);
-      iframeRef.current.srcdoc = content;
-
-      iframeRef.current.onload = () => {
-        console.log('iframe loaded successfully');
-      };
-
-      iframeRef.current.onerror = (e) => {
-        console.error('iframe loading error:', e);
-      };
-    }
-  }, [simulationData]);
 
   if (authLoading) {
     return (
@@ -315,8 +146,7 @@ export default function Demo(): JSX.Element {
         jsLength: data.jsCode?.length || 0,
         hasExplanation: !!data.explanation,
         explanationLength: data.explanation?.length || 0,
-        hasUsage: !!data.usage,
-        totalTokens: data.usage?.totalTokens || 0,
+        tokensUsed: data.usage?.totalTokens || 0,
         hasError: !!(data as any).error
       });
 
@@ -333,13 +163,152 @@ export default function Demo(): JSX.Element {
       setSimulationData(data);
       
       if (data.usage?.totalTokens) {
-        setTokenUsage(prev => prev + data.usage.totalTokens);
+        setTokenUsage(prev => prev + data.usage!.totalTokens);
+        console.log('Tokens used this request:', data.usage.totalTokens);
+      } else {
+        setTokenUsage(prev => prev + 1);
       }
 
-      const title = currentPrompt.length > 50 
-        ? currentPrompt.substring(0, 47) + '...' 
-        : currentPrompt;
-      setSimulationTitle(title);
+      if (iframeRef.current) {
+        const combinedContent = `
+          <!DOCTYPE html>
+          <html lang="en">
+          <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>MindRender Simulation</title>
+            <style>
+              * {
+                margin: 0;
+                padding: 0;
+                box-sizing: border-box;
+              }
+              html, body {
+                height: 100vh;
+                width: 100vw;
+                overflow: hidden;
+                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+                background: #f8fafc;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                justify-content: center;
+              }
+              canvas {
+                border: 1px solid #e5e7eb;
+                border-radius: 8px;
+                background: white;
+                box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+                display: block !important;
+                margin: 0 auto;
+                max-width: calc(100vw - 40px);
+                max-height: calc(100vh - 40px);
+              }
+              .status {
+                position: fixed;
+                top: 10px;
+                right: 10px;
+                padding: 6px 12px;
+                border-radius: 4px;
+                font-size: 11px;
+                font-weight: 500;
+                z-index: 1000;
+                opacity: 0.9;
+              }
+              .status.loading {
+                background: #dbeafe;
+                color: #1e40af;
+              }
+              .status.success {
+                background: #d1fae5;
+                color: #059669;
+              }
+              .status.error {
+                background: #fee2e2;
+                color: #dc2626;
+              }
+            </style>
+          </head>
+          <body>
+            <div class="status loading" id="status">Loading...</div>
+            ${data.canvasHtml}
+            <script>
+              console.log('Iframe script starting...');
+              
+              const statusEl = document.getElementById('status');
+              let canvas = null;
+              
+              setTimeout(() => {
+                canvas = document.querySelector('canvas');
+                if (canvas) {
+                  console.log('Canvas found:', canvas.id, canvas.width + 'x' + canvas.height);
+                  canvas.style.display = 'block';
+                  canvas.style.margin = '0 auto';
+                } else {
+                  console.error('No canvas element found in DOM');
+                  if (statusEl) {
+                    statusEl.className = 'status error';
+                    statusEl.textContent = 'Canvas not found';
+                  }
+                }
+              }, 100);
+              
+              window.onerror = function(message, source, lineno, colno, error) {
+                console.error('JavaScript Error:', message, 'Line:', lineno);
+                if (statusEl) {
+                  statusEl.className = 'status error';
+                  statusEl.textContent = 'JS Error: ' + message;
+                }
+                return true;
+              };
+              
+              window.addEventListener('unhandledrejection', function(event) {
+                console.error('Promise Rejection:', event.reason);
+                if (statusEl) {
+                  statusEl.className = 'status error';
+                  statusEl.textContent = 'Promise Error';
+                }
+              });
+              
+              try {
+                console.log('Executing simulation code...');
+                ${data.jsCode}
+                
+                console.log('Simulation code executed successfully');
+                
+                setTimeout(() => {
+                  if (statusEl) {
+                    statusEl.className = 'status success';
+                    statusEl.textContent = 'Active';
+                    setTimeout(() => {
+                      statusEl.style.opacity = '0.5';
+                    }, 3000);
+                  }
+                }, 1500);
+                
+              } catch (error) {
+                console.error('Execution Error:', error);
+                if (statusEl) {
+                  statusEl.className = 'status error';
+                  statusEl.textContent = 'Error: ' + error.message;
+                }
+              }
+            </script>
+          </body>
+          </html>
+        `;
+        
+        console.log('Loading content into iframe...');
+        iframeRef.current.srcdoc = combinedContent;
+        
+        iframeRef.current.onload = () => {
+          console.log('iframe loaded successfully');
+        };
+        
+        iframeRef.current.onerror = (e) => {
+          console.error('iframe loading error:', e);
+        };
+      }
 
       if (inputPrompt) {
         setFollowUpPrompt('');
@@ -371,7 +340,6 @@ export default function Demo(): JSX.Element {
     setPrompt('');
     setFollowUpPrompt('');
     setError(null);
-    setSimulationTitle('');
     if (iframeRef.current) {
       iframeRef.current.srcdoc = '';
       iframeRef.current.src = 'about:blank';
@@ -410,22 +378,21 @@ export default function Demo(): JSX.Element {
 
       <div className="grid grid-cols-12 h-[calc(100vh-73px)]">
         
-        <div className="col-span-12 md:col-span-3 lg:col-span-2 xl:col-span-2 bg-gray-800 border-r border-gray-700 flex flex-col h-full">
-          <div className="p-3 space-y-3 flex-1 overflow-y-auto">
-            <div className="flex items-center space-x-2 pb-2 border-b border-gray-700">
-              <Monitor className="w-4 h-4 text-yellow-500" />
+        <div className="col-span-12 md:col-span-4 lg:col-span-3 xl:col-span-3 bg-gray-800 border-r border-gray-700 flex flex-col h-full">
+          <div className="p-4 space-y-4 flex-1 overflow-y-auto">
+            <div className="flex items-center space-x-2 pb-3 border-b border-gray-700">
+              <Monitor className="w-5 h-5 text-yellow-500" />
               <h2 className="text-sm font-semibold">Controls</h2>
             </div>
 
             <div>
-              <label className="block text-xs font-medium text-gray-300 mb-1">
+              <label className="block text-sm font-medium text-gray-300 mb-2">
                 Subject Area
               </label>
               <select
                 value={subject}
                 onChange={(e) => setSubject(e.target.value)}
-                disabled={loading}
-                className="w-full bg-gray-700 border border-gray-600 rounded-lg px-2 py-1.5 text-white text-xs focus:ring-2 focus:ring-yellow-500 focus:border-transparent transition-colors disabled:opacity-50"
+                className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white text-sm focus:ring-2 focus:ring-yellow-500 focus:border-transparent transition-colors"
               >
                 <option value="Mathematics">Mathematics</option>
                 <option value="Physics">Physics</option>
@@ -435,15 +402,14 @@ export default function Demo(): JSX.Element {
             </div>
 
             <div>
-              <label className="block text-xs font-medium text-gray-300 mb-1">
+              <label className="block text-sm font-medium text-gray-300 mb-2">
                 Simulation Prompt
               </label>
               <textarea
                 value={prompt}
                 onChange={(e) => setPrompt(e.target.value)}
-                disabled={loading}
                 placeholder="Describe what you want to simulate..."
-                className="w-full bg-gray-700 border border-gray-600 rounded-lg px-2 py-1.5 text-white h-20 resize-none text-xs focus:ring-2 focus:ring-yellow-500 focus:border-transparent transition-colors placeholder-gray-400 disabled:opacity-50"
+                className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white h-28 resize-none text-sm focus:ring-2 focus:ring-yellow-500 focus:border-transparent transition-colors placeholder-gray-400"
               />
               <div className="text-xs text-gray-400 mt-1">
                 {prompt.length}/500 characters
@@ -453,45 +419,44 @@ export default function Demo(): JSX.Element {
             <button
               onClick={() => handleRunSimulation()}
               disabled={loading || !prompt.trim()}
-              className="w-full bg-yellow-500 text-black py-2 rounded-lg hover:bg-yellow-400 transition-colors flex items-center justify-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed font-medium text-xs"
+              className="w-full bg-yellow-500 text-black py-3 rounded-lg hover:bg-yellow-400 transition-colors flex items-center justify-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed font-medium text-sm"
             >
               {loading ? (
                 <>
-                  <Loader2 className="w-3 h-3 animate-spin" />
+                  <Loader2 className="w-4 h-4 animate-spin" />
                   <span>Running...</span>
                 </>
               ) : (
                 <>
-                  <Play className="w-3 h-3" />
+                  <Play className="w-4 h-4" />
                   <span>Run Simulation</span>
                 </>
               )}
             </button>
 
             {simulationData && (
-              <div className="pt-2 border-t border-gray-700">
+              <div className="pt-3 border-t border-gray-700">
                 <div className="flex items-center space-x-2 mb-2">
-                  <MessageSquare className="w-3 h-3 text-blue-400" />
-                  <label className="text-xs font-medium text-gray-300">
+                  <MessageSquare className="w-4 h-4 text-blue-400" />
+                  <label className="text-sm font-medium text-gray-300">
                     Follow-up
                   </label>
                 </div>
-                <div className="flex space-x-1">
+                <div className="flex space-x-2">
                   <input
                     type="text"
                     value={followUpPrompt}
                     onChange={(e) => setFollowUpPrompt(e.target.value)}
-                    disabled={loading}
                     placeholder="Ask more..."
-                    className="flex-1 bg-gray-700 border border-gray-600 rounded-lg px-2 py-1.5 text-white text-xs focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors placeholder-gray-400 disabled:opacity-50"
-                    onKeyPress={(e) => e.key === 'Enter' && !loading && handleFollowUpSubmit()}
+                    className="flex-1 bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors placeholder-gray-400"
+                    onKeyPress={(e) => e.key === 'Enter' && handleFollowUpSubmit()}
                   />
                   <button
                     onClick={handleFollowUpSubmit}
                     disabled={loading || !followUpPrompt.trim()}
-                    className="bg-blue-500 text-white px-2 py-1.5 rounded-lg hover:bg-blue-400 transition-colors flex items-center disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="bg-blue-500 text-white px-3 py-2 rounded-lg hover:bg-blue-400 transition-colors flex items-center disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    <Send className="w-3 h-3" />
+                    <Send className="w-4 h-4" />
                   </button>
                 </div>
               </div>
@@ -500,23 +465,22 @@ export default function Demo(): JSX.Element {
             {simulationData && (
               <button
                 onClick={handleNewSimulation}
-                disabled={loading}
-                className="w-full bg-gray-600 text-white py-1.5 px-2 rounded-lg hover:bg-gray-500 transition-colors text-xs disabled:opacity-50"
+                className="w-full bg-gray-600 text-white py-2 px-3 rounded-lg hover:bg-gray-500 transition-colors text-sm"
               >
                 New Simulation
               </button>
             )}
 
             {error && (
-              <div className="bg-red-500/10 border border-red-500/20 rounded-lg p-2">
+              <div className="bg-red-500/10 border border-red-500/20 rounded-lg p-3">
                 <div className="flex items-start space-x-2">
-                  <div className="text-red-400 mt-0.5 text-xs">Warning</div>
+                  <div className="text-red-400 mt-0.5 text-sm">Warning</div>
                   <div>
-                    <div className="text-red-400 font-medium text-xs">Error</div>
-                    <div className="text-red-300 text-xs mt-1 break-words">{error}</div>
+                    <div className="text-red-400 font-medium text-sm">Error</div>
+                    <div className="text-red-300 text-sm mt-1 break-words">{error}</div>
                     <button
                       onClick={() => setError(null)}
-                      className="text-red-400 hover:text-red-300 text-xs mt-1 underline"
+                      className="text-red-400 hover:text-red-300 text-sm mt-1 underline"
                     >
                       Dismiss
                     </button>
@@ -527,22 +491,13 @@ export default function Demo(): JSX.Element {
           </div>
         </div>
 
-        <div className="col-span-12 md:col-span-6 lg:col-span-7 xl:col-span-7 bg-white border-r border-gray-300 flex flex-col h-full">
+        <div className="col-span-12 md:col-span-5 lg:col-span-6 xl:col-span-6 bg-white border-r border-gray-300 flex flex-col h-full">
           <div className="bg-gray-50 border-b border-gray-200 px-4 py-3 flex-shrink-0">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-2">
-                <Monitor className="w-5 h-5 text-gray-600" />
-                <div>
-                  <h2 className="text-lg font-semibold text-gray-800">Simulation Viewer</h2>
-                  {simulationTitle && (
-                    <div className="text-sm text-gray-600 mt-0.5">
-                      {subject}: {simulationTitle}
-                    </div>
-                  )}
-                </div>
-              </div>
+            <div className="flex items-center space-x-2">
+              <Monitor className="w-5 h-5 text-gray-600" />
+              <h2 className="text-lg font-semibold text-gray-800">Simulation Viewer</h2>
               {simulationData && (
-                <div>
+                <div className="ml-auto">
                   <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded-full">
                     Active
                   </span>
@@ -552,21 +507,7 @@ export default function Demo(): JSX.Element {
           </div>
           
           <div className="flex-1 relative overflow-hidden bg-gray-50">
-            {loading ? (
-              <div className="h-full flex items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100">
-                <div className="text-center max-w-md">
-                  <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <Loader2 className="w-8 h-8 text-blue-500 animate-spin" />
-                  </div>
-                  <h3 className="text-xl font-semibold text-gray-800 mb-2">
-                    Generating simulation...
-                  </h3>
-                  <p className="text-gray-600">
-                    Creating your interactive visualization. This may take a moment.
-                  </p>
-                </div>
-              </div>
-            ) : simulationData ? (
+            {simulationData ? (
               <iframe
                 ref={iframeRef}
                 id="simulation-iframe"
@@ -614,7 +555,7 @@ export default function Demo(): JSX.Element {
             </div>
           </div>
           
-          <div className="flex-1 overflow-y-auto overflow-x-hidden p-4" style={{ scrollbarWidth: 'thin' }}>
+          <div className="flex-1 overflow-y-auto overflow-x-hidden p-4">
             {simulationData?.explanation ? (
               <div className="prose prose-sm max-w-none">
                 <div className="bg-white rounded-lg p-4 shadow-sm border border-gray-200">
@@ -623,20 +564,12 @@ export default function Demo(): JSX.Element {
                     style={{
                       wordWrap: 'break-word',
                       overflowWrap: 'break-word',
-                      wordBreak: 'break-word',
-                      lineHeight: '1.6'
+                      wordBreak: 'break-word'
                     }}
                     dangerouslySetInnerHTML={{ 
                       __html: simulationData.explanation.replace(/\n/g, '<br/>') 
                     }}
                   />
-                </div>
-              </div>
-            ) : simulationData && !simulationData.explanation ? (
-              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-                <div className="text-yellow-800 text-sm">
-                  <div className="font-medium mb-1">No explanation generated</div>
-                  <div>Try modifying your prompt to get a more detailed explanation of the simulation.</div>
                 </div>
               </div>
             ) : (
