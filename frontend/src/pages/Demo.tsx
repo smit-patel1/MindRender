@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../contexts/AuthProvider';
 import { supabase } from '../lib/supabaseClient';
-import { Play, LogOut, Send, Loader2, BookOpen, Monitor, MessageSquare, AlertTriangle, Menu, X } from 'lucide-react';
+import { Play, LogOut, Send, Loader2, BookOpen, Monitor, MessageSquare, AlertTriangle, Menu, X, Sparkles } from 'lucide-react';
 
 interface SimulationResponse {
   canvasHtml: string;
@@ -19,6 +19,51 @@ interface User {
 
 const TOKEN_LIMIT = 2000;
 
+// Generate context-aware follow-up questions based on the simulation
+const generateFollowUpQuestions = (prompt: string, subject: string): string[] => {
+  const baseQuestions = [
+    "Can you explain this in simpler terms?",
+    "What are the real-world applications?",
+    "How does this compare to other methods?",
+    "What would happen if we changed the parameters?"
+  ];
+
+  // Subject-specific questions
+  const subjectQuestions: Record<string, string[]> = {
+    Physics: [
+      "What forces are acting in this simulation?",
+      "How would this change in a vacuum?",
+      "What's the mathematical equation behind this?",
+      "How does friction affect the outcome?"
+    ],
+    Mathematics: [
+      "Can you show the step-by-step calculation?",
+      "What's the geometric interpretation?",
+      "How does this relate to other mathematical concepts?",
+      "What happens at the boundary conditions?"
+    ],
+    Chemistry: [
+      "What chemical bonds are involved?",
+      "How does temperature affect this reaction?",
+      "What are the molecular interactions?",
+      "What catalysts could speed this up?"
+    ],
+    Biology: [
+      "What cellular processes are involved?",
+      "How does this relate to evolution?",
+      "What environmental factors affect this?",
+      "How does this vary across species?"
+    ]
+  };
+
+  // Combine base questions with subject-specific ones
+  const allQuestions = [...baseQuestions, ...(subjectQuestions[subject] || [])];
+  
+  // Select 3-4 random questions
+  const shuffled = allQuestions.sort(() => 0.5 - Math.random());
+  return shuffled.slice(0, Math.floor(Math.random() * 2) + 3); // 3-4 questions
+};
+
 export default function Demo(): JSX.Element {
   const { user, loading: authLoading, error: authError, signOut } = useAuth();
   const [subject, setSubject] = useState<string>('Physics');
@@ -29,6 +74,7 @@ export default function Demo(): JSX.Element {
   const [error, setError] = useState<string | null>(null);
   const [tokenUsage, setTokenUsage] = useState<number>(0);
   const [mobileMenuOpen, setMobileMenuOpen] = useState<boolean>(false);
+  const [followUpQuestions, setFollowUpQuestions] = useState<string[]>([]);
   const iframeRef = useRef<HTMLIFrameElement>(null);
 
   const isTokenLimitReached = tokenUsage >= TOKEN_LIMIT;
@@ -434,6 +480,10 @@ export default function Demo(): JSX.Element {
       console.log('Setting simulation data...');
       setSimulationData(data);
       
+      // Generate follow-up questions based on the current prompt and subject
+      const questions = generateFollowUpQuestions(currentPrompt, subject);
+      setFollowUpQuestions(questions);
+      
       if (data.usage?.totalTokens) {
         const newTokenUsage = tokenUsage + data.usage.totalTokens;
         setTokenUsage(newTokenUsage);
@@ -468,6 +518,14 @@ export default function Demo(): JSX.Element {
     await handleRunSimulation(followUpPrompt);
   };
 
+  const handleFollowUpQuestionClick = async (question: string): Promise<void> => {
+    if (isTokenLimitReached) {
+      setError(`Token limit reached (${tokenUsage}/${TOKEN_LIMIT}). Cannot run more simulations.`);
+      return;
+    }
+    await handleRunSimulation(question);
+  };
+
   const handleSignOut = async (): Promise<void> => {
     try {
       await signOut();
@@ -478,6 +536,7 @@ export default function Demo(): JSX.Element {
 
   const handleNewSimulation = (): void => {
     setSimulationData(null);
+    setFollowUpQuestions([]);
     setPrompt('');
     setFollowUpPrompt('');
     setError(null);
@@ -606,6 +665,29 @@ export default function Demo(): JSX.Element {
                 className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white h-20 resize-none text-sm focus:ring-2 focus:ring-yellow-500 focus:border-transparent transition-colors placeholder-gray-400 disabled:opacity-50 disabled:cursor-not-allowed"
               />
             </div>
+
+            {simulationData && followUpQuestions.length > 0 && !isTokenLimitReached && (
+              <div className="pt-2 border-t border-gray-700">
+                <div className="flex items-center space-x-2 mb-3">
+                  <Sparkles className="w-4 h-4 text-blue-400" />
+                  <label className="text-sm font-medium text-gray-300">
+                    Follow Up Questions
+                  </label>
+                </div>
+                <div className="space-y-2">
+                  {followUpQuestions.map((question, index) => (
+                    <button
+                      key={index}
+                      onClick={() => handleFollowUpQuestionClick(question)}
+                      disabled={loading || isTokenLimitReached}
+                      className="w-full text-left bg-blue-500/10 border border-blue-500/20 text-blue-300 px-3 py-2 rounded-lg hover:bg-blue-500/20 transition-colors text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {question}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
 
             <button
               onClick={() => handleRunSimulation()}
@@ -834,6 +916,29 @@ export default function Demo(): JSX.Element {
                   {prompt.length}/500 characters
                 </div>
               </div>
+
+              {simulationData && followUpQuestions.length > 0 && !isTokenLimitReached && (
+                <div className="pt-3 border-t border-gray-700">
+                  <div className="flex items-center space-x-2 mb-3">
+                    <Sparkles className="w-4 h-4 text-blue-400" />
+                    <label className="text-sm font-medium text-gray-300">
+                      Follow Up Questions
+                    </label>
+                  </div>
+                  <div className="space-y-2">
+                    {followUpQuestions.map((question, index) => (
+                      <button
+                        key={index}
+                        onClick={() => handleFollowUpQuestionClick(question)}
+                        disabled={loading || isTokenLimitReached}
+                        className="w-full text-left bg-blue-500/10 border border-blue-500/20 text-blue-300 px-3 py-2 rounded-lg hover:bg-blue-500/20 transition-colors text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        {question}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
 
               <button
                 onClick={() => handleRunSimulation()}
