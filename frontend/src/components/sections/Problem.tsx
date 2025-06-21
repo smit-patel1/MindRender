@@ -21,11 +21,11 @@ export default function Problem() {
             </p>
           </div>
           <div className="bg-white p-8 rounded-2xl shadow-lg">
-            <div className="aspect-square rounded-xl overflow-hidden flex items-center justify-center">
+            <div className="aspect-square rounded-xl overflow-hidden flex items-center justify-center bg-gradient-to-br from-teal-400 to-teal-600">
               <img 
-                src="/image.png" 
-                alt="AI Brain with Digital Neural Networks - Representing MindRender's AI-powered simulation technology"
-                className="w-full h-full object-cover rounded-xl"
+                src="/image copy.png" 
+                alt="MindRender Interface - Generate interactive simulations from text prompts with visual explanations"
+                className="w-full h-full object-contain rounded-xl"
                 loading="lazy"
               />
             </div>
