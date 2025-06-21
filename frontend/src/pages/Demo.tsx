@@ -108,6 +108,7 @@ export default function Demo(): JSX.Element {
                 max-height: 100px;
                 overflow-y: auto;
                 white-space: pre-wrap;
+                font-family: monospace;
               }
             </style>
           </head>
@@ -120,96 +121,151 @@ export default function Demo(): JSX.Element {
                 
                 console.log('Iframe script starting...');
                 
-                const statusEl = document.getElementById('status');
+                var statusEl = document.getElementById('status');
+                var errorCount = 0;
+                var maxErrors = 5;
                 
                 function showError(message) {
-                  console.error('Simulation Error:', message);
+                  errorCount++;
+                  console.error('Simulation Error #' + errorCount + ':', message);
                   
-                  let errorDiv = document.querySelector('.error-display');
+                  var errorDiv = document.querySelector('.error-display');
                   if (!errorDiv) {
                     errorDiv = document.createElement('div');
                     errorDiv.className = 'error-display';
                     document.body.appendChild(errorDiv);
                   }
-                  errorDiv.textContent = message;
+                  
+                  var errorText = 'Error #' + errorCount + ': ' + message;
+                  if (errorCount > 1) {
+                    errorDiv.textContent = errorDiv.textContent + '\\n' + errorText;
+                  } else {
+                    errorDiv.textContent = errorText;
+                  }
                   
                   if (statusEl) {
                     statusEl.className = 'status error';
-                    statusEl.textContent = 'Error';
+                    statusEl.textContent = 'Error (' + errorCount + ')';
                   }
+                  
+                  if (errorCount >= maxErrors) {
+                    console.error('Maximum error count reached, stopping execution');
+                    return false;
+                  }
+                  return true;
                 }
                 
                 window.onerror = function(message, source, lineno, colno, error) {
-                  showError('JS Error: ' + message + ' (Line: ' + lineno + ')');
-                  return true;
+                  var errorMsg = 'JS Error: ' + message;
+                  if (lineno) errorMsg += ' (Line: ' + lineno + ')';
+                  return showError(errorMsg);
                 };
                 
                 window.addEventListener('unhandledrejection', function(event) {
-                  showError('Promise Error: ' + event.reason);
+                  showError('Promise Error: ' + (event.reason || 'Unknown promise rejection'));
                 });
                 
-                function waitForCanvas(callback, maxAttempts = 50) {
-                  let attempts = 0;
+                function waitForCanvas(callback, maxAttempts) {
+                  maxAttempts = maxAttempts || 100;
+                  var attempts = 0;
                   
                   function checkCanvas() {
                     attempts++;
-                    const canvas = document.querySelector('canvas');
+                    var canvasElement = document.querySelector('canvas');
                     
-                    if (canvas) {
-                      console.log('Canvas found after', attempts, 'attempts:', canvas.id || 'no-id', canvas.width + 'x' + canvas.height);
-                      callback(canvas);
+                    if (canvasElement) {
+                      console.log('Canvas found after', attempts, 'attempts');
+                      console.log('Canvas details:', {
+                        id: canvasElement.id || 'no-id',
+                        width: canvasElement.width,
+                        height: canvasElement.height,
+                        tagName: canvasElement.tagName
+                      });
+                      
+                      canvasElement.style.display = 'block';
+                      canvasElement.style.margin = '0 auto';
+                      
+                      try {
+                        callback(canvasElement);
+                      } catch (callbackError) {
+                        showError('Callback execution error: ' + callbackError.message);
+                      }
                     } else if (attempts < maxAttempts) {
-                      setTimeout(checkCanvas, 50);
+                      setTimeout(checkCanvas, 25);
                     } else {
-                      showError('Canvas element not found after ' + maxAttempts + ' attempts');
+                      showError('Canvas element not found after ' + maxAttempts + ' attempts. HTML content: ' + document.body.innerHTML.substring(0, 200));
                     }
                   }
                   
                   checkCanvas();
                 }
                 
+                function executeSimulationCode(canvasElement) {
+                  try {
+                    console.log('Executing simulation code with canvas:', canvasElement);
+                    
+                    var simulationFunction = new Function('canvas', \`
+                      try {
+                        ${simulationData.jsCode.replace(/`/g, '\\`').replace(/\$/g, '\\$')}
+                      } catch (execError) {
+                        throw new Error('Simulation execution failed: ' + execError.message);
+                      }
+                    \`);
+                    
+                    simulationFunction(canvasElement);
+                    
+                    console.log('Simulation code executed successfully');
+                    
+                    if (statusEl) {
+                      statusEl.className = 'status success';
+                      statusEl.textContent = 'Active';
+                      setTimeout(function() {
+                        statusEl.style.opacity = '0.5';
+                      }, 3000);
+                    }
+                    
+                  } catch (error) {
+                    showError('Code execution error: ' + error.message);
+                  }
+                }
+                
                 function initializeSimulation() {
                   try {
                     console.log('Starting simulation initialization...');
                     
-                    waitForCanvas(function(canvas) {
-                      try {
-                        canvas.style.display = 'block';
-                        canvas.style.margin = '0 auto';
-                        
-                        console.log('Executing simulation code...');
-                        
-                        (function() {
-                          ${simulationData.jsCode}
-                        })();
-                        
-                        console.log('Simulation code executed successfully');
-                        
-                        if (statusEl) {
-                          statusEl.className = 'status success';
-                          statusEl.textContent = 'Active';
-                          setTimeout(function() {
-                            statusEl.style.opacity = '0.5';
-                          }, 3000);
-                        }
-                        
-                      } catch (error) {
-                        showError('Execution Error: ' + error.message);
+                    if (statusEl) {
+                      statusEl.className = 'status loading';
+                      statusEl.textContent = 'Initializing...';
+                    }
+                    
+                    waitForCanvas(function(canvasElement) {
+                      if (statusEl) {
+                        statusEl.textContent = 'Executing...';
                       }
-                    });
+                      
+                      setTimeout(function() {
+                        executeSimulationCode(canvasElement);
+                      }, 50);
+                    }, 100);
                     
                   } catch (error) {
-                    showError('Initialization Error: ' + error.message);
+                    showError('Initialization error: ' + error.message);
                   }
                 }
                 
-                if (document.readyState === 'loading') {
-                  document.addEventListener('DOMContentLoaded', function() {
+                function startWhenReady() {
+                  if (document.readyState === 'loading') {
+                    document.addEventListener('DOMContentLoaded', function() {
+                      setTimeout(initializeSimulation, 200);
+                    });
+                  } else if (document.readyState === 'interactive') {
                     setTimeout(initializeSimulation, 100);
-                  });
-                } else {
-                  setTimeout(initializeSimulation, 100);
+                  } else {
+                    setTimeout(initializeSimulation, 50);
+                  }
                 }
+                
+                startWhenReady();
                 
               })();
             </script>
