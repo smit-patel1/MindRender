@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../contexts/AuthProvider';
 import { supabase } from '../lib/supabaseClient';
-import { Play, LogOut, Send, Loader2, BookOpen, Monitor, MessageSquare, AlertTriangle, Menu, X, Sparkles } from 'lucide-react';
+import { Play, LogOut, Send, Loader2, BookOpen, Monitor, MessageSquare, AlertTriangle, Menu, X } from 'lucide-react';
 
 interface SimulationResponse {
   canvasHtml: string;
@@ -17,61 +17,7 @@ interface User {
   id: string;
 }
 
-interface TokenUsageRecord {
-  id: string;
-  user_id: string;
-  tokens_used: number;
-  prompt: string;
-  created_at: string;
-}
-
 const TOKEN_LIMIT = 2000;
-const ESTIMATED_TOKENS_PER_PROMPT = 150; // Conservative estimate for validation
-
-// Generate context-aware follow-up questions based on the simulation
-const generateFollowUpQuestions = (prompt: string, subject: string): string[] => {
-  const baseQuestions = [
-    "Can you explain this in simpler terms?",
-    "What are the real-world applications?",
-    "How does this compare to other methods?",
-    "What would happen if we changed the parameters?"
-  ];
-
-  // Subject-specific questions
-  const subjectQuestions: Record<string, string[]> = {
-    Physics: [
-      "What forces are acting in this simulation?",
-      "How would this change in a vacuum?",
-      "What's the mathematical equation behind this?",
-      "How does friction affect the outcome?"
-    ],
-    Mathematics: [
-      "Can you show the step-by-step calculation?",
-      "What's the geometric interpretation?",
-      "How does this relate to other mathematical concepts?",
-      "What happens at the boundary conditions?"
-    ],
-    Chemistry: [
-      "What chemical bonds are involved?",
-      "How does temperature affect this reaction?",
-      "What are the molecular interactions?",
-      "What catalysts could speed this up?"
-    ],
-    Biology: [
-      "What cellular processes are involved?",
-      "How does this relate to evolution?",
-      "What environmental factors affect this?",
-      "How does this vary across species?"
-    ]
-  };
-
-  // Combine base questions with subject-specific ones
-  const allQuestions = [...baseQuestions, ...(subjectQuestions[subject] || [])];
-  
-  // Select 3-4 random questions
-  const shuffled = allQuestions.sort(() => 0.5 - Math.random());
-  return shuffled.slice(0, Math.floor(Math.random() * 2) + 3); // 3-4 questions
-};
 
 export default function Demo(): JSX.Element {
   const { user, loading: authLoading, error: authError, signOut } = useAuth();
@@ -81,410 +27,19 @@ export default function Demo(): JSX.Element {
   const [loading, setLoading] = useState<boolean>(false);
   const [simulationData, setSimulationData] = useState<SimulationResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
-  
-  // Token tracking state
-  const [totalTokenUsage, setTotalTokenUsage] = useState<number>(0);
-  const [tokenUsageLoading, setTokenUsageLoading] = useState<boolean>(false);
-  const [tokenUsageError, setTokenUsageError] = useState<string | null>(null);
-  
+  const [tokenUsage, setTokenUsage] = useState<number>(0);
   const [mobileMenuOpen, setMobileMenuOpen] = useState<boolean>(false);
-  const [followUpQuestions, setFollowUpQuestions] = useState<string[]>([]);
   const iframeRef = useRef<HTMLIFrameElement>(null);
 
-  const isTokenLimitReached = totalTokenUsage >= TOKEN_LIMIT;
-  const tokensRemaining = Math.max(0, TOKEN_LIMIT - totalTokenUsage);
+  const isTokenLimitReached = tokenUsage >= TOKEN_LIMIT;
+  const tokensRemaining = Math.max(0, TOKEN_LIMIT - tokenUsage);
 
-  // Fetch user's total token usage from database
-  const fetchUserTokenUsage = async (): Promise<number> => {
-    if (!user) {
-      console.log('TokenTracker: No user found, returning 0 tokens');
-      return 0;
-    }
-
-    try {
-      console.log('TokenTracker: Fetching token usage for user:', user.email);
-      setTokenUsageLoading(true);
-      setTokenUsageError(null);
-
-      const { data, error } = await supabase
-        .from('token_usage')
-        .select('tokens_used')
-        .eq('user_id', user.id);
-
-      if (error) {
-        console.error('TokenTracker: Database query error:', error);
-        throw new Error(`Failed to fetch token usage: ${error.message}`);
-      }
-
-      const totalTokens = data?.reduce((sum, record) => sum + (record.tokens_used || 0), 0) || 0;
-      console.log('TokenTracker: Total tokens found:', totalTokens, 'from', data?.length || 0, 'records');
-      
-      return totalTokens;
-    } catch (error: any) {
-      console.error('TokenTracker: Error fetching token usage:', error);
-      setTokenUsageError(error.message || 'Failed to load token usage');
-      return 0;
-    } finally {
-      setTokenUsageLoading(false);
-    }
-  };
-
-  // Save token usage to database
-  const saveTokenUsage = async (tokensUsed: number, promptText: string): Promise<void> => {
-    if (!user || tokensUsed <= 0) {
-      console.log('TokenTracker: Skipping save - no user or invalid token count');
-      return;
-    }
-
-    try {
-      console.log('TokenTracker: Saving token usage:', tokensUsed, 'tokens for prompt:', promptText.substring(0, 50) + '...');
-
-      const { error } = await supabase
-        .from('token_usage')
-        .insert({
-          user_id: user.id,
-          tokens_used: tokensUsed,
-          prompt: promptText.substring(0, 500) // Limit prompt length
-        });
-
-      if (error) {
-        console.error('TokenTracker: Database insert error:', error);
-        throw new Error(`Failed to save token usage: ${error.message}`);
-      }
-
-      console.log('TokenTracker: Token usage saved successfully');
-    } catch (error: any) {
-      console.error('TokenTracker: Error saving token usage:', error);
-      // Don't throw here - we don't want to break the user experience if saving fails
-      setTokenUsageError('Warning: Token usage may not be properly tracked');
-    }
-  };
-
-  // Validate if prompt can be processed within token limits
-  const validateTokenLimit = (estimatedTokens: number = ESTIMATED_TOKENS_PER_PROMPT): boolean => {
-    const projectedTotal = totalTokenUsage + estimatedTokens;
-    
-    if (projectedTotal > TOKEN_LIMIT) {
-      const errorMsg = `This simulation would exceed your token limit. You have ${tokensRemaining} tokens remaining, but this simulation may use approximately ${estimatedTokens} tokens.`;
-      setError(errorMsg);
-      console.log('TokenTracker: Token limit validation failed:', {
-        current: totalTokenUsage,
-        estimated: estimatedTokens,
-        projected: projectedTotal,
-        limit: TOKEN_LIMIT
-      });
-      return false;
-    }
-
-    return true;
-  };
-
-  // Update total token usage in state
-  const updateTokenUsage = (newTokens: number): void => {
-    const newTotal = totalTokenUsage + newTokens;
-    console.log('TokenTracker: Updating token usage:', {
-      previous: totalTokenUsage,
-      added: newTokens,
-      newTotal: newTotal
-    });
-    setTotalTokenUsage(newTotal);
-  };
-
-  // Load user token usage on authentication
-  useEffect(() => {
-    const loadTokenUsage = async () => {
-      if (user && !authLoading) {
-        console.log('TokenTracker: User authenticated, loading token usage...');
-        const totalTokens = await fetchUserTokenUsage();
-        setTotalTokenUsage(totalTokens);
-      } else if (!user) {
-        console.log('TokenTracker: No user, resetting token usage to 0');
-        setTotalTokenUsage(0);
-        setTokenUsageError(null);
-      }
-    };
-
-    loadTokenUsage();
-  }, [user, authLoading]);
-
-  // Refresh token usage on page load/refresh
-  useEffect(() => {
-    const handlePageRefresh = async () => {
-      if (user && totalTokenUsage === 0 && !tokenUsageLoading) {
-        console.log('TokenTracker: Page refresh detected, reloading token usage...');
-        const totalTokens = await fetchUserTokenUsage();
-        setTotalTokenUsage(totalTokens);
-      }
-    };
-
-    // Small delay to ensure auth state is settled
-    const timer = setTimeout(handlePageRefresh, 1000);
-    return () => clearTimeout(timer);
-  }, [user, totalTokenUsage, tokenUsageLoading]);
-
-  useEffect(() => {
-    if (simulationData && iframeRef.current) {
-      const injectSimulationContent = () => {
-        const combinedContent = `
-          <!DOCTYPE html>
-          <html lang="en">
-          <head>
-            <meta charset="UTF-8">
-            <meta name="viewport" content="width=device-width, initial-scale=1.0">
-            <title>MindRender Simulation</title>
-            <style>
-              * {
-                margin: 0;
-                padding: 0;
-                box-sizing: border-box;
-              }
-              html, body {
-                height: 100vh;
-                width: 100vw;
-                overflow: hidden;
-                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-                background: #f8fafc;
-                display: flex;
-                flex-direction: column;
-                align-items: center;
-                justify-content: center;
-              }
-              canvas {
-                border: 1px solid #e5e7eb;
-                border-radius: 8px;
-                background: white;
-                box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-                display: block !important;
-                margin: 0 auto;
-                max-width: calc(100vw - 20px);
-                max-height: calc(100vh - 20px);
-              }
-              .status {
-                position: fixed;
-                top: 10px;
-                right: 10px;
-                padding: 4px 8px;
-                border-radius: 4px;
-                font-size: 10px;
-                font-weight: 500;
-                z-index: 1000;
-                opacity: 0.9;
-              }
-              .status.loading {
-                background: #dbeafe;
-                color: #1e40af;
-              }
-              .status.success {
-                background: #d1fae5;
-                color: #059669;
-              }
-              .status.error {
-                background: #fee2e2;
-                color: #dc2626;
-              }
-              .error-display {
-                position: fixed;
-                bottom: 10px;
-                left: 10px;
-                right: 10px;
-                background: #fee2e2;
-                color: #dc2626;
-                padding: 8px;
-                border-radius: 4px;
-                font-size: 12px;
-                z-index: 1000;
-                max-height: 100px;
-                overflow-y: auto;
-                white-space: pre-wrap;
-                font-family: monospace;
-              }
-            </style>
-          </head>
-          <body>
-            <div class="status loading" id="status">Loading...</div>
-            ${simulationData.canvasHtml}
-            <script>
-              (function() {
-                'use strict';
-                
-                console.log('Iframe script starting...');
-                
-                var statusEl = document.getElementById('status');
-                var errorCount = 0;
-                var maxErrors = 5;
-                
-                function showError(message) {
-                  errorCount++;
-                  console.error('Simulation Error #' + errorCount + ':', message);
-                  
-                  var errorDiv = document.querySelector('.error-display');
-                  if (!errorDiv) {
-                    errorDiv = document.createElement('div');
-                    errorDiv.className = 'error-display';
-                    document.body.appendChild(errorDiv);
-                  }
-                  
-                  var errorText = 'Error #' + errorCount + ': ' + message;
-                  if (errorCount > 1) {
-                    errorDiv.textContent = errorDiv.textContent + '\\n' + errorText;
-                  } else {
-                    errorDiv.textContent = errorText;
-                  }
-                  
-                  if (statusEl) {
-                    statusEl.className = 'status error';
-                    statusEl.textContent = 'Error (' + errorCount + ')';
-                  }
-                  
-                  if (errorCount >= maxErrors) {
-                    console.error('Maximum error count reached, stopping execution');
-                    return false;
-                  }
-                  return true;
-                }
-                
-                window.onerror = function(message, source, lineno, colno, error) {
-                  var errorMsg = 'JS Error: ' + message;
-                  if (lineno) errorMsg += ' (Line: ' + lineno + ')';
-                  return showError(errorMsg);
-                };
-                
-                window.addEventListener('unhandledrejection', function(event) {
-                  showError('Promise Error: ' + (event.reason || 'Unknown promise rejection'));
-                });
-                
-                function waitForCanvas(callback, maxAttempts) {
-                  maxAttempts = maxAttempts || 100;
-                  var attempts = 0;
-                  
-                  function checkCanvas() {
-                    attempts++;
-                    var canvasElement = document.querySelector('canvas');
-                    
-                    if (canvasElement) {
-                      console.log('Canvas found after', attempts, 'attempts');
-                      console.log('Canvas details:', {
-                        id: canvasElement.id || 'no-id',
-                        width: canvasElement.width,
-                        height: canvasElement.height,
-                        tagName: canvasElement.tagName
-                      });
-                      
-                      canvasElement.style.display = 'block';
-                      canvasElement.style.margin = '0 auto';
-                      
-                      try {
-                        callback(canvasElement);
-                      } catch (callbackError) {
-                        showError('Callback execution error: ' + callbackError.message);
-                      }
-                    } else if (attempts < maxAttempts) {
-                      setTimeout(checkCanvas, 25);
-                    } else {
-                      showError('Canvas element not found after ' + maxAttempts + ' attempts. HTML content: ' + document.body.innerHTML.substring(0, 200));
-                    }
-                  }
-                  
-                  checkCanvas();
-                }
-                
-                function executeSimulationCode(canvasElement) {
-                  try {
-                    console.log('Executing simulation code with canvas:', canvasElement);
-                    
-                    var simulationFunction = new Function('canvas', \`
-                      try {
-                        ${simulationData.jsCode.replace(/`/g, '\\`').replace(/\$/g, '\\$')}
-                      } catch (execError) {
-                        throw new Error('Simulation execution failed: ' + execError.message);
-                      }
-                    \`);
-                    
-                    simulationFunction(canvasElement);
-                    
-                    console.log('Simulation code executed successfully');
-                    
-                    if (statusEl) {
-                      statusEl.className = 'status success';
-                      statusEl.textContent = 'Active';
-                      setTimeout(function() {
-                        statusEl.style.opacity = '0.5';
-                      }, 3000);
-                    }
-                    
-                  } catch (error) {
-                    showError('Code execution error: ' + error.message);
-                  }
-                }
-                
-                function initializeSimulation() {
-                  try {
-                    console.log('Starting simulation initialization...');
-                    
-                    if (statusEl) {
-                      statusEl.className = 'status loading';
-                      statusEl.textContent = 'Initializing...';
-                    }
-                    
-                    waitForCanvas(function(canvasElement) {
-                      if (statusEl) {
-                        statusEl.textContent = 'Executing...';
-                      }
-                      
-                      setTimeout(function() {
-                        executeSimulationCode(canvasElement);
-                      }, 50);
-                    }, 100);
-                    
-                  } catch (error) {
-                    showError('Initialization error: ' + error.message);
-                  }
-                }
-                
-                function startWhenReady() {
-                  if (document.readyState === 'loading') {
-                    document.addEventListener('DOMContentLoaded', function() {
-                      setTimeout(initializeSimulation, 200);
-                    });
-                  } else if (document.readyState === 'interactive') {
-                    setTimeout(initializeSimulation, 100);
-                  } else {
-                    setTimeout(initializeSimulation, 50);
-                  }
-                }
-                
-                startWhenReady();
-                
-              })();
-            </script>
-          </body>
-          </html>
-        `;
-        
-        console.log('Injecting content into iframe...');
-        iframeRef.current!.srcdoc = combinedContent;
-        
-        iframeRef.current!.onload = () => {
-          console.log('iframe loaded successfully');
-        };
-        
-        iframeRef.current!.onerror = (e) => {
-          console.error('iframe loading error:', e);
-        };
-      };
-
-      setTimeout(injectSimulationContent, 100);
-    }
-  }, [simulationData]);
-
-  if (authLoading || tokenUsageLoading) {
+  if (authLoading) {
     return (
       <div className="min-h-screen bg-gray-900 flex items-center justify-center p-4">
         <div className="flex flex-col items-center space-y-4">
           <Loader2 className="w-8 h-8 sm:w-12 sm:h-12 text-yellow-500 animate-spin" />
-          <div className="text-white text-base sm:text-lg text-center">
-            {authLoading ? 'Loading authentication...' : 'Loading token usage...'}
-          </div>
+          <div className="text-white text-base sm:text-lg text-center">Loading authentication...</div>
         </div>
       </div>
     );
@@ -531,20 +86,14 @@ export default function Demo(): JSX.Element {
     const currentPrompt = inputPrompt || prompt;
     if (!currentPrompt.trim()) return;
     
-    // Pre-validate token limits before making API call
-    if (!validateTokenLimit()) {
+    if (isTokenLimitReached) {
+      setError(`Token limit reached (${tokenUsage}/${TOKEN_LIMIT}). Cannot run more simulations.`);
       return;
     }
     
     setLoading(true);
     setError(null);
-    setTokenUsageError(null);
     setMobileMenuOpen(false);
-    
-    if (iframeRef.current) {
-      iframeRef.current.srcdoc = '';
-      iframeRef.current.src = 'about:blank';
-    }
     
     try {
       console.log('Starting simulation request...');
@@ -625,35 +174,185 @@ export default function Demo(): JSX.Element {
       console.log('Setting simulation data...');
       setSimulationData(data);
       
-      // Generate follow-up questions based on the current prompt and subject
-      const questions = generateFollowUpQuestions(currentPrompt, subject);
-      setFollowUpQuestions(questions);
-      
-      // Handle token usage tracking
-      const tokensUsed = data.usage?.totalTokens || ESTIMATED_TOKENS_PER_PROMPT;
-      
-      // Final validation with actual token count
-      const projectedTotal = totalTokenUsage + tokensUsed;
-      if (projectedTotal > TOKEN_LIMIT) {
-        console.warn('TokenTracker: Simulation completed but exceeded token limit:', {
-          current: totalTokenUsage,
-          used: tokensUsed,
-          projected: projectedTotal,
-          limit: TOKEN_LIMIT
-        });
-        setError(`Simulation completed but you have now exceeded your token limit (${projectedTotal}/${TOKEN_LIMIT}). This was your last simulation.`);
+      if (data.usage?.totalTokens) {
+        const newTokenUsage = tokenUsage + data.usage.totalTokens;
+        setTokenUsage(newTokenUsage);
+        console.log('Tokens used this request:', data.usage.totalTokens);
+        console.log('Total tokens used:', newTokenUsage);
+        
+        if (newTokenUsage >= TOKEN_LIMIT) {
+          setError(`Token limit reached (${newTokenUsage}/${TOKEN_LIMIT}). This was your last simulation.`);
+        }
+      } else {
+        setTokenUsage(prev => prev + 1);
       }
-      
-      // Update token usage in state and database
-      updateTokenUsage(tokensUsed);
-      
-      // Save to database asynchronously (don't block UI)
-      saveTokenUsage(tokensUsed, currentPrompt).catch(error => {
-        console.error('TokenTracker: Failed to save token usage to database:', error);
-      });
 
-      console.log('TokenTracker: Tokens used this request:', tokensUsed);
-      console.log('TokenTracker: New total tokens:', totalTokenUsage + tokensUsed);
+      if (iframeRef.current) {
+        const combinedContent = `
+          <!DOCTYPE html>
+          <html lang="en">
+          <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>MindRender Simulation</title>
+            <style>
+              * {
+                margin: 0;
+                padding: 0;
+                box-sizing: border-box;
+              }
+              html, body {
+                height: 100vh;
+                width: 100vw;
+                overflow: hidden;
+                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+                background: #f8fafc;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                justify-content: center;
+              }
+              canvas {
+                border: 1px solid #e5e7eb;
+                border-radius: 8px;
+                background: white;
+                box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+                display: block !important;
+                margin: 0 auto;
+                max-width: calc(100vw - 20px);
+                max-height: calc(100vh - 20px);
+              }
+              .status {
+                position: fixed;
+                top: 10px;
+                right: 10px;
+                padding: 4px 8px;
+                border-radius: 4px;
+                font-size: 10px;
+                font-weight: 500;
+                z-index: 1000;
+                opacity: 0.9;
+              }
+              .status.loading {
+                background: #dbeafe;
+                color: #1e40af;
+              }
+              .status.success {
+                background: #d1fae5;
+                color: #059669;
+              }
+              .status.error {
+                background: #fee2e2;
+                color: #dc2626;
+              }
+              .error-display {
+                position: fixed;
+                bottom: 10px;
+                left: 10px;
+                right: 10px;
+                background: #fee2e2;
+                color: #dc2626;
+                padding: 8px;
+                border-radius: 4px;
+                font-size: 12px;
+                z-index: 1000;
+                max-height: 100px;
+                overflow-y: auto;
+              }
+            </style>
+          </head>
+          <body>
+            <div class="status loading" id="status">Loading...</div>
+            ${data.canvasHtml}
+            <script>
+              console.log('Iframe script starting...');
+              
+              const statusEl = document.getElementById('status');
+              let canvas = null;
+              
+              window.onerror = function(message, source, lineno, colno, error) {
+                console.error('JavaScript Error:', message, 'Line:', lineno);
+                const errorDiv = document.createElement('div');
+                errorDiv.className = 'error-display';
+                errorDiv.innerHTML = 'JS Error: ' + message + ' (Line: ' + lineno + ')';
+                document.body.appendChild(errorDiv);
+                if (statusEl) {
+                  statusEl.className = 'status error';
+                  statusEl.textContent = 'JS Error';
+                }
+                return true;
+              };
+              
+              window.addEventListener('unhandledrejection', function(event) {
+                console.error('Promise Rejection:', event.reason);
+                const errorDiv = document.createElement('div');
+                errorDiv.className = 'error-display';
+                errorDiv.innerHTML = 'Promise Error: ' + event.reason;
+                document.body.appendChild(errorDiv);
+                if (statusEl) {
+                  statusEl.className = 'status error';
+                  statusEl.textContent = 'Promise Error';
+                }
+              });
+              
+              setTimeout(() => {
+                canvas = document.querySelector('canvas');
+                if (canvas) {
+                  console.log('Canvas found:', canvas.id, canvas.width + 'x' + canvas.height);
+                  canvas.style.display = 'block';
+                  canvas.style.margin = '0 auto';
+                } else {
+                  console.error('No canvas element found in DOM');
+                  if (statusEl) {
+                    statusEl.className = 'status error';
+                    statusEl.textContent = 'Canvas not found';
+                  }
+                }
+              }, 100);
+              
+              try {
+                console.log('Executing simulation code...');
+                ${data.jsCode}
+                
+                console.log('Simulation code executed successfully');
+                
+                setTimeout(() => {
+                  if (statusEl) {
+                    statusEl.className = 'status success';
+                    statusEl.textContent = 'Active';
+                    setTimeout(() => {
+                      statusEl.style.opacity = '0.5';
+                    }, 3000);
+                  }
+                }, 1500);
+                
+              } catch (error) {
+                console.error('Execution Error:', error);
+                const errorDiv = document.createElement('div');
+                errorDiv.className = 'error-display';
+                errorDiv.innerHTML = 'Execution Error: ' + error.message;
+                document.body.appendChild(errorDiv);
+                if (statusEl) {
+                  statusEl.className = 'status error';
+                  statusEl.textContent = 'Error: ' + error.message;
+                }
+              }
+            </script>
+          </body>
+          </html>
+        `;
+        
+        console.log('Loading content into iframe...');
+        iframeRef.current.srcdoc = combinedContent;
+        
+        iframeRef.current.onload = () => {
+          console.log('iframe loaded successfully');
+        };
+        
+        iframeRef.current.onerror = (e) => {
+          console.error('iframe loading error:', e);
+        };
+      }
 
       if (inputPrompt) {
         setFollowUpPrompt('');
@@ -662,7 +361,6 @@ export default function Demo(): JSX.Element {
     } catch (err: any) {
       console.error('Simulation error:', err);
       setError(err.message || 'An error occurred while generating the simulation');
-      // Don't count tokens for failed attempts
     } finally {
       setLoading(false);
     }
@@ -670,24 +368,15 @@ export default function Demo(): JSX.Element {
 
   const handleFollowUpSubmit = async (): Promise<void> => {
     if (!followUpPrompt.trim()) return;
-    if (!validateTokenLimit()) {
+    if (isTokenLimitReached) {
+      setError(`Token limit reached (${tokenUsage}/${TOKEN_LIMIT}). Cannot run more simulations.`);
       return;
     }
     await handleRunSimulation(followUpPrompt);
   };
 
-  const handleFollowUpQuestionClick = async (question: string): Promise<void> => {
-    if (!validateTokenLimit()) {
-      return;
-    }
-    await handleRunSimulation(question);
-  };
-
   const handleSignOut = async (): Promise<void> => {
     try {
-      // Reset token usage state on sign out
-      setTotalTokenUsage(0);
-      setTokenUsageError(null);
       await signOut();
     } catch (error) {
       console.error('Sign out failed:', error);
@@ -696,11 +385,9 @@ export default function Demo(): JSX.Element {
 
   const handleNewSimulation = (): void => {
     setSimulationData(null);
-    setFollowUpQuestions([]);
     setPrompt('');
     setFollowUpPrompt('');
     setError(null);
-    setTokenUsageError(null);
     setMobileMenuOpen(false);
     if (iframeRef.current) {
       iframeRef.current.srcdoc = '';
@@ -724,7 +411,7 @@ export default function Demo(): JSX.Element {
             <div className={`rounded-lg px-2 sm:px-3 py-1 text-xs sm:text-sm ${
               isTokenLimitReached 
                 ? 'bg-red-500/20 border border-red-500/30' 
-                : totalTokenUsage > TOKEN_LIMIT * 0.8
+                : tokenUsage > TOKEN_LIMIT * 0.8
                   ? 'bg-yellow-500/20 border border-yellow-500/30'
                   : 'bg-gray-700/50'
             }`}>
@@ -733,10 +420,10 @@ export default function Demo(): JSX.Element {
                 <span className={`font-medium ${
                   isTokenLimitReached 
                     ? 'text-red-400' 
-                    : totalTokenUsage > TOKEN_LIMIT * 0.8
+                    : tokenUsage > TOKEN_LIMIT * 0.8
                       ? 'text-yellow-400'
                       : 'text-yellow-400'
-                }`}>{totalTokenUsage}</span>
+                }`}>{tokenUsage}</span>
                 <span className="hidden sm:inline"> / {TOKEN_LIMIT}</span>
               </span>
             </div>
@@ -792,19 +479,7 @@ export default function Demo(): JSX.Element {
                   <div className="text-red-400 font-medium text-sm">Token Limit Reached</div>
                 </div>
                 <div className="text-red-300 text-xs">
-                  You have used {totalTokenUsage} out of {TOKEN_LIMIT} tokens.
-                </div>
-              </div>
-            )}
-
-            {tokenUsageError && (
-              <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-lg p-3">
-                <div className="flex items-center space-x-2 mb-2">
-                  <AlertTriangle className="w-4 h-4 text-yellow-400" />
-                  <div className="text-yellow-400 font-medium text-sm">Token Tracking Warning</div>
-                </div>
-                <div className="text-yellow-300 text-xs">
-                  {tokenUsageError}
+                  You have used {tokenUsage} out of {TOKEN_LIMIT} tokens.
                 </div>
               </div>
             )}
@@ -839,29 +514,6 @@ export default function Demo(): JSX.Element {
               />
             </div>
 
-            {simulationData && followUpQuestions.length > 0 && !isTokenLimitReached && (
-              <div className="pt-2 border-t border-gray-700">
-                <div className="flex items-center space-x-2 mb-3">
-                  <Sparkles className="w-4 h-4 text-blue-400" />
-                  <label className="text-sm font-medium text-gray-300">
-                    Follow Up Questions
-                  </label>
-                </div>
-                <div className="space-y-2">
-                  {followUpQuestions.map((question, index) => (
-                    <button
-                      key={index}
-                      onClick={() => handleFollowUpQuestionClick(question)}
-                      disabled={loading || isTokenLimitReached}
-                      className="w-full text-left bg-blue-500/10 border border-blue-500/20 text-blue-300 px-3 py-2 rounded-lg hover:bg-blue-500/20 transition-colors text-sm disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      {question}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
-
             <button
               onClick={() => handleRunSimulation()}
               disabled={loading || !prompt.trim() || isTokenLimitReached}
@@ -880,22 +532,28 @@ export default function Demo(): JSX.Element {
               ) : (
                 <>
                   <Play className="w-4 h-4" />
-                  <span>Run Simulation ({tokensRemaining} tokens left)</span>
+                  <span>Run Simulation</span>
                 </>
               )}
             </button>
 
             {simulationData && !isTokenLimitReached && (
               <div className="pt-2 border-t border-gray-700">
+                <div className="flex items-center space-x-2 mb-2">
+                  <MessageSquare className="w-4 h-4 text-blue-400" />
+                  <label className="text-xs font-medium text-gray-300">
+                    Follow-up Question
+                  </label>
+                </div>
                 <div className="flex space-x-2">
                   <input
                     type="text"
                     value={followUpPrompt}
                     onChange={(e) => setFollowUpPrompt(e.target.value)}
-                    placeholder="Ask more..."
-                    disabled={isTokenLimitReached || loading}
+                    placeholder="Ask a follow-up question..."
+                    disabled={isTokenLimitReached}
                     className="flex-1 bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors placeholder-gray-400 disabled:opacity-50 disabled:cursor-not-allowed"
-                    onKeyPress={(e) => e.key === 'Enter' && !loading && handleFollowUpSubmit()}
+                    onKeyPress={(e) => e.key === 'Enter' && handleFollowUpSubmit()}
                   />
                   <button
                     onClick={handleFollowUpSubmit}
@@ -988,7 +646,7 @@ export default function Demo(): JSX.Element {
                     <p className="text-gray-600 text-sm leading-relaxed">
                       {isTokenLimitReached 
                         ? `Token limit reached. Contact support to continue.`
-                        : `Enter a prompt above and click 'Run Simulation' to see it come to life. You have ${tokensRemaining} tokens remaining.`
+                        : "Enter a prompt above and click 'Run Simulation' to see it come to life."
                       }
                     </p>
                   </div>
@@ -1040,12 +698,12 @@ export default function Demo(): JSX.Element {
                     <div className="text-red-400 font-medium text-sm">Token Limit Reached</div>
                   </div>
                   <div className="text-red-300 text-xs">
-                    You have used {totalTokenUsage} out of {TOKEN_LIMIT} tokens. Contact support to increase your limit.
+                    You have used {tokenUsage} out of {TOKEN_LIMIT} tokens. Contact support to increase your limit.
                   </div>
                 </div>
               )}
 
-              {!isTokenLimitReached && totalTokenUsage > TOKEN_LIMIT * 0.8 && (
+              {!isTokenLimitReached && tokenUsage > TOKEN_LIMIT * 0.8 && (
                 <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-lg p-3">
                   <div className="flex items-center space-x-2 mb-2">
                     <AlertTriangle className="w-4 h-4 text-yellow-400" />
@@ -1053,18 +711,6 @@ export default function Demo(): JSX.Element {
                   </div>
                   <div className="text-yellow-300 text-xs">
                     {tokensRemaining} tokens remaining. Use wisely.
-                  </div>
-                </div>
-              )}
-
-              {tokenUsageError && (
-                <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-lg p-3">
-                  <div className="flex items-center space-x-2 mb-2">
-                    <AlertTriangle className="w-4 h-4 text-yellow-400" />
-                    <div className="text-yellow-400 font-medium text-sm">Token Tracking Warning</div>
-                  </div>
-                  <div className="text-yellow-300 text-xs">
-                    {tokenUsageError}
                   </div>
                 </div>
               )}
@@ -1102,29 +748,6 @@ export default function Demo(): JSX.Element {
                 </div>
               </div>
 
-              {simulationData && followUpQuestions.length > 0 && !isTokenLimitReached && (
-                <div className="pt-3 border-t border-gray-700">
-                  <div className="flex items-center space-x-2 mb-3">
-                    <Sparkles className="w-4 h-4 text-blue-400" />
-                    <label className="text-sm font-medium text-gray-300">
-                      Follow Up Questions
-                    </label>
-                  </div>
-                  <div className="space-y-2">
-                    {followUpQuestions.map((question, index) => (
-                      <button
-                        key={index}
-                        onClick={() => handleFollowUpQuestionClick(question)}
-                        disabled={loading || isTokenLimitReached}
-                        className="w-full text-left bg-blue-500/10 border border-blue-500/20 text-blue-300 px-3 py-2 rounded-lg hover:bg-blue-500/20 transition-colors text-sm disabled:opacity-50 disabled:cursor-not-allowed"
-                      >
-                        {question}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
-
               <button
                 onClick={() => handleRunSimulation()}
                 disabled={loading || !prompt.trim() || isTokenLimitReached}
@@ -1148,18 +771,12 @@ export default function Demo(): JSX.Element {
                 )}
               </button>
 
-              {!isTokenLimitReached && (
-                <div className="text-xs text-gray-400 text-center">
-                  {tokensRemaining} tokens remaining
-                </div>
-              )}
-
               {simulationData && !isTokenLimitReached && (
                 <div className="pt-3 border-t border-gray-700">
                   <div className="flex items-center space-x-2 mb-2">
                     <MessageSquare className="w-4 h-4 text-blue-400" />
                     <label className="text-sm font-medium text-gray-300">
-                      Follow-up
+                      Follow-up Question
                     </label>
                   </div>
                   <div className="flex space-x-2">
@@ -1167,10 +784,10 @@ export default function Demo(): JSX.Element {
                       type="text"
                       value={followUpPrompt}
                       onChange={(e) => setFollowUpPrompt(e.target.value)}
-                      placeholder="Ask more..."
-                      disabled={isTokenLimitReached || loading}
+                      placeholder="Ask a follow-up question..."
+                      disabled={isTokenLimitReached}
                       className="flex-1 bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors placeholder-gray-400 disabled:opacity-50 disabled:cursor-not-allowed"
-                      onKeyPress={(e) => e.key === 'Enter' && !loading && handleFollowUpSubmit()}
+                      onKeyPress={(e) => e.key === 'Enter' && handleFollowUpSubmit()}
                     />
                     <button
                       onClick={handleFollowUpSubmit}
@@ -1270,8 +887,8 @@ export default function Demo(): JSX.Element {
                     </h3>
                     <p className="text-gray-600 text-lg leading-relaxed">
                       {isTokenLimitReached 
-                        ? `Token limit reached (${totalTokenUsage}/${TOKEN_LIMIT}). Contact support to continue.`
-                        : `Enter a prompt describing what you'd like to learn about, then click 'Run Simulation' to see it come to life. You have ${tokensRemaining} tokens remaining.`
+                        ? `Token limit reached (${tokenUsage}/${TOKEN_LIMIT}). Contact support to continue.`
+                        : "Enter a prompt describing what you'd like to learn about, then click 'Run Simulation' to see it come to life."
                       }
                     </p>
                   </div>
