@@ -107,6 +107,7 @@ export default function Demo(): JSX.Element {
                 z-index: 1000;
                 max-height: 100px;
                 overflow-y: auto;
+                white-space: pre-wrap;
               }
             </style>
           </head>
@@ -114,83 +115,103 @@ export default function Demo(): JSX.Element {
             <div class="status loading" id="status">Loading...</div>
             ${simulationData.canvasHtml}
             <script>
-              console.log('Iframe script starting...');
-              
-              const statusEl = document.getElementById('status');
-              let canvas = null;
-              
-              window.onerror = function(message, source, lineno, colno, error) {
-                console.error('JavaScript Error:', message, 'Line:', lineno);
-                const errorDiv = document.createElement('div');
-                errorDiv.className = 'error-display';
-                errorDiv.innerHTML = 'JS Error: ' + message + ' (Line: ' + lineno + ')';
-                document.body.appendChild(errorDiv);
-                if (statusEl) {
-                  statusEl.className = 'status error';
-                  statusEl.textContent = 'JS Error';
-                }
-                return true;
-              };
-              
-              window.addEventListener('unhandledrejection', function(event) {
-                console.error('Promise Rejection:', event.reason);
-                const errorDiv = document.createElement('div');
-                errorDiv.className = 'error-display';
-                errorDiv.innerHTML = 'Promise Error: ' + event.reason;
-                document.body.appendChild(errorDiv);
-                if (statusEl) {
-                  statusEl.className = 'status error';
-                  statusEl.textContent = 'Promise Error';
-                }
-              });
-              
-              function initializeSimulation() {
-                try {
-                  canvas = document.querySelector('canvas');
-                  if (canvas) {
-                    console.log('Canvas found:', canvas.id, canvas.width + 'x' + canvas.height);
-                    canvas.style.display = 'block';
-                    canvas.style.margin = '0 auto';
-                  } else {
-                    console.error('No canvas element found in DOM');
-                    if (statusEl) {
-                      statusEl.className = 'status error';
-                      statusEl.textContent = 'Canvas not found';
-                    }
-                    return;
+              (function() {
+                'use strict';
+                
+                console.log('Iframe script starting...');
+                
+                const statusEl = document.getElementById('status');
+                
+                function showError(message) {
+                  console.error('Simulation Error:', message);
+                  
+                  let errorDiv = document.querySelector('.error-display');
+                  if (!errorDiv) {
+                    errorDiv = document.createElement('div');
+                    errorDiv.className = 'error-display';
+                    document.body.appendChild(errorDiv);
                   }
+                  errorDiv.textContent = message;
                   
-                  console.log('Executing simulation code...');
-                  ${simulationData.jsCode}
-                  
-                  console.log('Simulation code executed successfully');
-                  
-                  if (statusEl) {
-                    statusEl.className = 'status success';
-                    statusEl.textContent = 'Active';
-                    setTimeout(() => {
-                      statusEl.style.opacity = '0.5';
-                    }, 3000);
-                  }
-                  
-                } catch (error) {
-                  console.error('Execution Error:', error);
-                  const errorDiv = document.createElement('div');
-                  errorDiv.className = 'error-display';
-                  errorDiv.innerHTML = 'Execution Error: ' + error.message;
-                  document.body.appendChild(errorDiv);
                   if (statusEl) {
                     statusEl.className = 'status error';
-                    statusEl.textContent = 'Error: ' + error.message;
+                    statusEl.textContent = 'Error';
                   }
                 }
-              }
-              
-              if (document.readyState === 'loading') {
-                document.addEventListener('DOMContentLoaded', initializeSimulation);
-              } else {
-                setTimeout(initializeSimulation, 100);
-              }
+                
+                window.onerror = function(message, source, lineno, colno, error) {
+                  showError('JS Error: ' + message + ' (Line: ' + lineno + ')');
+                  return true;
+                };
+                
+                window.addEventListener('unhandledrejection', function(event) {
+                  showError('Promise Error: ' + event.reason);
+                });
+                
+                function waitForCanvas(callback, maxAttempts = 50) {
+                  let attempts = 0;
+                  
+                  function checkCanvas() {
+                    attempts++;
+                    const canvas = document.querySelector('canvas');
+                    
+                    if (canvas) {
+                      console.log('Canvas found after', attempts, 'attempts:', canvas.id || 'no-id', canvas.width + 'x' + canvas.height);
+                      callback(canvas);
+                    } else if (attempts < maxAttempts) {
+                      setTimeout(checkCanvas, 50);
+                    } else {
+                      showError('Canvas element not found after ' + maxAttempts + ' attempts');
+                    }
+                  }
+                  
+                  checkCanvas();
+                }
+                
+                function initializeSimulation() {
+                  try {
+                    console.log('Starting simulation initialization...');
+                    
+                    waitForCanvas(function(canvas) {
+                      try {
+                        canvas.style.display = 'block';
+                        canvas.style.margin = '0 auto';
+                        
+                        console.log('Executing simulation code...');
+                        
+                        (function() {
+                          ${simulationData.jsCode}
+                        })();
+                        
+                        console.log('Simulation code executed successfully');
+                        
+                        if (statusEl) {
+                          statusEl.className = 'status success';
+                          statusEl.textContent = 'Active';
+                          setTimeout(function() {
+                            statusEl.style.opacity = '0.5';
+                          }, 3000);
+                        }
+                        
+                      } catch (error) {
+                        showError('Execution Error: ' + error.message);
+                      }
+                    });
+                    
+                  } catch (error) {
+                    showError('Initialization Error: ' + error.message);
+                  }
+                }
+                
+                if (document.readyState === 'loading') {
+                  document.addEventListener('DOMContentLoaded', function() {
+                    setTimeout(initializeSimulation, 100);
+                  });
+                } else {
+                  setTimeout(initializeSimulation, 100);
+                }
+                
+              })();
             </script>
           </body>
           </html>
