@@ -17,7 +17,16 @@ interface User {
   id: string;
 }
 
+interface TokenUsageRecord {
+  id: string;
+  user_id: string;
+  tokens_used: number;
+  prompt: string;
+  created_at: string;
+}
+
 const TOKEN_LIMIT = 2000;
+const ESTIMATED_TOKENS_PER_PROMPT = 150; // Conservative estimate for validation
 
 // Generate context-aware follow-up questions based on the simulation
 const generateFollowUpQuestions = (prompt: string, subject: string): string[] => {
@@ -72,13 +81,146 @@ export default function Demo(): JSX.Element {
   const [loading, setLoading] = useState<boolean>(false);
   const [simulationData, setSimulationData] = useState<SimulationResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [tokenUsage, setTokenUsage] = useState<number>(0);
+  
+  // Token tracking state
+  const [totalTokenUsage, setTotalTokenUsage] = useState<number>(0);
+  const [tokenUsageLoading, setTokenUsageLoading] = useState<boolean>(false);
+  const [tokenUsageError, setTokenUsageError] = useState<string | null>(null);
+  
   const [mobileMenuOpen, setMobileMenuOpen] = useState<boolean>(false);
   const [followUpQuestions, setFollowUpQuestions] = useState<string[]>([]);
   const iframeRef = useRef<HTMLIFrameElement>(null);
 
-  const isTokenLimitReached = tokenUsage >= TOKEN_LIMIT;
-  const tokensRemaining = Math.max(0, TOKEN_LIMIT - tokenUsage);
+  const isTokenLimitReached = totalTokenUsage >= TOKEN_LIMIT;
+  const tokensRemaining = Math.max(0, TOKEN_LIMIT - totalTokenUsage);
+
+  // Fetch user's total token usage from database
+  const fetchUserTokenUsage = async (): Promise<number> => {
+    if (!user) {
+      console.log('TokenTracker: No user found, returning 0 tokens');
+      return 0;
+    }
+
+    try {
+      console.log('TokenTracker: Fetching token usage for user:', user.email);
+      setTokenUsageLoading(true);
+      setTokenUsageError(null);
+
+      const { data, error } = await supabase
+        .from('token_usage')
+        .select('tokens_used')
+        .eq('user_id', user.id);
+
+      if (error) {
+        console.error('TokenTracker: Database query error:', error);
+        throw new Error(`Failed to fetch token usage: ${error.message}`);
+      }
+
+      const totalTokens = data?.reduce((sum, record) => sum + (record.tokens_used || 0), 0) || 0;
+      console.log('TokenTracker: Total tokens found:', totalTokens, 'from', data?.length || 0, 'records');
+      
+      return totalTokens;
+    } catch (error: any) {
+      console.error('TokenTracker: Error fetching token usage:', error);
+      setTokenUsageError(error.message || 'Failed to load token usage');
+      return 0;
+    } finally {
+      setTokenUsageLoading(false);
+    }
+  };
+
+  // Save token usage to database
+  const saveTokenUsage = async (tokensUsed: number, promptText: string): Promise<void> => {
+    if (!user || tokensUsed <= 0) {
+      console.log('TokenTracker: Skipping save - no user or invalid token count');
+      return;
+    }
+
+    try {
+      console.log('TokenTracker: Saving token usage:', tokensUsed, 'tokens for prompt:', promptText.substring(0, 50) + '...');
+
+      const { error } = await supabase
+        .from('token_usage')
+        .insert({
+          user_id: user.id,
+          tokens_used: tokensUsed,
+          prompt: promptText.substring(0, 500) // Limit prompt length
+        });
+
+      if (error) {
+        console.error('TokenTracker: Database insert error:', error);
+        throw new Error(`Failed to save token usage: ${error.message}`);
+      }
+
+      console.log('TokenTracker: Token usage saved successfully');
+    } catch (error: any) {
+      console.error('TokenTracker: Error saving token usage:', error);
+      // Don't throw here - we don't want to break the user experience if saving fails
+      setTokenUsageError('Warning: Token usage may not be properly tracked');
+    }
+  };
+
+  // Validate if prompt can be processed within token limits
+  const validateTokenLimit = (estimatedTokens: number = ESTIMATED_TOKENS_PER_PROMPT): boolean => {
+    const projectedTotal = totalTokenUsage + estimatedTokens;
+    
+    if (projectedTotal > TOKEN_LIMIT) {
+      const errorMsg = `This simulation would exceed your token limit. You have ${tokensRemaining} tokens remaining, but this simulation may use approximately ${estimatedTokens} tokens.`;
+      setError(errorMsg);
+      console.log('TokenTracker: Token limit validation failed:', {
+        current: totalTokenUsage,
+        estimated: estimatedTokens,
+        projected: projectedTotal,
+        limit: TOKEN_LIMIT
+      });
+      return false;
+    }
+
+    return true;
+  };
+
+  // Update total token usage in state
+  const updateTokenUsage = (newTokens: number): void => {
+    const newTotal = totalTokenUsage + newTokens;
+    console.log('TokenTracker: Updating token usage:', {
+      previous: totalTokenUsage,
+      added: newTokens,
+      newTotal: newTotal
+    });
+    setTotalTokenUsage(newTotal);
+  };
+
+  // Load user token usage on authentication
+  useEffect(() => {
+    const loadTokenUsage = async () => {
+      if (user && !authLoading) {
+        console.log('TokenTracker: User authenticated, loading token usage...');
+        const totalTokens = await fetchUserTokenUsage();
+        setTotalTokenUsage(totalTokens);
+      } else if (!user) {
+        console.log('TokenTracker: No user, resetting token usage to 0');
+        setTotalTokenUsage(0);
+        setTokenUsageError(null);
+      }
+    };
+
+    loadTokenUsage();
+  }, [user, authLoading]);
+
+  // Refresh token usage on page load/refresh
+  useEffect(() => {
+    const handlePageRefresh = async () => {
+      if (user && totalTokenUsage === 0 && !tokenUsageLoading) {
+        console.log('TokenTracker: Page refresh detected, reloading token usage...');
+        const totalTokens = await fetchUserTokenUsage();
+        setTotalTokenUsage(totalTokens);
+      }
+    };
+
+    // Small delay to ensure auth state is settled
+    const timer = setTimeout(handlePageRefresh, 1000);
+    return () => clearTimeout(timer);
+  }, [user, totalTokenUsage, tokenUsageLoading]);
 
   useEffect(() => {
     if (simulationData && iframeRef.current) {
@@ -335,12 +477,14 @@ export default function Demo(): JSX.Element {
     }
   }, [simulationData]);
 
-  if (authLoading) {
+  if (authLoading || tokenUsageLoading) {
     return (
       <div className="min-h-screen bg-gray-900 flex items-center justify-center p-4">
         <div className="flex flex-col items-center space-y-4">
           <Loader2 className="w-8 h-8 sm:w-12 sm:h-12 text-yellow-500 animate-spin" />
-          <div className="text-white text-base sm:text-lg text-center">Loading authentication...</div>
+          <div className="text-white text-base sm:text-lg text-center">
+            {authLoading ? 'Loading authentication...' : 'Loading token usage...'}
+          </div>
         </div>
       </div>
     );
@@ -387,13 +531,14 @@ export default function Demo(): JSX.Element {
     const currentPrompt = inputPrompt || prompt;
     if (!currentPrompt.trim()) return;
     
-    if (isTokenLimitReached) {
-      setError(`Token limit reached (${tokenUsage}/${TOKEN_LIMIT}). Cannot run more simulations.`);
+    // Pre-validate token limits before making API call
+    if (!validateTokenLimit()) {
       return;
     }
     
     setLoading(true);
     setError(null);
+    setTokenUsageError(null);
     setMobileMenuOpen(false);
     
     if (iframeRef.current) {
@@ -484,18 +629,31 @@ export default function Demo(): JSX.Element {
       const questions = generateFollowUpQuestions(currentPrompt, subject);
       setFollowUpQuestions(questions);
       
-      if (data.usage?.totalTokens) {
-        const newTokenUsage = tokenUsage + data.usage.totalTokens;
-        setTokenUsage(newTokenUsage);
-        console.log('Tokens used this request:', data.usage.totalTokens);
-        console.log('Total tokens used:', newTokenUsage);
-        
-        if (newTokenUsage >= TOKEN_LIMIT) {
-          setError(`Token limit reached (${newTokenUsage}/${TOKEN_LIMIT}). This was your last simulation.`);
-        }
-      } else {
-        setTokenUsage(prev => prev + 1);
+      // Handle token usage tracking
+      const tokensUsed = data.usage?.totalTokens || ESTIMATED_TOKENS_PER_PROMPT;
+      
+      // Final validation with actual token count
+      const projectedTotal = totalTokenUsage + tokensUsed;
+      if (projectedTotal > TOKEN_LIMIT) {
+        console.warn('TokenTracker: Simulation completed but exceeded token limit:', {
+          current: totalTokenUsage,
+          used: tokensUsed,
+          projected: projectedTotal,
+          limit: TOKEN_LIMIT
+        });
+        setError(`Simulation completed but you have now exceeded your token limit (${projectedTotal}/${TOKEN_LIMIT}). This was your last simulation.`);
       }
+      
+      // Update token usage in state and database
+      updateTokenUsage(tokensUsed);
+      
+      // Save to database asynchronously (don't block UI)
+      saveTokenUsage(tokensUsed, currentPrompt).catch(error => {
+        console.error('TokenTracker: Failed to save token usage to database:', error);
+      });
+
+      console.log('TokenTracker: Tokens used this request:', tokensUsed);
+      console.log('TokenTracker: New total tokens:', totalTokenUsage + tokensUsed);
 
       if (inputPrompt) {
         setFollowUpPrompt('');
@@ -504,6 +662,7 @@ export default function Demo(): JSX.Element {
     } catch (err: any) {
       console.error('Simulation error:', err);
       setError(err.message || 'An error occurred while generating the simulation');
+      // Don't count tokens for failed attempts
     } finally {
       setLoading(false);
     }
@@ -511,16 +670,14 @@ export default function Demo(): JSX.Element {
 
   const handleFollowUpSubmit = async (): Promise<void> => {
     if (!followUpPrompt.trim()) return;
-    if (isTokenLimitReached) {
-      setError(`Token limit reached (${tokenUsage}/${TOKEN_LIMIT}). Cannot run more simulations.`);
+    if (!validateTokenLimit()) {
       return;
     }
     await handleRunSimulation(followUpPrompt);
   };
 
   const handleFollowUpQuestionClick = async (question: string): Promise<void> => {
-    if (isTokenLimitReached) {
-      setError(`Token limit reached (${tokenUsage}/${TOKEN_LIMIT}). Cannot run more simulations.`);
+    if (!validateTokenLimit()) {
       return;
     }
     await handleRunSimulation(question);
@@ -528,6 +685,9 @@ export default function Demo(): JSX.Element {
 
   const handleSignOut = async (): Promise<void> => {
     try {
+      // Reset token usage state on sign out
+      setTotalTokenUsage(0);
+      setTokenUsageError(null);
       await signOut();
     } catch (error) {
       console.error('Sign out failed:', error);
@@ -540,6 +700,7 @@ export default function Demo(): JSX.Element {
     setPrompt('');
     setFollowUpPrompt('');
     setError(null);
+    setTokenUsageError(null);
     setMobileMenuOpen(false);
     if (iframeRef.current) {
       iframeRef.current.srcdoc = '';
@@ -563,7 +724,7 @@ export default function Demo(): JSX.Element {
             <div className={`rounded-lg px-2 sm:px-3 py-1 text-xs sm:text-sm ${
               isTokenLimitReached 
                 ? 'bg-red-500/20 border border-red-500/30' 
-                : tokenUsage > TOKEN_LIMIT * 0.8
+                : totalTokenUsage > TOKEN_LIMIT * 0.8
                   ? 'bg-yellow-500/20 border border-yellow-500/30'
                   : 'bg-gray-700/50'
             }`}>
@@ -572,10 +733,10 @@ export default function Demo(): JSX.Element {
                 <span className={`font-medium ${
                   isTokenLimitReached 
                     ? 'text-red-400' 
-                    : tokenUsage > TOKEN_LIMIT * 0.8
+                    : totalTokenUsage > TOKEN_LIMIT * 0.8
                       ? 'text-yellow-400'
                       : 'text-yellow-400'
-                }`}>{tokenUsage}</span>
+                }`}>{totalTokenUsage}</span>
                 <span className="hidden sm:inline"> / {TOKEN_LIMIT}</span>
               </span>
             </div>
@@ -631,7 +792,19 @@ export default function Demo(): JSX.Element {
                   <div className="text-red-400 font-medium text-sm">Token Limit Reached</div>
                 </div>
                 <div className="text-red-300 text-xs">
-                  You have used {tokenUsage} out of {TOKEN_LIMIT} tokens.
+                  You have used {totalTokenUsage} out of {TOKEN_LIMIT} tokens.
+                </div>
+              </div>
+            )}
+
+            {tokenUsageError && (
+              <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-lg p-3">
+                <div className="flex items-center space-x-2 mb-2">
+                  <AlertTriangle className="w-4 h-4 text-yellow-400" />
+                  <div className="text-yellow-400 font-medium text-sm">Token Tracking Warning</div>
+                </div>
+                <div className="text-yellow-300 text-xs">
+                  {tokenUsageError}
                 </div>
               </div>
             )}
@@ -707,7 +880,7 @@ export default function Demo(): JSX.Element {
               ) : (
                 <>
                   <Play className="w-4 h-4" />
-                  <span>Run Simulation</span>
+                  <span>Run Simulation ({tokensRemaining} tokens left)</span>
                 </>
               )}
             </button>
@@ -815,7 +988,7 @@ export default function Demo(): JSX.Element {
                     <p className="text-gray-600 text-sm leading-relaxed">
                       {isTokenLimitReached 
                         ? `Token limit reached. Contact support to continue.`
-                        : "Enter a prompt above and click 'Run Simulation' to see it come to life."
+                        : `Enter a prompt above and click 'Run Simulation' to see it come to life. You have ${tokensRemaining} tokens remaining.`
                       }
                     </p>
                   </div>
@@ -867,12 +1040,12 @@ export default function Demo(): JSX.Element {
                     <div className="text-red-400 font-medium text-sm">Token Limit Reached</div>
                   </div>
                   <div className="text-red-300 text-xs">
-                    You have used {tokenUsage} out of {TOKEN_LIMIT} tokens. Contact support to increase your limit.
+                    You have used {totalTokenUsage} out of {TOKEN_LIMIT} tokens. Contact support to increase your limit.
                   </div>
                 </div>
               )}
 
-              {!isTokenLimitReached && tokenUsage > TOKEN_LIMIT * 0.8 && (
+              {!isTokenLimitReached && totalTokenUsage > TOKEN_LIMIT * 0.8 && (
                 <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-lg p-3">
                   <div className="flex items-center space-x-2 mb-2">
                     <AlertTriangle className="w-4 h-4 text-yellow-400" />
@@ -880,6 +1053,18 @@ export default function Demo(): JSX.Element {
                   </div>
                   <div className="text-yellow-300 text-xs">
                     {tokensRemaining} tokens remaining. Use wisely.
+                  </div>
+                </div>
+              )}
+
+              {tokenUsageError && (
+                <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-lg p-3">
+                  <div className="flex items-center space-x-2 mb-2">
+                    <AlertTriangle className="w-4 h-4 text-yellow-400" />
+                    <div className="text-yellow-400 font-medium text-sm">Token Tracking Warning</div>
+                  </div>
+                  <div className="text-yellow-300 text-xs">
+                    {tokenUsageError}
                   </div>
                 </div>
               )}
@@ -962,6 +1147,12 @@ export default function Demo(): JSX.Element {
                   </>
                 )}
               </button>
+
+              {!isTokenLimitReached && (
+                <div className="text-xs text-gray-400 text-center">
+                  {tokensRemaining} tokens remaining
+                </div>
+              )}
 
               {simulationData && !isTokenLimitReached && (
                 <div className="pt-3 border-t border-gray-700">
@@ -1079,8 +1270,8 @@ export default function Demo(): JSX.Element {
                     </h3>
                     <p className="text-gray-600 text-lg leading-relaxed">
                       {isTokenLimitReached 
-                        ? `Token limit reached (${tokenUsage}/${TOKEN_LIMIT}). Contact support to continue.`
-                        : "Enter a prompt describing what you'd like to learn about, then click 'Run Simulation' to see it come to life."
+                        ? `Token limit reached (${totalTokenUsage}/${TOKEN_LIMIT}). Contact support to continue.`
+                        : `Enter a prompt describing what you'd like to learn about, then click 'Run Simulation' to see it come to life. You have ${tokensRemaining} tokens remaining.`
                       }
                     </p>
                   </div>
