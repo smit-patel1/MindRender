@@ -21,8 +21,13 @@ export default function Problem() {
             </p>
           </div>
           <div className="bg-white p-8 rounded-2xl shadow-lg">
-            <div className="aspect-square rounded-xl bg-gradient-to-br from-blue-100 to-purple-100 flex items-center justify-center">
-              <p className="text-gray-400 text-center">Illustration Placeholder</p>
+            <div className="aspect-square rounded-xl overflow-hidden flex items-center justify-center">
+              <img 
+                src="/image.png" 
+                alt="AI Brain with Digital Neural Networks - Representing MindRender's AI-powered simulation technology"
+                className="w-full h-full object-cover rounded-xl"
+                loading="lazy"
+              />
             </div>
           </div>
         </motion.div>
