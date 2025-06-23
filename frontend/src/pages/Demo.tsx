@@ -28,8 +28,6 @@ export default function Demo(): JSX.Element {
   const [simulationData, setSimulationData] = useState<SimulationResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [tokenUsage, setTokenUsage] = useState<number>(0);
-  const [tokenFetchError, setTokenFetchError] = useState<string | null>(null);
-  const [tokenFetchLoading, setTokenFetchLoading] = useState<boolean>(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState<boolean>(false);
   const iframeRef = useRef<HTMLIFrameElement>(null);
 
@@ -37,33 +35,16 @@ export default function Demo(): JSX.Element {
   const tokensRemaining = Math.max(0, TOKEN_LIMIT - tokenUsage);
   const isJudgeAccount = user?.email === 'judgeacc90@gmail.com';
 
-  // Fetch user's total token usage after login
   useEffect(() => {
     const fetchTokenUsage = async () => {
       if (!user || isJudgeAccount) return;
 
-      setTokenFetchLoading(true);
-      setTokenFetchError(null);
-
       try {
-        console.log('Demo: Fetching token usage for user:', user.email);
-        
-        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-        
-        if (sessionError) {
-          console.error('Demo: Session error:', sessionError);
-          throw new Error(`Session error: ${sessionError.message}`);
-        }
+        const { data: { session } } = await supabase.auth.getSession();
         
         if (!session?.access_token) {
-          console.error('Demo: No valid session or access token found');
-          throw new Error('No valid session found. Please log in again.');
+          throw new Error('No valid session found');
         }
-
-        console.log('Demo: Making request to get_token_total with user_id:', user.id);
-
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
 
         const response = await fetch(
           'https://zurfhydnztcxlomdyqds.supabase.co/functions/v1/get_token_total',
@@ -74,66 +55,23 @@ export default function Demo(): JSX.Element {
               'Authorization': `Bearer ${session.access_token}`,
             },
             body: JSON.stringify({ user_id: user.id }),
-            signal: controller.signal,
           }
         );
 
-        clearTimeout(timeoutId);
-
-        console.log('Demo: Response received:', {
-          status: response.status,
-          statusText: response.statusText,
-          ok: response.ok,
-          headers: Object.fromEntries(response.headers.entries())
-        });
-
         if (!response.ok) {
-          const errorText = await response.text();
-          console.error('Demo: Token fetch failed:', {
-            status: response.status,
-            statusText: response.statusText,
-            body: errorText
-          });
-          throw new Error(`Failed to fetch token usage: ${response.status} ${response.statusText}`);
-        }
-
-        const contentType = response.headers.get('content-type');
-        if (!contentType?.includes('application/json')) {
-          const textResponse = await response.text();
-          console.error('Demo: Non-JSON response received:', textResponse);
-          throw new Error(`Expected JSON response, got: ${contentType || 'unknown'}`);
+          throw new Error(`HTTP ${response.status}`);
         }
 
         const data = await response.json();
-        console.log('Demo: Token usage data received:', data);
         
         if (typeof data.total_tokens === 'number' && data.total_tokens >= 0) {
           setTokenUsage(data.total_tokens);
-          setTokenFetchError(null);
-          console.log('Demo: Token usage updated to:', data.total_tokens);
         } else {
-          console.error('Demo: Invalid token data structure:', data);
-          throw new Error('Invalid token data received from server');
+          throw new Error('Invalid response format');
         }
 
-      } catch (error: any) {
-        console.error('Demo: Error fetching token usage:', error);
-        
-        let errorMessage = 'Failed to fetch token usage';
-        
-        if (error.name === 'AbortError') {
-          errorMessage = 'Request timed out';
-        } else if (error.message?.includes('Failed to fetch')) {
-          errorMessage = 'Network error - please check your connection';
-        } else if (error.message) {
-          errorMessage = error.message;
-        }
-        
-        setTokenFetchError(errorMessage);
-        // Set a fallback token count of 0 on error
+      } catch (error) {
         setTokenUsage(0);
-      } finally {
-        setTokenFetchLoading(false);
       }
     };
 
@@ -142,7 +80,6 @@ export default function Demo(): JSX.Element {
     }
   }, [user, authLoading, isJudgeAccount]);
 
-  // Handle iframe content injection when simulationData changes
   useEffect(() => {
     if (simulationData && iframeRef.current) {
       const combinedContent = `
@@ -202,37 +139,16 @@ export default function Demo(): JSX.Element {
               background: #fee2e2;
               color: #dc2626;
             }
-            .error-display {
-              position: fixed;
-              bottom: 10px;
-              left: 10px;
-              right: 10px;
-              background: #fee2e2;
-              color: #dc2626;
-              padding: 8px;
-              border-radius: 4px;
-              font-size: 12px;
-              z-index: 1000;
-              max-height: 100px;
-              overflow-y: auto;
-            }
           </style>
         </head>
         <body>
           <div class="status loading" id="status">Loading...</div>
           ${simulationData.canvasHtml}
           <script>
-            console.log('Iframe script starting...');
-            
             const statusEl = document.getElementById('status');
             let canvas = null;
             
             window.onerror = function(message, source, lineno, colno, error) {
-              console.error('JavaScript Error:', message, 'Line:', lineno);
-              const errorDiv = document.createElement('div');
-              errorDiv.className = 'error-display';
-              errorDiv.innerHTML = 'JS Error: ' + message + ' (Line: ' + lineno + ')';
-              document.body.appendChild(errorDiv);
               if (statusEl) {
                 statusEl.className = 'status error';
                 statusEl.textContent = 'JS Error';
@@ -240,26 +156,12 @@ export default function Demo(): JSX.Element {
               return true;
             };
             
-            window.addEventListener('unhandledrejection', function(event) {
-              console.error('Promise Rejection:', event.reason);
-              const errorDiv = document.createElement('div');
-              errorDiv.className = 'error-display';
-              errorDiv.innerHTML = 'Promise Error: ' + event.reason;
-              document.body.appendChild(errorDiv);
-              if (statusEl) {
-                statusEl.className = 'status error';
-                statusEl.textContent = 'Promise Error';
-              }
-            });
-            
             setTimeout(() => {
               canvas = document.querySelector('canvas');
               if (canvas) {
-                console.log('Canvas found:', canvas.id, canvas.width + 'x' + canvas.height);
                 canvas.style.display = 'block';
                 canvas.style.margin = '0 auto';
               } else {
-                console.error('No canvas element found in DOM');
                 if (statusEl) {
                   statusEl.className = 'status error';
                   statusEl.textContent = 'Canvas not found';
@@ -268,10 +170,7 @@ export default function Demo(): JSX.Element {
             }, 100);
             
             try {
-              console.log('Executing simulation code...');
               ${simulationData.jsCode}
-              
-              console.log('Simulation code executed successfully');
               
               setTimeout(() => {
                 if (statusEl) {
@@ -284,11 +183,6 @@ export default function Demo(): JSX.Element {
               }, 1500);
               
             } catch (error) {
-              console.error('Execution Error:', error);
-              const errorDiv = document.createElement('div');
-              errorDiv.className = 'error-display';
-              errorDiv.innerHTML = 'Execution Error: ' + error.message;
-              document.body.appendChild(errorDiv);
               if (statusEl) {
                 statusEl.className = 'status error';
                 statusEl.textContent = 'Error: ' + error.message;
@@ -299,19 +193,8 @@ export default function Demo(): JSX.Element {
         </html>
       `;
       
-      console.log('Loading content into iframe via useEffect...');
       iframeRef.current.srcdoc = combinedContent;
-      
-      iframeRef.current.onload = () => {
-        console.log('iframe loaded successfully via useEffect');
-      };
-      
-      iframeRef.current.onerror = (e) => {
-        console.error('iframe loading error via useEffect:', e);
-      };
     } else if (!simulationData && iframeRef.current) {
-      // Clear iframe when simulationData is null
-      console.log('Clearing iframe content...');
       iframeRef.current.srcdoc = '';
       iframeRef.current.src = 'about:blank';
     }
@@ -365,44 +248,6 @@ export default function Demo(): JSX.Element {
     );
   }
 
-  const validateTokenLimit = async (estimatedTokens: number = 150): Promise<boolean> => {
-    // Skip validation for judge account
-    if (isJudgeAccount) {
-      return true;
-    }
-    
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-      
-      if (!session) {
-        throw new Error('No valid session found. Please log in again.');
-      }
-
-      const response = await fetch(
-        'https://zurfhydnztcxlomdyqds.supabase.co/functions/v1/validate-tokens',
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${session.access_token}`,
-          },
-          body: JSON.stringify({ estimatedTokens }),
-        }
-      );
-
-      if (!response.ok) {
-        console.error('Token validation failed:', response.status);
-        return false;
-      }
-
-      const data = await response.json();
-      return data.canProceed;
-    } catch (error) {
-      console.error('Token validation error:', error);
-      return false;
-    }
-  };
-
   const handleRunSimulation = async (inputPrompt?: string): Promise<void> => {
     const currentPrompt = inputPrompt || prompt;
     if (!currentPrompt.trim()) return;
@@ -417,18 +262,11 @@ export default function Demo(): JSX.Element {
     setMobileMenuOpen(false);
     
     try {
-      console.log('Starting simulation request...');
       const { data: { session } } = await supabase.auth.getSession();
       
       if (!session) {
         throw new Error('No valid session found. Please log in again.');
       }
-
-      console.log('Sending request to edge function:', {
-        prompt: currentPrompt.substring(0, 50) + '...',
-        subject,
-        timestamp: new Date().toISOString()
-      });
 
       const requestBody = {
         prompt: currentPrompt.trim(),
@@ -447,60 +285,32 @@ export default function Demo(): JSX.Element {
         }
       );
 
-      console.log('Response received:', {
-        status: response.status,
-        statusText: response.statusText,
-        contentType: response.headers.get('content-type')
-      });
-
       if (!response.ok) {
         const errorText = await response.text();
-        console.error('API Error:', {
-          status: response.status,
-          statusText: response.statusText,
-          body: errorText
-        });
         throw new Error(`Simulation failed: ${response.status} ${response.statusText}`);
       }
 
       const contentType = response.headers.get('content-type');
       if (!contentType?.includes('application/json')) {
         const textResponse = await response.text();
-        console.error('Non-JSON response:', textResponse);
         throw new Error(`Expected JSON response, got: ${contentType}`);
       }
 
       const data: SimulationResponse = await response.json();
-      
-      console.log('Parsed response data:', {
-        hasCanvasHtml: !!data.canvasHtml,
-        canvasLength: data.canvasHtml?.length || 0,
-        hasJsCode: !!data.jsCode,
-        jsLength: data.jsCode?.length || 0,
-        hasExplanation: !!data.explanation,
-        explanationLength: data.explanation?.length || 0,
-        tokensUsed: data.usage?.totalTokens || 0,
-        hasError: !!(data as any).error
-      });
 
       if ((data as any).error) {
         throw new Error(`Simulation error: ${(data as any).error}`);
       }
 
       if (!data.canvasHtml || !data.jsCode) {
-        console.error('Missing required fields:', data);
         throw new Error('Invalid response format from simulation service');
       }
 
-      console.log('Setting simulation data...');
       setSimulationData(data);
       
-      // Only update token usage for non-judge accounts
       if (data.usage?.totalTokens && !isJudgeAccount) {
         const newTokenUsage = tokenUsage + data.usage.totalTokens;
         setTokenUsage(newTokenUsage);
-        console.log('Tokens used this request:', data.usage.totalTokens);
-        console.log('Total tokens used:', newTokenUsage);
         
         if (newTokenUsage >= TOKEN_LIMIT) {
           setError(`Token limit reached (${newTokenUsage}/${TOKEN_LIMIT}). This was your last simulation.`);
@@ -514,7 +324,6 @@ export default function Demo(): JSX.Element {
       }
 
     } catch (err: any) {
-      console.error('Simulation error:', err);
       setError(err.message || 'An error occurred while generating the simulation');
     } finally {
       setLoading(false);
@@ -546,35 +355,11 @@ export default function Demo(): JSX.Element {
     setMobileMenuOpen(false);
   };
 
-  // Render token display component
   const renderTokenDisplay = () => {
     if (isJudgeAccount) {
       return (
         <div className="rounded-lg px-2 sm:px-3 py-1 text-xs sm:text-sm bg-green-500/20 border border-green-500/30">
           <span className="text-green-400 font-semibold">Unlimited Tokens</span>
-        </div>
-      );
-    }
-
-    if (tokenFetchLoading) {
-      return (
-        <div className="rounded-lg px-2 sm:px-3 py-1 text-xs sm:text-sm bg-gray-700/50 border border-gray-600">
-          <span className="text-gray-300 font-medium flex items-center">
-            <Loader2 className="w-3 h-3 animate-spin mr-1" />
-            <span className="hidden sm:inline">Loading...</span>
-            <span className="sm:hidden">...</span>
-          </span>
-        </div>
-      );
-    }
-
-    if (tokenFetchError) {
-      return (
-        <div className="rounded-lg px-2 sm:px-3 py-1 text-xs sm:text-sm bg-yellow-500/20 border border-yellow-500/30">
-          <span className="text-yellow-400 font-medium">
-            <span className="hidden sm:inline">Tokens: </span>
-            {tokenUsage} / {TOKEN_LIMIT} (Error)
-          </span>
         </div>
       );
     }
@@ -669,18 +454,6 @@ export default function Demo(): JSX.Element {
                 </div>
                 <div className="text-red-300 text-xs">
                   You have used {tokenUsage} out of {TOKEN_LIMIT} tokens.
-                </div>
-              </div>
-            )}
-
-            {tokenFetchError && (
-              <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-lg p-3">
-                <div className="flex items-center space-x-2 mb-2">
-                  <AlertTriangle className="w-4 h-4 text-yellow-400" />
-                  <div className="text-yellow-400 font-medium text-sm">Token Fetch Error</div>
-                </div>
-                <div className="text-yellow-300 text-xs">
-                  {tokenFetchError}. Using fallback count.
                 </div>
               </div>
             )}
@@ -912,18 +685,6 @@ export default function Demo(): JSX.Element {
                   </div>
                   <div className="text-yellow-300 text-xs">
                     {tokensRemaining} tokens remaining. Use wisely.
-                  </div>
-                </div>
-              )}
-
-              {tokenFetchError && (
-                <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-lg p-3">
-                  <div className="flex items-center space-x-2 mb-2">
-                    <AlertTriangle className="w-4 h-4 text-yellow-400" />
-                    <div className="text-yellow-400 font-medium text-sm">Token Fetch Error</div>
-                  </div>
-                  <div className="text-yellow-300 text-xs">
-                    {tokenFetchError}. Using fallback count.
                   </div>
                 </div>
               )}
