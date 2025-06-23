@@ -29,6 +29,7 @@ export default function Demo(): JSX.Element {
   const [error, setError] = useState<string | null>(null);
   const [tokenUsage, setTokenUsage] = useState<number>(0);
   const [tokenFetchError, setTokenFetchError] = useState<string | null>(null);
+  const [tokenFetchLoading, setTokenFetchLoading] = useState<boolean>(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState<boolean>(false);
   const iframeRef = useRef<HTMLIFrameElement>(null);
 
@@ -39,18 +40,30 @@ export default function Demo(): JSX.Element {
   // Fetch user's total token usage after login
   useEffect(() => {
     const fetchTokenUsage = async () => {
-      if (!user) return;
+      if (!user || isJudgeAccount) return;
+
+      setTokenFetchLoading(true);
+      setTokenFetchError(null);
 
       try {
         console.log('Demo: Fetching token usage for user:', user.email);
         
-        const { data: { session } } = await supabase.auth.getSession();
+        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
         
-        if (!session) {
-          console.error('Demo: No session found when fetching token usage');
-          setTokenFetchError('No valid session found');
-          return;
+        if (sessionError) {
+          console.error('Demo: Session error:', sessionError);
+          throw new Error(`Session error: ${sessionError.message}`);
         }
+        
+        if (!session?.access_token) {
+          console.error('Demo: No valid session or access token found');
+          throw new Error('No valid session found. Please log in again.');
+        }
+
+        console.log('Demo: Making request to get_token_total with user_id:', user.id);
+
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
 
         const response = await fetch(
           'https://zurfhydnztcxlomdyqds.supabase.co/functions/v1/get_token_total',
@@ -61,36 +74,73 @@ export default function Demo(): JSX.Element {
               'Authorization': `Bearer ${session.access_token}`,
             },
             body: JSON.stringify({ user_id: user.id }),
+            signal: controller.signal,
           }
         );
 
+        clearTimeout(timeoutId);
+
+        console.log('Demo: Response received:', {
+          status: response.status,
+          statusText: response.statusText,
+          ok: response.ok,
+          headers: Object.fromEntries(response.headers.entries())
+        });
+
         if (!response.ok) {
-          console.error('Demo: Token fetch failed:', response.status, response.statusText);
-          setTokenFetchError(`Failed to fetch token usage: ${response.status}`);
-          return;
+          const errorText = await response.text();
+          console.error('Demo: Token fetch failed:', {
+            status: response.status,
+            statusText: response.statusText,
+            body: errorText
+          });
+          throw new Error(`Failed to fetch token usage: ${response.status} ${response.statusText}`);
+        }
+
+        const contentType = response.headers.get('content-type');
+        if (!contentType?.includes('application/json')) {
+          const textResponse = await response.text();
+          console.error('Demo: Non-JSON response received:', textResponse);
+          throw new Error(`Expected JSON response, got: ${contentType || 'unknown'}`);
         }
 
         const data = await response.json();
-        console.log('Demo: Token usage fetched:', data);
+        console.log('Demo: Token usage data received:', data);
         
-        if (typeof data.total_tokens === 'number') {
+        if (typeof data.total_tokens === 'number' && data.total_tokens >= 0) {
           setTokenUsage(data.total_tokens);
           setTokenFetchError(null);
+          console.log('Demo: Token usage updated to:', data.total_tokens);
         } else {
-          console.error('Demo: Invalid token data received:', data);
-          setTokenFetchError('Invalid token data received');
+          console.error('Demo: Invalid token data structure:', data);
+          throw new Error('Invalid token data received from server');
         }
 
       } catch (error: any) {
         console.error('Demo: Error fetching token usage:', error);
-        setTokenFetchError('Failed to fetch token usage');
+        
+        let errorMessage = 'Failed to fetch token usage';
+        
+        if (error.name === 'AbortError') {
+          errorMessage = 'Request timed out';
+        } else if (error.message?.includes('Failed to fetch')) {
+          errorMessage = 'Network error - please check your connection';
+        } else if (error.message) {
+          errorMessage = error.message;
+        }
+        
+        setTokenFetchError(errorMessage);
+        // Set a fallback token count of 0 on error
+        setTokenUsage(0);
+      } finally {
+        setTokenFetchLoading(false);
       }
     };
 
     if (user && !authLoading) {
       fetchTokenUsage();
     }
-  }, [user, authLoading]);
+  }, [user, authLoading, isJudgeAccount]);
 
   // Handle iframe content injection when simulationData changes
   useEffect(() => {
@@ -501,7 +551,19 @@ export default function Demo(): JSX.Element {
     if (isJudgeAccount) {
       return (
         <div className="rounded-lg px-2 sm:px-3 py-1 text-xs sm:text-sm bg-green-500/20 border border-green-500/30">
-          <span className="text-green-600 font-semibold">Unlimited Tokens</span>
+          <span className="text-green-400 font-semibold">Unlimited Tokens</span>
+        </div>
+      );
+    }
+
+    if (tokenFetchLoading) {
+      return (
+        <div className="rounded-lg px-2 sm:px-3 py-1 text-xs sm:text-sm bg-gray-700/50 border border-gray-600">
+          <span className="text-gray-300 font-medium flex items-center">
+            <Loader2 className="w-3 h-3 animate-spin mr-1" />
+            <span className="hidden sm:inline">Loading...</span>
+            <span className="sm:hidden">...</span>
+          </span>
         </div>
       );
     }
@@ -511,7 +573,7 @@ export default function Demo(): JSX.Element {
         <div className="rounded-lg px-2 sm:px-3 py-1 text-xs sm:text-sm bg-yellow-500/20 border border-yellow-500/30">
           <span className="text-yellow-400 font-medium">
             <span className="hidden sm:inline">Tokens: </span>
-            0 / {TOKEN_LIMIT} (Error)
+            {tokenUsage} / {TOKEN_LIMIT} (Error)
           </span>
         </div>
       );
@@ -615,10 +677,10 @@ export default function Demo(): JSX.Element {
               <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-lg p-3">
                 <div className="flex items-center space-x-2 mb-2">
                   <AlertTriangle className="w-4 h-4 text-yellow-400" />
-                  <div className="text-yellow-400 font-medium text-sm">Token Fetch Warning</div>
+                  <div className="text-yellow-400 font-medium text-sm">Token Fetch Error</div>
                 </div>
                 <div className="text-yellow-300 text-xs">
-                  {tokenFetchError}. Showing fallback count.
+                  {tokenFetchError}. Using fallback count.
                 </div>
               </div>
             )}
@@ -858,10 +920,10 @@ export default function Demo(): JSX.Element {
                 <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-lg p-3">
                   <div className="flex items-center space-x-2 mb-2">
                     <AlertTriangle className="w-4 h-4 text-yellow-400" />
-                    <div className="text-yellow-400 font-medium text-sm">Token Fetch Warning</div>
+                    <div className="text-yellow-400 font-medium text-sm">Token Fetch Error</div>
                   </div>
                   <div className="text-yellow-300 text-xs">
-                    {tokenFetchError}. Showing fallback count.
+                    {tokenFetchError}. Using fallback count.
                   </div>
                 </div>
               )}
