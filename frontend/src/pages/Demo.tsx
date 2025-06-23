@@ -28,12 +28,69 @@ export default function Demo(): JSX.Element {
   const [simulationData, setSimulationData] = useState<SimulationResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [tokenUsage, setTokenUsage] = useState<number>(0);
+  const [tokenFetchError, setTokenFetchError] = useState<string | null>(null);
   const [mobileMenuOpen, setMobileMenuOpen] = useState<boolean>(false);
   const iframeRef = useRef<HTMLIFrameElement>(null);
 
   const isTokenLimitReached = tokenUsage >= TOKEN_LIMIT;
   const tokensRemaining = Math.max(0, TOKEN_LIMIT - tokenUsage);
   const isJudgeAccount = user?.email === 'judgeacc90@gmail.com';
+
+  // Fetch user's total token usage after login
+  useEffect(() => {
+    const fetchTokenUsage = async () => {
+      if (!user) return;
+
+      try {
+        console.log('Demo: Fetching token usage for user:', user.email);
+        
+        const { data: { session } } = await supabase.auth.getSession();
+        
+        if (!session) {
+          console.error('Demo: No session found when fetching token usage');
+          setTokenFetchError('No valid session found');
+          return;
+        }
+
+        const response = await fetch(
+          'https://zurfhydnztcxlomdyqds.supabase.co/functions/v1/get_token_total',
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${session.access_token}`,
+            },
+            body: JSON.stringify({ user_id: user.id }),
+          }
+        );
+
+        if (!response.ok) {
+          console.error('Demo: Token fetch failed:', response.status, response.statusText);
+          setTokenFetchError(`Failed to fetch token usage: ${response.status}`);
+          return;
+        }
+
+        const data = await response.json();
+        console.log('Demo: Token usage fetched:', data);
+        
+        if (typeof data.total_tokens === 'number') {
+          setTokenUsage(data.total_tokens);
+          setTokenFetchError(null);
+        } else {
+          console.error('Demo: Invalid token data received:', data);
+          setTokenFetchError('Invalid token data received');
+        }
+
+      } catch (error: any) {
+        console.error('Demo: Error fetching token usage:', error);
+        setTokenFetchError('Failed to fetch token usage');
+      }
+    };
+
+    if (user && !authLoading) {
+      fetchTokenUsage();
+    }
+  }, [user, authLoading]);
 
   // Handle iframe content injection when simulationData changes
   useEffect(() => {
@@ -209,6 +266,7 @@ export default function Demo(): JSX.Element {
       iframeRef.current.src = 'about:blank';
     }
   }, [simulationData]);
+
   if (authLoading) {
     return (
       <div className="min-h-screen bg-gray-900 flex items-center justify-center p-4">
@@ -401,7 +459,6 @@ export default function Demo(): JSX.Element {
         setTokenUsage(prev => prev + 1);
       }
 
-
       if (inputPrompt) {
         setFollowUpPrompt('');
       }
@@ -439,6 +496,50 @@ export default function Demo(): JSX.Element {
     setMobileMenuOpen(false);
   };
 
+  // Render token display component
+  const renderTokenDisplay = () => {
+    if (isJudgeAccount) {
+      return (
+        <div className="rounded-lg px-2 sm:px-3 py-1 text-xs sm:text-sm bg-green-500/20 border border-green-500/30">
+          <span className="text-green-600 font-semibold">Unlimited Tokens</span>
+        </div>
+      );
+    }
+
+    if (tokenFetchError) {
+      return (
+        <div className="rounded-lg px-2 sm:px-3 py-1 text-xs sm:text-sm bg-yellow-500/20 border border-yellow-500/30">
+          <span className="text-yellow-400 font-medium">
+            <span className="hidden sm:inline">Tokens: </span>
+            0 / {TOKEN_LIMIT} (Error)
+          </span>
+        </div>
+      );
+    }
+
+    return (
+      <div className={`rounded-lg px-2 sm:px-3 py-1 text-xs sm:text-sm ${
+        isTokenLimitReached 
+          ? 'bg-red-500/20 border border-red-500/30' 
+          : tokenUsage > TOKEN_LIMIT * 0.8
+            ? 'bg-yellow-500/20 border border-yellow-500/30'
+            : 'bg-gray-700/50'
+      }`}>
+        <span className="text-gray-300">
+          <span className="hidden sm:inline">Tokens: </span>
+          <span className={`font-medium ${
+            isTokenLimitReached 
+              ? 'text-red-400' 
+              : tokenUsage > TOKEN_LIMIT * 0.8
+                ? 'text-yellow-400'
+                : 'text-yellow-400'
+          }`}>{tokenUsage} / {TOKEN_LIMIT}</span>
+          <span className="hidden sm:inline"> Used</span>
+        </span>
+      </div>
+    );
+  };
+
   return (
     <div className="h-screen bg-gray-900 text-white overflow-hidden flex flex-col">
       <div className="border-b border-gray-700 bg-gray-800/50 backdrop-blur-sm flex-shrink-0">
@@ -452,34 +553,7 @@ export default function Demo(): JSX.Element {
           </div>
           
           <div className="flex items-center space-x-2 sm:space-x-4">
-            {isJudgeAccount ? (
-              <div className="rounded-lg px-2 sm:px-3 py-1 text-xs sm:text-sm bg-green-500/20 border border-green-500/30">
-                <span className="text-green-400 font-medium">
-                  <span className="hidden sm:inline">Tokens: </span>
-                  Unlimited
-                </span>
-              </div>
-            ) : (
-              <div className={`rounded-lg px-2 sm:px-3 py-1 text-xs sm:text-sm ${
-                isTokenLimitReached 
-                  ? 'bg-red-500/20 border border-red-500/30' 
-                  : tokenUsage > TOKEN_LIMIT * 0.8
-                    ? 'bg-yellow-500/20 border border-yellow-500/30'
-                    : 'bg-gray-700/50'
-              }`}>
-                <span className="text-gray-300">
-                  <span className="hidden sm:inline">Tokens: </span>
-                  <span className={`font-medium ${
-                    isTokenLimitReached 
-                      ? 'text-red-400' 
-                      : tokenUsage > TOKEN_LIMIT * 0.8
-                        ? 'text-yellow-400'
-                        : 'text-yellow-400'
-                  }`}>{tokenUsage}</span>
-                  <span className="hidden sm:inline"> / {TOKEN_LIMIT}</span>
-                </span>
-              </div>
-            )}
+            {renderTokenDisplay()}
             
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
@@ -533,6 +607,18 @@ export default function Demo(): JSX.Element {
                 </div>
                 <div className="text-red-300 text-xs">
                   You have used {tokenUsage} out of {TOKEN_LIMIT} tokens.
+                </div>
+              </div>
+            )}
+
+            {tokenFetchError && (
+              <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-lg p-3">
+                <div className="flex items-center space-x-2 mb-2">
+                  <AlertTriangle className="w-4 h-4 text-yellow-400" />
+                  <div className="text-yellow-400 font-medium text-sm">Token Fetch Warning</div>
+                </div>
+                <div className="text-yellow-300 text-xs">
+                  {tokenFetchError}. Showing fallback count.
                 </div>
               </div>
             )}
@@ -764,6 +850,18 @@ export default function Demo(): JSX.Element {
                   </div>
                   <div className="text-yellow-300 text-xs">
                     {tokensRemaining} tokens remaining. Use wisely.
+                  </div>
+                </div>
+              )}
+
+              {tokenFetchError && (
+                <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-lg p-3">
+                  <div className="flex items-center space-x-2 mb-2">
+                    <AlertTriangle className="w-4 h-4 text-yellow-400" />
+                    <div className="text-yellow-400 font-medium text-sm">Token Fetch Warning</div>
+                  </div>
+                  <div className="text-yellow-300 text-xs">
+                    {tokenFetchError}. Showing fallback count.
                   </div>
                 </div>
               )}
