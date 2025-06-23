@@ -6,22 +6,22 @@ const steps = [
   {
     icon: MessageSquare,
     title: "Describe",
-    description: "Tell us what you want to visualize in plain English"
+    description: "Describe what you want to visualize using simple, natural language"
   },
   {
     icon: Code2,
     title: "Generate",
-    description: "Our AI converts your description into interactive code"
+    description: "Our AI transforms your description into working interactive code"
   },
   {
     icon: Play,
     title: "Visualize",
-    description: "Watch your concept come to life in real-time"
+    description: "See your concept come to life as a real-time simulation"
   },
   {
     icon: MousePointer,
     title: "Explore",
-    description: "Interact with and modify the simulation as you learn"
+    description: "Interact with and customize the simulation while you learn"
   }
 ];
 

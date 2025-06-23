@@ -22,7 +22,7 @@ const TOKEN_LIMIT = 2000;
 export default function Demo(): JSX.Element {
   const { user, loading: authLoading, error: authError, signOut } = useAuth();
   const [subject, setSubject] = useState<string>('Physics');
-  const [prompt, setPrompt] = useState<string>('Show how a pendulum behaves under the influence of gravity and explain the energy transformations during its swing');
+  const [prompt, setPrompt] = useState<string>('Show how a pendulum behaves under gravity and explain the energy transformations during its swing');
   const [followUpPrompt, setFollowUpPrompt] = useState<string>('');
   const [loading, setLoading] = useState<boolean>(false);
   const [simulationData, setSimulationData] = useState<SimulationResponse | null>(null);
@@ -502,7 +502,7 @@ export default function Demo(): JSX.Element {
                   <div className="text-red-400 font-medium text-sm">Token Limit Reached</div>
                 </div>
                 <div className="text-red-300 text-xs">
-                  You have used {tokenUsage} out of {TOKEN_LIMIT} tokens.
+                  You have used all {tokenUsage} of your {TOKEN_LIMIT} available tokens.
                 </div>
               </div>
             )}
@@ -531,7 +531,7 @@ export default function Demo(): JSX.Element {
               <textarea
                 value={prompt}
                 onChange={(e) => setPrompt(e.target.value)}
-                placeholder="Describe what you want to simulate..."
+                placeholder="Describe the concept you want to explore..."
                 disabled={!isJudgeAccount && isTokenLimitReached}
                 className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white h-20 resize-none text-sm focus:ring-2 focus:ring-yellow-500 focus:border-transparent transition-colors placeholder-gray-400 disabled:opacity-50 disabled:cursor-not-allowed"
               />
@@ -573,7 +573,7 @@ export default function Demo(): JSX.Element {
                     type="text"
                     value={followUpPrompt}
                     onChange={(e) => setFollowUpPrompt(e.target.value)}
-                    placeholder="Ask a follow-up question..."
+                    placeholder="Ask a follow-up question or request modifications..."
                     disabled={!isJudgeAccount && isTokenLimitReached}
                     className="flex-1 bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors placeholder-gray-400 disabled:opacity-50 disabled:cursor-not-allowed"
                     onKeyPress={(e) => e.key === 'Enter' && handleFollowUpSubmit()}
@@ -668,8 +668,8 @@ export default function Demo(): JSX.Element {
                     </h3>
                     <p className="text-gray-600 text-sm leading-relaxed">
                       {isTokenLimitReached 
-                        ? `Token limit reached. Contact support to continue.`
-                        : "Enter a prompt above and click 'Run Simulation' to see it come to life."
+                        ? `Token limit reached. Please contact support to continue using the service.`
+                        : "Enter a description above and click 'Run Simulation' to bring your idea to life."
                       }
                     </p>
                   </div>
@@ -721,7 +721,7 @@ export default function Demo(): JSX.Element {
                     <div className="text-red-400 font-medium text-sm">Token Limit Reached</div>
                   </div>
                   <div className="text-red-300 text-xs">
-                    You have used {tokenUsage} out of {TOKEN_LIMIT} tokens. Contact support to increase your limit.
+                    You have used all {tokenUsage} of your {TOKEN_LIMIT} available tokens. Contact support to increase your limit.
                   </div>
                 </div>
               )}
@@ -733,7 +733,7 @@ export default function Demo(): JSX.Element {
                     <div className="text-yellow-400 font-medium text-sm">Token Limit Warning</div>
                   </div>
                   <div className="text-yellow-300 text-xs">
-                    {tokensRemaining} tokens remaining. Use wisely.
+                    Only {tokensRemaining} tokens remaining. Please use them carefully.
                   </div>
                 </div>
               )}
@@ -762,7 +762,7 @@ export default function Demo(): JSX.Element {
                 <textarea
                   value={prompt}
                   onChange={(e) => setPrompt(e.target.value)}
-                  placeholder="Describe what you want to simulate..."
+                  placeholder="Describe the concept you want to explore..."
                   disabled={!isJudgeAccount && isTokenLimitReached}
                   className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white h-28 resize-none text-sm focus:ring-2 focus:ring-yellow-500 focus:border-transparent transition-colors placeholder-gray-400 disabled:opacity-50 disabled:cursor-not-allowed"
                 />
@@ -807,7 +807,7 @@ export default function Demo(): JSX.Element {
                       type="text"
                       value={followUpPrompt}
                       onChange={(e) => setFollowUpPrompt(e.target.value)}
-                      placeholder="Ask a follow-up question..."
+                      placeholder="Ask a follow-up question or request modifications..."
                       disabled={!isJudgeAccount && isTokenLimitReached}
                       className="flex-1 bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors placeholder-gray-400 disabled:opacity-50 disabled:cursor-not-allowed"
                       onKeyPress={(e) => e.key === 'Enter' && handleFollowUpSubmit()}
@@ -910,8 +910,8 @@ export default function Demo(): JSX.Element {
                     </h3>
                     <p className="text-gray-600 text-lg leading-relaxed">
                       {!isJudgeAccount && isTokenLimitReached 
-                        ? `Token limit reached (${tokenUsage}/${TOKEN_LIMIT}). Contact support to continue.`
-                        : "Enter a prompt describing what you'd like to learn about, then click 'Run Simulation' to see it come to life."
+                        ? `Token limit reached (${tokenUsage}/${TOKEN_LIMIT}). Please contact support to continue.`
+                        : "Enter a description of what you would like to learn about, then click 'Run Simulation' to see it come to life."
                       }
                     </p>
                   </div>
@@ -961,7 +961,7 @@ export default function Demo(): JSX.Element {
                       Explanation Ready
                     </h3>
                     <p className="text-gray-500">
-                      Run a simulation to see a concise explanation of the concepts and mechanics involved.
+                      Run a simulation to see a clear explanation of the concepts and mechanics involved.
                     </p>
                   </div>
                 </div>

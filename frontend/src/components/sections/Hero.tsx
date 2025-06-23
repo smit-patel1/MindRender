@@ -49,7 +49,7 @@ export default function Hero() {
           transition={{ delay: 0.3 }}
           className="text-lg md:text-xl mb-8 text-gray-300"
         >
-          An AI-powered simulation engine that transforms natural language into live, interactive simulations—designed for learning, discovery, and exploration.
+          An AI-powered simulation engine that transforms natural language into live, interactive simulations. Designed for learning, discovery, and exploration.
         </motion.p>
         
         <motion.div 

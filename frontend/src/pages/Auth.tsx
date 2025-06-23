@@ -90,7 +90,7 @@ export default function Auth() {
         if (signUpError) throw signUpError;
 
         if (data.user) {
-          alert('Successfully signed up! Please check your email to confirm your account.');
+          alert('Account created successfully! Please check your email to confirm your account.');
           setIsLogin(true);
         }
       }

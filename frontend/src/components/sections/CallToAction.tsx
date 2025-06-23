@@ -12,11 +12,11 @@ export default function CallToAction() {
         viewport={{ once: true }}
         className="max-w-4xl mx-auto text-center text-white px-4"
       >
-        <h2 className="text-4xl md:text-5xl font-bold mb-6">Ready to Render Your Mind?</h2>
-        <p className="text-xl mb-12">Start turning ideas into simulations today.</p>
+        <h2 className="text-4xl md:text-5xl font-bold mb-6">Transform Your Ideas Into Reality</h2>
+        <p className="text-xl mb-12">Begin creating interactive simulations from your concepts today.</p>
         <Link to="/auth">
           <button className="bg-white text-blue-600 hover:bg-gray-100 px-8 py-6 rounded-2xl text-lg font-semibold shadow-lg flex items-center">
-            Create Account to Start
+            Get Started Now
             <ArrowRight className="ml-2 w-5 h-5" />
           </button>
         </Link>

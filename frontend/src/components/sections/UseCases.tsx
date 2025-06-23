@@ -6,19 +6,19 @@ const cases = [
   {
     icon: Code,
     title: "Binary Search Visualization",
-    description: "Watch how the algorithm efficiently finds elements in sorted arrays",
+    description: "See how the algorithm efficiently locates elements in sorted arrays",
     prompt: "Visualize binary search algorithm"
   },
   {
     icon: Dna,
     title: "Cell Division Process",
-    description: "See the stages of mitosis in an interactive 3D environment",
+    description: "Explore the stages of mitosis in an interactive 3D environment",
     prompt: "Show how mitosis works"
   },
   {
     icon: LineChart,
     title: "Population Dynamics",
-    description: "Explore predator-prey relationships through real-time graphs",
+    description: "Study predator-prey relationships through real-time graphs",
     prompt: "Simulate predator-prey dynamics"
   }
 ];

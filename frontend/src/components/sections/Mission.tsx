@@ -13,7 +13,7 @@ export default function Mission() {
         <div className="max-w-3xl mx-auto text-center">
           <h2 className="text-4xl font-bold mb-6 text-gray-900">Our Mission</h2>
           <p className="text-xl text-gray-600 leading-relaxed">
-            We believe that understanding complex concepts shouldn't be limited by static textbooks or traditional learning methods. MindRender democratizes education by putting the power of real-time, interactive visualization in everyone's hands. Through AI-powered simulations, we're making abstract concepts tangible and learning more engaging than ever before.
+            We believe that understanding complex concepts should not be limited by static textbooks or traditional learning methods. MindRender democratizes education by putting the power of real-time, interactive visualization in everyone's hands. Through AI-powered simulations, we are making abstract concepts tangible and learning more engaging than ever before.
           </p>
         </div>
       </motion.div>
