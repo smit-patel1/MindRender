@@ -934,11 +934,9 @@ export default function Demo(): JSX.Element {
                       Ready to Simulate
                     </h3>
                     <p className="text-gray-600 text-lg leading-relaxed">
-                      {isTokenLimitReached 
+                      {!isJudgeAccount && isTokenLimitReached 
                         ? `Token limit reached (${tokenUsage}/${TOKEN_LIMIT}). Contact support to continue.`
-                        : isJudgeAccount
-                          ? "Enter a prompt describing what you'd like to learn about, then click 'Run Simulation' to see it come to life."
-                          : "Enter a prompt describing what you'd like to learn about, then click 'Run Simulation' to see it come to life."
+                        : "Enter a prompt describing what you'd like to learn about, then click 'Run Simulation' to see it come to life."
                       }
                     </p>
                   </div>
