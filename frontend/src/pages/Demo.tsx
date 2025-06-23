@@ -37,14 +37,48 @@ export default function Demo(): JSX.Element {
 
   useEffect(() => {
     const fetchTokenUsage = async () => {
-      if (!user || isJudgeAccount) return;
+      // Don't fetch if still loading auth or no user
+      if (authLoading || !user || isJudgeAccount) {
+        console.log('Demo: Skipping token fetch - authLoading:', authLoading, 'user:', !!user, 'isJudgeAccount:', isJudgeAccount);
+        return;
+      }
 
       try {
-        const { data: { session } } = await supabase.auth.getSession();
+        console.log('Demo: Attempting to fetch token usage for user:', user.email);
+        
+        // Wait for a valid session with retry logic
+        let session = null;
+        let retries = 0;
+        const maxRetries = 3;
+        
+        while (!session?.access_token && retries < maxRetries) {
+          console.log(`Demo: Getting session attempt ${retries + 1}/${maxRetries}`);
+          const { data: { session: currentSession }, error: sessionError } = await supabase.auth.getSession();
+          
+          if (sessionError) {
+            console.error('Demo: Session error:', sessionError);
+            throw new Error(`Session error: ${sessionError.message}`);
+          }
+          
+          if (currentSession?.access_token) {
+            session = currentSession;
+            console.log('Demo: Valid session obtained');
+            break;
+          }
+          
+          retries++;
+          if (retries < maxRetries) {
+            console.log('Demo: No valid session, waiting 500ms before retry...');
+            await new Promise(resolve => setTimeout(resolve, 500));
+          }
+        }
         
         if (!session?.access_token) {
-          throw new Error('No valid session found');
+          console.warn('Demo: No valid session found after retries, skipping token fetch');
+          return; // Don't set tokenUsage to 0, just skip the fetch
         }
+
+        console.log('Demo: Making token usage request...');
 
         const response = await fetch(
           'https://zurfhydnztcxlomdyqds.supabase.co/functions/v1/get_token_total',
@@ -59,24 +93,39 @@ export default function Demo(): JSX.Element {
         );
 
         if (!response.ok) {
+          console.error('Demo: Token fetch HTTP error:', response.status, response.statusText);
           throw new Error(`HTTP ${response.status}`);
         }
 
         const data = await response.json();
+        console.log('Demo: Token usage response:', data);
         
         if (typeof data.total_tokens === 'number' && data.total_tokens >= 0) {
+          console.log('Demo: Setting token usage to:', data.total_tokens);
           setTokenUsage(data.total_tokens);
         } else {
+          console.error('Demo: Invalid response format:', data);
           throw new Error('Invalid response format');
         }
 
       } catch (error) {
-        setTokenUsage(0);
+        console.error('Demo: Error fetching token usage:', error);
+        // Don't reset to 0 on error - keep the current value or set to 0 only if it's the first load
+        if (tokenUsage === 0) {
+          console.log('Demo: Setting fallback token usage to 0 (first load)');
+          setTokenUsage(0);
+        } else {
+          console.log('Demo: Keeping current token usage value due to fetch error');
+        }
       }
     };
 
-    if (user && !authLoading) {
+    // Only fetch when we have a user and auth is not loading
+    if (!authLoading && user && !isJudgeAccount) {
+      console.log('Demo: Conditions met for token usage fetch');
       fetchTokenUsage();
+    } else {
+      console.log('Demo: Conditions not met for token usage fetch - authLoading:', authLoading, 'user:', !!user, 'isJudgeAccount:', isJudgeAccount);
     }
   }, [user, authLoading, isJudgeAccount]);
 
