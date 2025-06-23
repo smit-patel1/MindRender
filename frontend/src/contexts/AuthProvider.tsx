@@ -181,9 +181,15 @@ export function AuthProvider({ children }: AuthProviderProps) {
       const { error } = await supabase.auth.signOut();
       
       if (error) {
-        console.error('AuthProvider: Sign out failed:', error.message);
-        setError('Sign out failed: ' + error.message);
-        return;
+        // Check if the error is the expected "Auth session missing!" error
+        if (error.message?.includes('Auth session missing')) {
+          console.log('AuthProvider: Sign out completed - session was already invalid');
+          // This is expected when the session is already invalid, treat as success
+        } else {
+          console.error('AuthProvider: Sign out failed:', error.message);
+          setError('Sign out failed: ' + error.message);
+          return;
+        }
       }
       
       console.log('AuthProvider: Sign out successful');
@@ -193,7 +199,15 @@ export function AuthProvider({ children }: AuthProviderProps) {
       
     } catch (error: any) {
       console.error('AuthProvider: Unexpected error during sign out:', error);
-      setError('Sign out failed: ' + error.message);
+      
+      // Check if the error is the expected "Auth session missing!" error
+      if (error.message?.includes('Auth session missing')) {
+        console.log('AuthProvider: Sign out completed - session was already invalid (caught)');
+        // This is expected when the session is already invalid, treat as success
+        window.location.href = '/';
+      } else {
+        setError('Sign out failed: ' + error.message);
+      }
     }
   }, [user]);
 
