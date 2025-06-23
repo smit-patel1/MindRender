@@ -35,6 +35,180 @@ export default function Demo(): JSX.Element {
   const tokensRemaining = Math.max(0, TOKEN_LIMIT - tokenUsage);
   const isJudgeAccount = user?.email === 'judgeacc90@gmail.com';
 
+  // Handle iframe content injection when simulationData changes
+  useEffect(() => {
+    if (simulationData && iframeRef.current) {
+      const combinedContent = `
+        <!DOCTYPE html>
+        <html lang="en">
+        <head>
+          <meta charset="UTF-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <title>MindRender Simulation</title>
+          <style>
+            * {
+              margin: 0;
+              padding: 0;
+              box-sizing: border-box;
+            }
+            html, body {
+              height: 100vh;
+              width: 100vw;
+              overflow: hidden;
+              font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+              background: #f8fafc;
+              display: flex;
+              flex-direction: column;
+              align-items: center;
+              justify-content: center;
+            }
+            canvas {
+              border: 1px solid #e5e7eb;
+              border-radius: 8px;
+              background: white;
+              box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+              display: block !important;
+              margin: 0 auto;
+              max-width: calc(100vw - 20px);
+              max-height: calc(100vh - 20px);
+            }
+            .status {
+              position: fixed;
+              top: 10px;
+              right: 10px;
+              padding: 4px 8px;
+              border-radius: 4px;
+              font-size: 10px;
+              font-weight: 500;
+              z-index: 1000;
+              opacity: 0.9;
+            }
+            .status.loading {
+              background: #dbeafe;
+              color: #1e40af;
+            }
+            .status.success {
+              background: #d1fae5;
+              color: #059669;
+            }
+            .status.error {
+              background: #fee2e2;
+              color: #dc2626;
+            }
+            .error-display {
+              position: fixed;
+              bottom: 10px;
+              left: 10px;
+              right: 10px;
+              background: #fee2e2;
+              color: #dc2626;
+              padding: 8px;
+              border-radius: 4px;
+              font-size: 12px;
+              z-index: 1000;
+              max-height: 100px;
+              overflow-y: auto;
+            }
+          </style>
+        </head>
+        <body>
+          <div class="status loading" id="status">Loading...</div>
+          ${simulationData.canvasHtml}
+          <script>
+            console.log('Iframe script starting...');
+            
+            const statusEl = document.getElementById('status');
+            let canvas = null;
+            
+            window.onerror = function(message, source, lineno, colno, error) {
+              console.error('JavaScript Error:', message, 'Line:', lineno);
+              const errorDiv = document.createElement('div');
+              errorDiv.className = 'error-display';
+              errorDiv.innerHTML = 'JS Error: ' + message + ' (Line: ' + lineno + ')';
+              document.body.appendChild(errorDiv);
+              if (statusEl) {
+                statusEl.className = 'status error';
+                statusEl.textContent = 'JS Error';
+              }
+              return true;
+            };
+            
+            window.addEventListener('unhandledrejection', function(event) {
+              console.error('Promise Rejection:', event.reason);
+              const errorDiv = document.createElement('div');
+              errorDiv.className = 'error-display';
+              errorDiv.innerHTML = 'Promise Error: ' + event.reason;
+              document.body.appendChild(errorDiv);
+              if (statusEl) {
+                statusEl.className = 'status error';
+                statusEl.textContent = 'Promise Error';
+              }
+            });
+            
+            setTimeout(() => {
+              canvas = document.querySelector('canvas');
+              if (canvas) {
+                console.log('Canvas found:', canvas.id, canvas.width + 'x' + canvas.height);
+                canvas.style.display = 'block';
+                canvas.style.margin = '0 auto';
+              } else {
+                console.error('No canvas element found in DOM');
+                if (statusEl) {
+                  statusEl.className = 'status error';
+                  statusEl.textContent = 'Canvas not found';
+                }
+              }
+            }, 100);
+            
+            try {
+              console.log('Executing simulation code...');
+              ${simulationData.jsCode}
+              
+              console.log('Simulation code executed successfully');
+              
+              setTimeout(() => {
+                if (statusEl) {
+                  statusEl.className = 'status success';
+                  statusEl.textContent = 'Active';
+                  setTimeout(() => {
+                    statusEl.style.opacity = '0.5';
+                  }, 3000);
+                }
+              }, 1500);
+              
+            } catch (error) {
+              console.error('Execution Error:', error);
+              const errorDiv = document.createElement('div');
+              errorDiv.className = 'error-display';
+              errorDiv.innerHTML = 'Execution Error: ' + error.message;
+              document.body.appendChild(errorDiv);
+              if (statusEl) {
+                statusEl.className = 'status error';
+                statusEl.textContent = 'Error: ' + error.message;
+              }
+            }
+          </script>
+        </body>
+        </html>
+      `;
+      
+      console.log('Loading content into iframe via useEffect...');
+      iframeRef.current.srcdoc = combinedContent;
+      
+      iframeRef.current.onload = () => {
+        console.log('iframe loaded successfully via useEffect');
+      };
+      
+      iframeRef.current.onerror = (e) => {
+        console.error('iframe loading error via useEffect:', e);
+      };
+    } else if (!simulationData && iframeRef.current) {
+      // Clear iframe when simulationData is null
+      console.log('Clearing iframe content...');
+      iframeRef.current.srcdoc = '';
+      iframeRef.current.src = 'about:blank';
+    }
+  }, [simulationData]);
   if (authLoading) {
     return (
       <div className="min-h-screen bg-gray-900 flex items-center justify-center p-4">
@@ -227,172 +401,6 @@ export default function Demo(): JSX.Element {
         setTokenUsage(prev => prev + 1);
       }
 
-      if (iframeRef.current) {
-        const combinedContent = `
-          <!DOCTYPE html>
-          <html lang="en">
-          <head>
-            <meta charset="UTF-8">
-            <meta name="viewport" content="width=device-width, initial-scale=1.0">
-            <title>MindRender Simulation</title>
-            <style>
-              * {
-                margin: 0;
-                padding: 0;
-                box-sizing: border-box;
-              }
-              html, body {
-                height: 100vh;
-                width: 100vw;
-                overflow: hidden;
-                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-                background: #f8fafc;
-                display: flex;
-                flex-direction: column;
-                align-items: center;
-                justify-content: center;
-              }
-              canvas {
-                border: 1px solid #e5e7eb;
-                border-radius: 8px;
-                background: white;
-                box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-                display: block !important;
-                margin: 0 auto;
-                max-width: calc(100vw - 20px);
-                max-height: calc(100vh - 20px);
-              }
-              .status {
-                position: fixed;
-                top: 10px;
-                right: 10px;
-                padding: 4px 8px;
-                border-radius: 4px;
-                font-size: 10px;
-                font-weight: 500;
-                z-index: 1000;
-                opacity: 0.9;
-              }
-              .status.loading {
-                background: #dbeafe;
-                color: #1e40af;
-              }
-              .status.success {
-                background: #d1fae5;
-                color: #059669;
-              }
-              .status.error {
-                background: #fee2e2;
-                color: #dc2626;
-              }
-              .error-display {
-                position: fixed;
-                bottom: 10px;
-                left: 10px;
-                right: 10px;
-                background: #fee2e2;
-                color: #dc2626;
-                padding: 8px;
-                border-radius: 4px;
-                font-size: 12px;
-                z-index: 1000;
-                max-height: 100px;
-                overflow-y: auto;
-              }
-            </style>
-          </head>
-          <body>
-            <div class="status loading" id="status">Loading...</div>
-            ${data.canvasHtml}
-            <script>
-              console.log('Iframe script starting...');
-              
-              const statusEl = document.getElementById('status');
-              let canvas = null;
-              
-              window.onerror = function(message, source, lineno, colno, error) {
-                console.error('JavaScript Error:', message, 'Line:', lineno);
-                const errorDiv = document.createElement('div');
-                errorDiv.className = 'error-display';
-                errorDiv.innerHTML = 'JS Error: ' + message + ' (Line: ' + lineno + ')';
-                document.body.appendChild(errorDiv);
-                if (statusEl) {
-                  statusEl.className = 'status error';
-                  statusEl.textContent = 'JS Error';
-                }
-                return true;
-              };
-              
-              window.addEventListener('unhandledrejection', function(event) {
-                console.error('Promise Rejection:', event.reason);
-                const errorDiv = document.createElement('div');
-                errorDiv.className = 'error-display';
-                errorDiv.innerHTML = 'Promise Error: ' + event.reason;
-                document.body.appendChild(errorDiv);
-                if (statusEl) {
-                  statusEl.className = 'status error';
-                  statusEl.textContent = 'Promise Error';
-                }
-              });
-              
-              setTimeout(() => {
-                canvas = document.querySelector('canvas');
-                if (canvas) {
-                  console.log('Canvas found:', canvas.id, canvas.width + 'x' + canvas.height);
-                  canvas.style.display = 'block';
-                  canvas.style.margin = '0 auto';
-                } else {
-                  console.error('No canvas element found in DOM');
-                  if (statusEl) {
-                    statusEl.className = 'status error';
-                    statusEl.textContent = 'Canvas not found';
-                  }
-                }
-              }, 100);
-              
-              try {
-                console.log('Executing simulation code...');
-                ${data.jsCode}
-                
-                console.log('Simulation code executed successfully');
-                
-                setTimeout(() => {
-                  if (statusEl) {
-                    statusEl.className = 'status success';
-                    statusEl.textContent = 'Active';
-                    setTimeout(() => {
-                      statusEl.style.opacity = '0.5';
-                    }, 3000);
-                  }
-                }, 1500);
-                
-              } catch (error) {
-                console.error('Execution Error:', error);
-                const errorDiv = document.createElement('div');
-                errorDiv.className = 'error-display';
-                errorDiv.innerHTML = 'Execution Error: ' + error.message;
-                document.body.appendChild(errorDiv);
-                if (statusEl) {
-                  statusEl.className = 'status error';
-                  statusEl.textContent = 'Error: ' + error.message;
-                }
-              }
-            </script>
-          </body>
-          </html>
-        `;
-        
-        console.log('Loading content into iframe...');
-        iframeRef.current.srcdoc = combinedContent;
-        
-        iframeRef.current.onload = () => {
-          console.log('iframe loaded successfully');
-        };
-        
-        iframeRef.current.onerror = (e) => {
-          console.error('iframe loading error:', e);
-        };
-      }
 
       if (inputPrompt) {
         setFollowUpPrompt('');
@@ -429,10 +437,6 @@ export default function Demo(): JSX.Element {
     setFollowUpPrompt('');
     setError(null);
     setMobileMenuOpen(false);
-    if (iframeRef.current) {
-      iframeRef.current.srcdoc = '';
-      iframeRef.current.src = 'about:blank';
-    }
   };
 
   return (
