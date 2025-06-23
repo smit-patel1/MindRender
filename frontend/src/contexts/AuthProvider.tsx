@@ -262,34 +262,10 @@ export function AuthProvider({ children }: AuthProviderProps) {
           setSession(session);
           setError(null);
         } else if (session?.user) {
-          // For other events, validate the user to ensure session is still valid
-          try {
-            const { data: { user }, error } = await supabase.auth.getUser();
-            if (error) {
-              console.error('AuthProvider: User validation failed during auth change:', error);
-              if (error.message?.includes('Auth session missing')) {
-                console.log('AuthProvider: Session expired during auth change, signing out');
-                await supabase.auth.signOut();
-              }
-              setUser(null);
-              setSession(null);
-              setError(error.message);
-            } else {
-              console.log('AuthProvider: User validated during auth change:', user?.email);
-              setUser(user);
-              setSession(session);
-              setError(null);
-            }
-          } catch (error: any) {
-            console.error('AuthProvider: Error validating user during auth change:', error);
-            if (error.message?.includes('Auth session missing')) {
-              console.log('AuthProvider: Session missing during validation, signing out');
-              await supabase.auth.signOut();
-            }
-            setUser(null);
-            setSession(null);
-            setError('User validation failed');
-          }
+          console.log('AuthProvider: Session updated for user:', session.user.email);
+          setUser(session.user);
+          setSession(session);
+          setError(null);
         }
       }
     );
