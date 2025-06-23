@@ -213,7 +213,8 @@ export default function Demo(): JSX.Element {
       console.log('Setting simulation data...');
       setSimulationData(data);
       
-      if (data.usage?.totalTokens) {
+      // Only update token usage for non-judge accounts
+      if (data.usage?.totalTokens && !isJudgeAccount) {
         const newTokenUsage = tokenUsage + data.usage.totalTokens;
         setTokenUsage(newTokenUsage);
         console.log('Tokens used this request:', data.usage.totalTokens);
@@ -222,7 +223,7 @@ export default function Demo(): JSX.Element {
         if (newTokenUsage >= TOKEN_LIMIT) {
           setError(`Token limit reached (${newTokenUsage}/${TOKEN_LIMIT}). This was your last simulation.`);
         }
-      } else {
+      } else if (!isJudgeAccount) {
         setTokenUsage(prev => prev + 1);
       }
 
@@ -860,8 +861,8 @@ export default function Demo(): JSX.Element {
               {error && (
                 <div className="bg-red-500/10 border border-red-500/20 rounded-lg p-3">
                   <div className="flex items-start space-x-2">
-                    <div className="text-red-400 mt-0.5 text-sm">Warning</div>
-                    <div>
+                    <AlertTriangle className="w-4 h-4 text-red-400 mt-0.5 flex-shrink-0" />
+                    <div className="flex-1">
                       <div className="text-red-400 font-medium text-sm">Error</div>
                       <div className="text-red-300 text-sm mt-1 break-words">{error}</div>
                       <button
