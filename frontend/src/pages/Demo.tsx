@@ -502,7 +502,7 @@ export default function Demo(): JSX.Element {
                   <div className="text-red-400 font-medium text-sm">Token Limit Reached</div>
                 </div>
                 <div className="text-red-300 text-xs">
-                  You have used all {tokenUsage} of your {TOKEN_LIMIT} available tokens.
+                  You have used all {tokenUsage} of your {TOKEN_LIMIT} available tokens. Contact support to increase your limit.
                 </div>
               </div>
             )}
@@ -668,7 +668,7 @@ export default function Demo(): JSX.Element {
                     </h3>
                     <p className="text-gray-600 text-sm leading-relaxed">
                       {isTokenLimitReached 
-                        ? `Token limit reached. Please contact support to continue using the service.`
+                        ? `Token limit reached (${tokenUsage}/${TOKEN_LIMIT}). Please contact support to continue using the service.`
                         : "Enter a description above and click 'Run Simulation' to bring your idea to life."
                       }
                     </p>
@@ -733,7 +733,7 @@ export default function Demo(): JSX.Element {
                     <div className="text-yellow-400 font-medium text-sm">Token Limit Warning</div>
                   </div>
                   <div className="text-yellow-300 text-xs">
-                    Only {tokensRemaining} tokens remaining. Please use them carefully.
+                    Only {tokensRemaining} of {TOKEN_LIMIT} tokens remaining. Please use them carefully.
                   </div>
                 </div>
               )}
