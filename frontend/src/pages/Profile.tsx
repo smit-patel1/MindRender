@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { User, Play, BookOpen, Clock, Settings, LogOut, Sparkles, TrendingUp, Award } from 'lucide-react';
+import { User, Play, BookOpen, Clock, Settings, LogOut, Sparkles, TrendingUp, Award, CreditCard } from 'lucide-react';
 import { useAuth } from '../contexts/AuthProvider';
 import { supabase } from '../lib/supabaseClient';
 
@@ -28,6 +28,7 @@ export default function Profile() {
   const usagePercentage = Math.min((tokensUsed / TOKEN_LIMIT) * 100, 100);
 
   useEffect(() => {
+    // Only redirect if we're sure there's no user and auth is not loading
     if (!authLoading && !user) {
       navigate('/auth');
       return;
@@ -127,12 +128,6 @@ export default function Profile() {
       color: "text-yellow-500"
     },
     {
-      label: "Tokens Used",
-      value: isJudgeAccount ? "Unlimited" : `${tokensUsed}/${TOKEN_LIMIT}`,
-      icon: TrendingUp,
-      color: tokensUsed > TOKEN_LIMIT * 0.8 ? "text-red-500" : "text-green-500"
-    },
-    {
       label: "Account Status",
       value: isJudgeAccount ? "Premium" : "Standard",
       icon: Award,
@@ -142,37 +137,49 @@ export default function Profile() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-950 to-gray-900 text-white">
-      {/* Header Section */}
-      <section className="pt-24 pb-12">
+      {/* Header Section with Welcome Back and Manage Subscription */}
+      <section className="pt-24 pb-8">
         <div className="container mx-auto px-4">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="text-center max-w-4xl mx-auto"
-          >
-            <div className="flex items-center justify-center mb-6">
+          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between max-w-6xl mx-auto">
+            {/* Welcome Back Section - Top Left */}
+            <motion.div
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              className="flex items-center mb-6 lg:mb-0"
+            >
               <div className="bg-gray-800 rounded-full p-4 mr-4">
                 <User className="w-12 h-12 text-yellow-500" />
               </div>
-              <div className="text-left">
-                <h1 className="text-4xl md:text-5xl font-bold mb-2">
-                  Welcome back!
+              <div>
+                <h1 className="text-3xl md:text-4xl font-bold mb-1">
+                  Welcome Back
                 </h1>
-                <p className="text-xl text-gray-300">{user.email}</p>
+                <p className="text-lg text-gray-300">{user.email}</p>
+                <p className="text-sm text-gray-400 mt-1">
+                  Plan: {isJudgeAccount ? "Premium" : "Standard"}
+                </p>
               </div>
-            </div>
-            
-            <p className="text-lg text-gray-300 mb-8">
-              Ready to explore and create amazing interactive simulations? Your learning journey continues here.
-            </p>
-          </motion.div>
+            </motion.div>
+
+            {/* Manage Subscription Button - Top Right */}
+            <motion.div
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              className="flex-shrink-0"
+            >
+              <button className="bg-purple-600 hover:bg-purple-500 text-white px-6 py-3 rounded-lg transition-colors flex items-center space-x-2 font-medium">
+                <CreditCard className="w-5 h-5" />
+                <span>Manage Subscription</span>
+              </button>
+            </motion.div>
+          </div>
         </div>
       </section>
 
-      {/* Stats Section */}
-      <section className="py-12 bg-gray-900/50">
+      {/* Stats Section - Keep as is but remove Token Usage box */}
+      <section className="py-8 bg-gray-900/50">
         <div className="container mx-auto px-4">
-          <div className="grid md:grid-cols-3 gap-6 max-w-4xl mx-auto">
+          <div className="grid md:grid-cols-2 gap-6 max-w-4xl mx-auto">
             {stats.map((stat, index) => (
               <motion.div
                 key={stat.label}
@@ -190,14 +197,14 @@ export default function Profile() {
         </div>
       </section>
 
-      {/* Usage Progress (for non-judge accounts) */}
+      {/* Usage Progress (for non-judge accounts) - Keep prompts, tokens, and plan tier */}
       {!isJudgeAccount && (
         <section className="py-8">
           <div className="container mx-auto px-4">
             <div className="max-w-2xl mx-auto">
               <div className="bg-gray-800 rounded-xl p-6">
                 <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-lg font-semibold">Token Usage</h3>
+                  <h3 className="text-lg font-semibold">Token Usage Progress</h3>
                   <span className="text-sm text-gray-400">
                     {tokensUsed} / {TOKEN_LIMIT} tokens used
                   </span>
@@ -223,7 +230,7 @@ export default function Profile() {
         </section>
       )}
 
-      {/* Quick Actions */}
+      {/* Quick Actions - Keep as is */}
       <section className="py-12">
         <div className="container mx-auto px-4">
           <h2 className="text-3xl font-bold text-center mb-8">Quick Actions</h2>
@@ -276,31 +283,6 @@ export default function Profile() {
           </div>
         </section>
       )}
-
-      {/* Account Actions */}
-      <section className="py-12">
-        <div className="container mx-auto px-4">
-          <div className="max-w-2xl mx-auto text-center">
-            <h2 className="text-2xl font-bold mb-6">Account Management</h2>
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <button
-                onClick={handleSignOut}
-                className="bg-red-500 hover:bg-red-400 text-white px-6 py-3 rounded-lg transition-colors flex items-center justify-center space-x-2"
-              >
-                <LogOut className="w-5 h-5" />
-                <span>Sign Out</span>
-              </button>
-              <Link
-                to="/learn"
-                className="bg-gray-600 hover:bg-gray-500 text-white px-6 py-3 rounded-lg transition-colors flex items-center justify-center space-x-2"
-              >
-                <Settings className="w-5 h-5" />
-                <span>Learn More</span>
-              </Link>
-            </div>
-          </div>
-        </div>
-      </section>
     </div>
   );
 }

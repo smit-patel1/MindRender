@@ -194,7 +194,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
       
       console.log('AuthProvider: Sign out successful');
       
-      // Force full page reload to clear any remaining state
+      // Navigate to home instead of forcing a full page reload
       window.location.href = '/';
       
     } catch (error: any) {
