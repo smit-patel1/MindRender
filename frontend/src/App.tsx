@@ -8,6 +8,7 @@ import Demo from './pages/Demo';
 import Profile from './pages/Profile';
 import LearnMore from './pages/LearnMore';
 import Auth from './pages/Auth';
+import AuthCallback from './pages/AuthCallback';
 
 function AppContent() {
   const navigate = useNavigate();
@@ -31,6 +32,7 @@ function AppContent() {
           <Route path="/profile" element={<Profile />} />
           <Route path="/learn" element={<LearnMore />} />
           <Route path="/auth" element={<Auth />} />
+          <Route path="/auth/callback" element={<AuthCallback />} />
         </Routes>
       </ErrorBoundary>
     </div>

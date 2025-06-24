@@ -270,10 +270,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
           setUser(session.user);
           setSession(session);
           setError(null);
-          // Navigate to profile after successful OAuth sign-in
-          if (window.location.pathname === '/') {
-            window.location.href = '/profile';
-          }
         } else if (event === 'TOKEN_REFRESHED' && session?.user) {
           console.log('AuthProvider: Token refreshed for user:', session.user.email);
           setUser(session.user);

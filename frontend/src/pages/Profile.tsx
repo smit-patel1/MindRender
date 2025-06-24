@@ -34,13 +34,6 @@ export default function Profile() {
       return;
     }
 
-    // Clean up OAuth parameters from URL if present
-    const urlParams = new URLSearchParams(window.location.search);
-    if (urlParams.get('code') && user) {
-      const cleanUrl = window.location.pathname;
-      window.history.replaceState({}, document.title, cleanUrl);
-    }
-
     const fetchUserData = async () => {
       if (!user || isJudgeAccount) {
         setLoading(false);
