@@ -102,12 +102,31 @@ export default function Auth() {
   };
 
   const handleGoogleSignIn = async () => {
-    await supabase.auth.signInWithOAuth({
-      provider: 'google',
-      options: {
-        redirectTo: `${window.location.origin}/profile`, // Dynamic redirect URL
-      },
-    });
+    try {
+      setLoading(true);
+      setError('');
+      
+      const { data, error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: `${window.location.origin}/profile`,
+          queryParams: {
+            access_type: 'offline',
+            prompt: 'consent',
+          },
+        },
+      });
+      
+      if (error) {
+        throw error;
+      }
+      
+      // Don't set loading to false here - let the redirect happen
+    } catch (error: any) {
+      console.error('Google sign-in error:', error);
+      setError(error.message || 'Failed to sign in with Google');
+      setLoading(false);
+    }
   };
 
 

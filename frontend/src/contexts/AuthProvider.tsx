@@ -220,7 +220,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
         setLoading(true);
         setError(null);
 
-        // Get initial session
+        // Get initial session and handle OAuth callback
         const { data: { session }, error } = await supabase.auth.getSession();
         
         if (error) {
@@ -236,6 +236,35 @@ export function AuthProvider({ children }: AuthProviderProps) {
           setSession(session);
         } else {
           console.log('AuthProvider: No initial session found');
+          
+          // Check if we're in an OAuth callback flow
+          const urlParams = new URLSearchParams(window.location.search);
+          const code = urlParams.get('code');
+          
+          if (code) {
+            console.log('AuthProvider: OAuth code detected, attempting session exchange...');
+            try {
+              // Force session refresh to handle OAuth callback
+              const { data: { session: newSession }, error: exchangeError } = await supabase.auth.refreshSession();
+              
+              if (exchangeError) {
+                console.error('AuthProvider: OAuth session exchange failed:', exchangeError);
+                setError('OAuth authentication failed');
+              } else if (newSession) {
+                console.log('AuthProvider: OAuth session established for user:', newSession.user.email);
+                setUser(newSession.user);
+                setSession(newSession);
+                
+                // Clean up URL parameters after successful OAuth
+                const cleanUrl = window.location.pathname;
+                window.history.replaceState({}, document.title, cleanUrl);
+              }
+            } catch (oauthError) {
+              console.error('AuthProvider: OAuth processing error:', oauthError);
+              setError('OAuth authentication failed');
+            }
+          }
+          
           setUser(null);
           setSession(null);
         }
@@ -270,6 +299,13 @@ export function AuthProvider({ children }: AuthProviderProps) {
           setUser(session.user);
           setSession(session);
           setError(null);
+          
+          // Clean up OAuth parameters from URL after successful sign in
+          const urlParams = new URLSearchParams(window.location.search);
+          if (urlParams.get('code')) {
+            const cleanUrl = window.location.pathname;
+            window.history.replaceState({}, document.title, cleanUrl);
+          }
         } else if (event === 'TOKEN_REFRESHED' && session?.user) {
           console.log('AuthProvider: Token refreshed for user:', session.user.email);
           setUser(session.user);
