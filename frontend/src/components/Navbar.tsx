@@ -30,8 +30,12 @@ export default function Navbar() {
     <nav className="fixed w-full bg-gray-900/90 backdrop-blur-sm z-50">
       <div className="container mx-auto px-4 py-4">
         <div className="flex items-center justify-between">
-          <Link to="/" className="text-xl font-bold text-white">
-            MindRender
+          <Link to="/" className="flex items-center">
+            <img 
+              src="/image copy copy.png" 
+              alt="MindRender Logo" 
+              className="h-8 w-auto sm:h-10 transition-transform hover:scale-105"
+            />
           </Link>
           
           <div className="flex items-center space-x-6">
