@@ -34,7 +34,7 @@ export default function Navbar() {
             <img 
               src="/image copy copy.png" 
               alt="MindRender Logo" 
-              className="h-24 w-auto sm:h-28 md:h-32 transition-transform hover:scale-105"
+              className="h-8 w-auto sm:h-10 md:h-12 transition-transform hover:scale-105"
             />
           </Link>
           
