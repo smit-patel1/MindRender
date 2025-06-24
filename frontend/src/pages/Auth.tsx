@@ -105,7 +105,7 @@ export default function Auth() {
     await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        redirectTo: 'https://mind-render.vercel.app/profile', // Changed redirect to profile
+        redirectTo: `${window.location.origin}/profile`, // Dynamic redirect URL
       },
     });
   };
