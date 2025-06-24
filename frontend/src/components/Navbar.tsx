@@ -32,9 +32,9 @@ export default function Navbar() {
         <div className="flex items-center justify-between">
           <Link to="/" className="flex items-center">
             <img 
-              src="/image copy copy.png" 
+              src="/image copy copy copy.png" 
               alt="MindRender Logo" 
-              className="h-10 w-auto sm:h-12 md:h-14 lg:h-16 transition-transform hover:scale-105"
+              className="h-12 w-auto sm:h-14 md:h-16 lg:h-18 transition-transform hover:scale-105"
             />
           </Link>
           
