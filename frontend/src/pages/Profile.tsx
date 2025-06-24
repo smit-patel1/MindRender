@@ -138,7 +138,7 @@ export default function Profile() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-950 to-gray-900 text-white">
       {/* Header Section with Welcome Back and Manage Subscription */}
-      <section className="pt-24 pb-8">
+      <section className="pt-32 pb-8">
         <div className="container mx-auto px-4">
           <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between max-w-6xl mx-auto">
             {/* Welcome Back Section - Top Left */}
