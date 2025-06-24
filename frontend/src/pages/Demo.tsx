@@ -17,7 +17,7 @@ interface User {
   id: string;
 }
 
-const TOKEN_LIMIT = 2000;
+const TOKEN_LIMIT = 8000;
 
 export default function Demo(): JSX.Element {
   const { user, loading: authLoading, error: authError, signOut } = useAuth();
