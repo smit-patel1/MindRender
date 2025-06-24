@@ -28,42 +28,18 @@ export default function Profile() {
   const usagePercentage = Math.min((tokensUsed / TOKEN_LIMIT) * 100, 100);
 
   useEffect(() => {
-    // Handle OAuth callback and redirect logic
-    const handleAuthFlow = async () => {
-      // If still loading auth, wait
-      if (authLoading) return;
-      
-      // Check for OAuth callback parameters
-      const urlParams = new URLSearchParams(window.location.search);
-      const code = urlParams.get('code');
-      
-      if (code && !user) {
-        // We're in an OAuth callback but don't have a user yet
-        // Wait a bit for the auth provider to process the callback
-        console.log('Profile: OAuth callback detected, waiting for auth processing...');
-        setTimeout(() => {
-          if (!user) {
-            console.log('Profile: Auth processing timeout, redirecting to auth');
-            navigate('/auth');
-          }
-        }, 3000); // Wait 3 seconds for auth processing
-        return;
-      }
-      
-      // If no user and no OAuth callback, redirect to auth
-      if (!user) {
-        navigate('/auth');
-        return;
-      }
-      
-      // Clean up URL if we have OAuth parameters
-      if (code && user) {
-        const cleanUrl = window.location.pathname;
-        window.history.replaceState({}, document.title, cleanUrl);
-      }
-    };
-    
-    handleAuthFlow();
+    // Only redirect if we're sure there's no user and auth is not loading
+    if (!authLoading && !user) {
+      navigate('/auth');
+      return;
+    }
+
+    // Clean up OAuth parameters from URL if present
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('code') && user) {
+      const cleanUrl = window.location.pathname;
+      window.history.replaceState({}, document.title, cleanUrl);
+    }
 
     const fetchUserData = async () => {
       if (!user || isJudgeAccount) {
@@ -74,7 +50,6 @@ export default function Profile() {
       try {
         const { data: { session }, error: sessionError } = await supabase.auth.getSession();
         if (sessionError || !session?.access_token) {
-          console.error('Profile: Session error:', sessionError);
           setLoading(false);
           return;
         }
