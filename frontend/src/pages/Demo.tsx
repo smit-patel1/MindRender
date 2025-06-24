@@ -17,12 +17,12 @@ interface User {
   id: string;
 }
 
-const TOKEN_LIMIT = 8000;
+const TOKEN_LIMIT = 2000;
 
 export default function Demo(): JSX.Element {
   const { user, loading: authLoading, error: authError, signOut } = useAuth();
   const [subject, setSubject] = useState<string>('Physics');
-  const [prompt, setPrompt] = useState<string>('Show how a pendulum behaves under gravity and explain the energy transformations during its swing');
+  const [prompt, setPrompt] = useState<string>('Show how a pendulum behaves under the influence of gravity and explain the energy transformations during its swing');
   const [followUpPrompt, setFollowUpPrompt] = useState<string>('');
   const [loading, setLoading] = useState<boolean>(false);
   const [simulationData, setSimulationData] = useState<SimulationResponse | null>(null);
@@ -37,48 +37,14 @@ export default function Demo(): JSX.Element {
 
   useEffect(() => {
     const fetchTokenUsage = async () => {
-      // Don't fetch if still loading auth or no user
-      if (authLoading || !user || isJudgeAccount) {
-        console.log('Demo: Skipping token fetch - authLoading:', authLoading, 'user:', !!user, 'isJudgeAccount:', isJudgeAccount);
-        return;
-      }
+      if (!user || isJudgeAccount) return;
 
       try {
-        console.log('Demo: Attempting to fetch token usage for user:', user.email);
+        const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
         
-        // Wait for a valid session with retry logic
-        let session = null;
-        let retries = 0;
-        const maxRetries = 3;
-        
-        while (!session?.access_token && retries < maxRetries) {
-          console.log(`Demo: Getting session attempt ${retries + 1}/${maxRetries}`);
-          const { data: { session: currentSession }, error: sessionError } = await supabase.auth.getSession();
-          
-          if (sessionError) {
-            console.error('Demo: Session error:', sessionError);
-            throw new Error(`Session error: ${sessionError.message}`);
-          }
-          
-          if (currentSession?.access_token) {
-            session = currentSession;
-            console.log('Demo: Valid session obtained');
-            break;
-          }
-          
-          retries++;
-          if (retries < maxRetries) {
-            console.log('Demo: No valid session, waiting 500ms before retry...');
-            await new Promise(resolve => setTimeout(resolve, 500));
-          }
+        if (sessionError || !sessionData?.session?.access_token) {
+          throw new Error('No valid session found');
         }
-        
-        if (!session?.access_token) {
-          console.warn('Demo: No valid session found after retries, skipping token fetch');
-          return; // Don't set tokenUsage to 0, just skip the fetch
-        }
-
-        console.log('Demo: Making token usage request...');
 
         const response = await fetch(
           'https://zurfhydnztcxlomdyqds.supabase.co/functions/v1/get_token_total',
@@ -86,46 +52,31 @@ export default function Demo(): JSX.Element {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
-              'Authorization': `Bearer ${session.access_token}`,
+              'Authorization': `Bearer ${sessionData.session.access_token}`,
             },
             body: JSON.stringify({ user_id: user.id }),
           }
         );
 
         if (!response.ok) {
-          console.error('Demo: Token fetch HTTP error:', response.status, response.statusText);
           throw new Error(`HTTP ${response.status}`);
         }
 
         const data = await response.json();
-        console.log('Demo: Token usage response:', data);
         
         if (typeof data.total_tokens === 'number' && data.total_tokens >= 0) {
-          console.log('Demo: Setting token usage to:', data.total_tokens);
           setTokenUsage(data.total_tokens);
         } else {
-          console.error('Demo: Invalid response format:', data);
           throw new Error('Invalid response format');
         }
 
       } catch (error) {
-        console.error('Demo: Error fetching token usage:', error);
-        // Don't reset to 0 on error - keep the current value or set to 0 only if it's the first load
-        if (tokenUsage === 0) {
-          console.log('Demo: Setting fallback token usage to 0 (first load)');
-          setTokenUsage(0);
-        } else {
-          console.log('Demo: Keeping current token usage value due to fetch error');
-        }
+        setTokenUsage(0);
       }
     };
 
-    // Only fetch when we have a user and auth is not loading
-    if (!authLoading && user && !isJudgeAccount) {
-      console.log('Demo: Conditions met for token usage fetch');
+    if (user && !authLoading) {
       fetchTokenUsage();
-    } else {
-      console.log('Demo: Conditions not met for token usage fetch - authLoading:', authLoading, 'user:', !!user, 'isJudgeAccount:', isJudgeAccount);
     }
   }, [user, authLoading, isJudgeAccount]);
 
@@ -311,9 +262,9 @@ export default function Demo(): JSX.Element {
     setMobileMenuOpen(false);
     
     try {
-      const { data: { session } } = await supabase.auth.getSession();
+      const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
       
-      if (!session) {
+      if (sessionError || !sessionData?.session?.access_token) {
         throw new Error('No valid session found. Please log in again.');
       }
 
@@ -328,7 +279,7 @@ export default function Demo(): JSX.Element {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${session.access_token}`,
+            'Authorization': `Bearer ${sessionData.session.access_token}`,
           },
           body: JSON.stringify(requestBody),
         }
@@ -502,7 +453,7 @@ export default function Demo(): JSX.Element {
                   <div className="text-red-400 font-medium text-sm">Token Limit Reached</div>
                 </div>
                 <div className="text-red-300 text-xs">
-                  You have used all {tokenUsage} of your {TOKEN_LIMIT} available tokens. Contact support to increase your limit.
+                  You have used {tokenUsage} out of {TOKEN_LIMIT} tokens.
                 </div>
               </div>
             )}
@@ -531,7 +482,7 @@ export default function Demo(): JSX.Element {
               <textarea
                 value={prompt}
                 onChange={(e) => setPrompt(e.target.value)}
-                placeholder="Describe the concept you want to explore..."
+                placeholder="Describe what you want to simulate..."
                 disabled={!isJudgeAccount && isTokenLimitReached}
                 className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white h-20 resize-none text-sm focus:ring-2 focus:ring-yellow-500 focus:border-transparent transition-colors placeholder-gray-400 disabled:opacity-50 disabled:cursor-not-allowed"
               />
@@ -573,7 +524,7 @@ export default function Demo(): JSX.Element {
                     type="text"
                     value={followUpPrompt}
                     onChange={(e) => setFollowUpPrompt(e.target.value)}
-                    placeholder="Ask a follow-up question or request modifications..."
+                    placeholder="Ask a follow-up question..."
                     disabled={!isJudgeAccount && isTokenLimitReached}
                     className="flex-1 bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors placeholder-gray-400 disabled:opacity-50 disabled:cursor-not-allowed"
                     onKeyPress={(e) => e.key === 'Enter' && handleFollowUpSubmit()}
@@ -668,8 +619,8 @@ export default function Demo(): JSX.Element {
                     </h3>
                     <p className="text-gray-600 text-sm leading-relaxed">
                       {isTokenLimitReached 
-                        ? `Token limit reached (${tokenUsage}/${TOKEN_LIMIT}). Please contact support to continue using the service.`
-                        : "Enter a description above and click 'Run Simulation' to bring your idea to life."
+                        ? `Token limit reached. Contact support to continue.`
+                        : "Enter a prompt above and click 'Run Simulation' to see it come to life."
                       }
                     </p>
                   </div>
@@ -721,7 +672,7 @@ export default function Demo(): JSX.Element {
                     <div className="text-red-400 font-medium text-sm">Token Limit Reached</div>
                   </div>
                   <div className="text-red-300 text-xs">
-                    You have used all {tokenUsage} of your {TOKEN_LIMIT} available tokens. Contact support to increase your limit.
+                    You have used {tokenUsage} out of {TOKEN_LIMIT} tokens. Contact support to increase your limit.
                   </div>
                 </div>
               )}
@@ -733,7 +684,7 @@ export default function Demo(): JSX.Element {
                     <div className="text-yellow-400 font-medium text-sm">Token Limit Warning</div>
                   </div>
                   <div className="text-yellow-300 text-xs">
-                    Only {tokensRemaining} of {TOKEN_LIMIT} tokens remaining. Please use them carefully.
+                    {tokensRemaining} tokens remaining. Use wisely.
                   </div>
                 </div>
               )}
@@ -762,7 +713,7 @@ export default function Demo(): JSX.Element {
                 <textarea
                   value={prompt}
                   onChange={(e) => setPrompt(e.target.value)}
-                  placeholder="Describe the concept you want to explore..."
+                  placeholder="Describe what you want to simulate..."
                   disabled={!isJudgeAccount && isTokenLimitReached}
                   className="w-full bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white h-28 resize-none text-sm focus:ring-2 focus:ring-yellow-500 focus:border-transparent transition-colors placeholder-gray-400 disabled:opacity-50 disabled:cursor-not-allowed"
                 />
@@ -807,7 +758,7 @@ export default function Demo(): JSX.Element {
                       type="text"
                       value={followUpPrompt}
                       onChange={(e) => setFollowUpPrompt(e.target.value)}
-                      placeholder="Ask a follow-up question or request modifications..."
+                      placeholder="Ask a follow-up question..."
                       disabled={!isJudgeAccount && isTokenLimitReached}
                       className="flex-1 bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors placeholder-gray-400 disabled:opacity-50 disabled:cursor-not-allowed"
                       onKeyPress={(e) => e.key === 'Enter' && handleFollowUpSubmit()}
@@ -910,8 +861,8 @@ export default function Demo(): JSX.Element {
                     </h3>
                     <p className="text-gray-600 text-lg leading-relaxed">
                       {!isJudgeAccount && isTokenLimitReached 
-                        ? `Token limit reached (${tokenUsage}/${TOKEN_LIMIT}). Please contact support to continue.`
-                        : "Enter a description of what you would like to learn about, then click 'Run Simulation' to see it come to life."
+                        ? `Token limit reached (${tokenUsage}/${TOKEN_LIMIT}). Contact support to continue.`
+                        : "Enter a prompt describing what you'd like to learn about, then click 'Run Simulation' to see it come to life."
                       }
                     </p>
                   </div>
@@ -961,7 +912,7 @@ export default function Demo(): JSX.Element {
                       Explanation Ready
                     </h3>
                     <p className="text-gray-500">
-                      Run a simulation to see a clear explanation of the concepts and mechanics involved.
+                      Run a simulation to see a concise explanation of the concepts and mechanics involved.
                     </p>
                   </div>
                 </div>
