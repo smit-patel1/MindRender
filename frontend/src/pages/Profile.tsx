@@ -101,25 +101,6 @@ export default function Profile() {
     return null; // Will redirect via useEffect
   }
 
-  const quickActions = [
-    {
-      title: "Start New Simulation",
-      description: "Create an interactive visualization",
-      icon: Play,
-      action: () => navigate('/demo'),
-      color: "bg-yellow-500 hover:bg-yellow-400",
-      textColor: "text-black"
-    },
-    {
-      title: "Browse Examples",
-      description: "Explore sample simulations",
-      icon: BookOpen,
-      action: () => navigate('/learn'),
-      color: "bg-blue-500 hover:bg-blue-400",
-      textColor: "text-white"
-    }
-  ];
-
   const stats = [
     {
       label: "Simulations Created",
@@ -230,25 +211,20 @@ export default function Profile() {
         </section>
       )}
 
-      {/* Quick Actions - Keep as is */}
+      {/* Centered Start New Simulation Button */}
       <section className="py-12">
         <div className="container mx-auto px-4">
-          <h2 className="text-3xl font-bold text-center mb-8">Quick Actions</h2>
-          <div className="grid md:grid-cols-2 gap-6 max-w-4xl mx-auto">
-            {quickActions.map((action, index) => (
-              <motion.button
-                key={action.title}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: index * 0.1 }}
-                onClick={action.action}
-                className={`${action.color} ${action.textColor} p-6 rounded-xl transition-all duration-200 hover:scale-105 hover:shadow-lg text-left`}
-              >
-                <action.icon className="w-8 h-8 mb-4" />
-                <h3 className="text-xl font-semibold mb-2">{action.title}</h3>
-                <p className="opacity-90">{action.description}</p>
-              </motion.button>
-            ))}
+          <div className="flex justify-center">
+            <motion.button
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              onClick={() => navigate('/demo')}
+              className="bg-yellow-500 hover:bg-yellow-400 text-black p-8 rounded-xl transition-all duration-200 hover:scale-105 hover:shadow-lg text-center max-w-md w-full"
+            >
+              <Play className="w-12 h-12 mb-4 mx-auto" />
+              <h3 className="text-2xl font-semibold mb-3">Start New Simulation</h3>
+              <p className="text-lg opacity-90">Create an interactive visualization</p>
+            </motion.button>
           </div>
         </div>
       </section>
