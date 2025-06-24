@@ -5,6 +5,7 @@ import ErrorBoundary from './components/ErrorBoundary';
 import Navbar from './components/Navbar';
 import Home from './pages/Home';
 import Demo from './pages/Demo';
+import Profile from './pages/Profile';
 import LearnMore from './pages/LearnMore';
 import Auth from './pages/Auth';
 
@@ -27,6 +28,7 @@ function AppContent() {
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/demo" element={<Demo />} />
+          <Route path="/profile" element={<Profile />} />
           <Route path="/learn" element={<LearnMore />} />
           <Route path="/auth" element={<Auth />} />
         </Routes>

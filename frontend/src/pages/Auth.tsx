@@ -24,7 +24,7 @@ export default function Auth() {
   useEffect(() => {
     supabase.auth.onAuthStateChange((event, session) => {
       if (event === 'SIGNED_IN' && session) {
-        navigate('/demo');
+        navigate('/profile'); // Changed from '/demo' to '/profile'
       }
     });
   }, [navigate]);
@@ -74,7 +74,7 @@ export default function Auth() {
         if (signInError) throw signInError;
 
         if (data.session) {
-          navigate('/demo');
+          navigate('/profile'); // Changed from '/demo' to '/profile'
         }
       } else {
         const { data, error: signUpError } = await supabase.auth.signUp({
@@ -105,7 +105,7 @@ export default function Auth() {
     await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        redirectTo: 'https://mind-render.vercel.app',
+        redirectTo: 'https://mind-render.vercel.app/profile', // Changed redirect to profile
       },
     });
   };

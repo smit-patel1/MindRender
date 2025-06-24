@@ -1,0 +1,306 @@
+import React, { useState, useEffect } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { motion } from 'framer-motion';
+import { User, Play, BookOpen, Clock, Settings, LogOut, Sparkles, TrendingUp, Award } from 'lucide-react';
+import { useAuth } from '../contexts/AuthProvider';
+import { supabase } from '../lib/supabaseClient';
+
+interface TokenUsage {
+  total_tokens: number;
+  recent_activity: Array<{
+    prompt: string;
+    tokens_used: number;
+    created_at: string;
+  }>;
+}
+
+const TOKEN_LIMIT = 8000;
+
+export default function Profile() {
+  const { user, loading: authLoading, signOut } = useAuth();
+  const navigate = useNavigate();
+  const [tokenUsage, setTokenUsage] = useState<TokenUsage>({ total_tokens: 0, recent_activity: [] });
+  const [loading, setLoading] = useState(true);
+
+  const isJudgeAccount = user?.email === 'judgeacc90@gmail.com';
+  const tokensUsed = tokenUsage.total_tokens;
+  const tokensRemaining = Math.max(0, TOKEN_LIMIT - tokensUsed);
+  const usagePercentage = Math.min((tokensUsed / TOKEN_LIMIT) * 100, 100);
+
+  useEffect(() => {
+    if (!authLoading && !user) {
+      navigate('/auth');
+      return;
+    }
+
+    const fetchUserData = async () => {
+      if (!user || isJudgeAccount) {
+        setLoading(false);
+        return;
+      }
+
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session?.access_token) {
+          setLoading(false);
+          return;
+        }
+
+        const response = await fetch(
+          'https://zurfhydnztcxlomdyqds.supabase.co/functions/v1/get_token_total',
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${session.access_token}`,
+            },
+            body: JSON.stringify({ user_id: user.id }),
+          }
+        );
+
+        if (response.ok) {
+          const data = await response.json();
+          setTokenUsage({
+            total_tokens: data.total_tokens || 0,
+            recent_activity: data.recent_activity || []
+          });
+        }
+      } catch (error) {
+        console.error('Error fetching user data:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (user) {
+      fetchUserData();
+    }
+  }, [user, authLoading, navigate, isJudgeAccount]);
+
+  const handleSignOut = async () => {
+    try {
+      await signOut();
+    } catch (error) {
+      console.error('Sign out failed:', error);
+    }
+  };
+
+  if (authLoading || loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-950 to-gray-900 flex items-center justify-center">
+        <div className="text-white text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-yellow-500 mx-auto mb-4"></div>
+          <p>Loading your profile...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return null; // Will redirect via useEffect
+  }
+
+  const quickActions = [
+    {
+      title: "Start New Simulation",
+      description: "Create an interactive visualization",
+      icon: Play,
+      action: () => navigate('/demo'),
+      color: "bg-yellow-500 hover:bg-yellow-400",
+      textColor: "text-black"
+    },
+    {
+      title: "Browse Examples",
+      description: "Explore sample simulations",
+      icon: BookOpen,
+      action: () => navigate('/learn'),
+      color: "bg-blue-500 hover:bg-blue-400",
+      textColor: "text-white"
+    }
+  ];
+
+  const stats = [
+    {
+      label: "Simulations Created",
+      value: tokenUsage.recent_activity.length,
+      icon: Sparkles,
+      color: "text-yellow-500"
+    },
+    {
+      label: "Tokens Used",
+      value: isJudgeAccount ? "Unlimited" : `${tokensUsed}/${TOKEN_LIMIT}`,
+      icon: TrendingUp,
+      color: tokensUsed > TOKEN_LIMIT * 0.8 ? "text-red-500" : "text-green-500"
+    },
+    {
+      label: "Account Status",
+      value: isJudgeAccount ? "Premium" : "Standard",
+      icon: Award,
+      color: isJudgeAccount ? "text-purple-500" : "text-blue-500"
+    }
+  ];
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-blue-950 to-gray-900 text-white">
+      {/* Header Section */}
+      <section className="pt-24 pb-12">
+        <div className="container mx-auto px-4">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="text-center max-w-4xl mx-auto"
+          >
+            <div className="flex items-center justify-center mb-6">
+              <div className="bg-gray-800 rounded-full p-4 mr-4">
+                <User className="w-12 h-12 text-yellow-500" />
+              </div>
+              <div className="text-left">
+                <h1 className="text-4xl md:text-5xl font-bold mb-2">
+                  Welcome back!
+                </h1>
+                <p className="text-xl text-gray-300">{user.email}</p>
+              </div>
+            </div>
+            
+            <p className="text-lg text-gray-300 mb-8">
+              Ready to explore and create amazing interactive simulations? Your learning journey continues here.
+            </p>
+          </motion.div>
+        </div>
+      </section>
+
+      {/* Stats Section */}
+      <section className="py-12 bg-gray-900/50">
+        <div className="container mx-auto px-4">
+          <div className="grid md:grid-cols-3 gap-6 max-w-4xl mx-auto">
+            {stats.map((stat, index) => (
+              <motion.div
+                key={stat.label}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: index * 0.1 }}
+                className="bg-gray-800 rounded-xl p-6 text-center"
+              >
+                <stat.icon className={`w-8 h-8 ${stat.color} mx-auto mb-3`} />
+                <h3 className="text-2xl font-bold mb-1">{stat.value}</h3>
+                <p className="text-gray-400">{stat.label}</p>
+              </motion.div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Usage Progress (for non-judge accounts) */}
+      {!isJudgeAccount && (
+        <section className="py-8">
+          <div className="container mx-auto px-4">
+            <div className="max-w-2xl mx-auto">
+              <div className="bg-gray-800 rounded-xl p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-lg font-semibold">Token Usage</h3>
+                  <span className="text-sm text-gray-400">
+                    {tokensUsed} / {TOKEN_LIMIT} tokens used
+                  </span>
+                </div>
+                <div className="w-full bg-gray-700 rounded-full h-3 mb-2">
+                  <div
+                    className={`h-3 rounded-full transition-all duration-300 ${
+                      usagePercentage >= 90 ? 'bg-red-500' :
+                      usagePercentage >= 70 ? 'bg-yellow-500' : 'bg-green-500'
+                    }`}
+                    style={{ width: `${usagePercentage}%` }}
+                  ></div>
+                </div>
+                <p className="text-sm text-gray-400">
+                  {tokensRemaining > 0 
+                    ? `${tokensRemaining} tokens remaining`
+                    : "Token limit reached - contact support to continue"
+                  }
+                </p>
+              </div>
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* Quick Actions */}
+      <section className="py-12">
+        <div className="container mx-auto px-4">
+          <h2 className="text-3xl font-bold text-center mb-8">Quick Actions</h2>
+          <div className="grid md:grid-cols-2 gap-6 max-w-4xl mx-auto">
+            {quickActions.map((action, index) => (
+              <motion.button
+                key={action.title}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: index * 0.1 }}
+                onClick={action.action}
+                className={`${action.color} ${action.textColor} p-6 rounded-xl transition-all duration-200 hover:scale-105 hover:shadow-lg text-left`}
+              >
+                <action.icon className="w-8 h-8 mb-4" />
+                <h3 className="text-xl font-semibold mb-2">{action.title}</h3>
+                <p className="opacity-90">{action.description}</p>
+              </motion.button>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Recent Activity */}
+      {tokenUsage.recent_activity.length > 0 && (
+        <section className="py-12 bg-gray-900/50">
+          <div className="container mx-auto px-4">
+            <h2 className="text-3xl font-bold text-center mb-8">Recent Activity</h2>
+            <div className="max-w-4xl mx-auto">
+              <div className="bg-gray-800 rounded-xl p-6">
+                <div className="space-y-4">
+                  {tokenUsage.recent_activity.slice(0, 5).map((activity, index) => (
+                    <div key={index} className="flex items-start space-x-4 p-4 bg-gray-700 rounded-lg">
+                      <Clock className="w-5 h-5 text-gray-400 mt-1 flex-shrink-0" />
+                      <div className="flex-1">
+                        <p className="text-white font-medium truncate">{activity.prompt}</p>
+                        <div className="flex items-center justify-between mt-2">
+                          <span className="text-sm text-gray-400">
+                            {new Date(activity.created_at).toLocaleDateString()}
+                          </span>
+                          <span className="text-sm text-yellow-500">
+                            {activity.tokens_used} tokens
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* Account Actions */}
+      <section className="py-12">
+        <div className="container mx-auto px-4">
+          <div className="max-w-2xl mx-auto text-center">
+            <h2 className="text-2xl font-bold mb-6">Account Management</h2>
+            <div className="flex flex-col sm:flex-row gap-4 justify-center">
+              <button
+                onClick={handleSignOut}
+                className="bg-red-500 hover:bg-red-400 text-white px-6 py-3 rounded-lg transition-colors flex items-center justify-center space-x-2"
+              >
+                <LogOut className="w-5 h-5" />
+                <span>Sign Out</span>
+              </button>
+              <Link
+                to="/learn"
+                className="bg-gray-600 hover:bg-gray-500 text-white px-6 py-3 rounded-lg transition-colors flex items-center justify-center space-x-2"
+              >
+                <Settings className="w-5 h-5" />
+                <span>Learn More</span>
+              </Link>
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
+  );
+}
