@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
+import { TOKEN_LIMIT } from '../constants';
 import { User, Play, BookOpen, Clock, Settings, LogOut, Sparkles, TrendingUp, Award, CreditCard } from 'lucide-react';
 import { useAuth } from '../contexts/AuthProvider';
 import { supabase } from '../lib/supabaseClient';
@@ -14,7 +15,6 @@ interface TokenUsage {
   }>;
 }
 
-const TOKEN_LIMIT = 8000;
 
 export default function Profile() {
   const { user, loading: authLoading, signOut } = useAuth();

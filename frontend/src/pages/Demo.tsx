@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../contexts/AuthProvider';
 import { supabase } from '../lib/supabaseClient';
+import { TOKEN_LIMIT } from '../constants';
 import { Play, LogOut, Send, Loader2, BookOpen, Monitor, MessageSquare, AlertTriangle, Menu, X } from 'lucide-react';
 
 interface SimulationResponse {
@@ -17,7 +18,6 @@ interface User {
   id: string;
 }
 
-const TOKEN_LIMIT = 2000;
 
 export default function Demo(): JSX.Element {
   const { user, loading: authLoading, error: authError, signOut } = useAuth();
