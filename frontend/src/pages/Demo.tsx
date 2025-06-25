@@ -17,7 +17,7 @@ interface User {
   id: string;
 }
 
-const TOKEN_LIMIT = 2000;
+const TOKEN_LIMIT = 8000;
 const JUDGE_EMAIL = 'judgeacc90@gmail.com';
 
 const ErrorBoundary: React.FC<{ children: React.ReactNode; fallback: React.ReactNode }> = ({ children, fallback }) => {
