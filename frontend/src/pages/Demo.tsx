@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useAuth } from '../contexts/AuthProvider';
 import { supabase } from '../lib/supabaseClient';
+import { TOKEN_LIMIT } from '../constants';
 import { Play, LogOut, Send, Loader2, BookOpen, Monitor, MessageSquare, AlertTriangle, Menu, X } from 'lucide-react';
 
 interface SimulationResponse {
@@ -17,7 +18,6 @@ interface User {
   id: string;
 }
 
-const TOKEN_LIMIT = 8000;
 const JUDGE_EMAIL = 'judgeacc90@gmail.com';
 
 const ErrorBoundary: React.FC<{ children: React.ReactNode; fallback: React.ReactNode }> = ({ children, fallback }) => {
