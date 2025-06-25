@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Sparkles } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { supabase } from '@/lib/supabaseClient';
 
 export default function Hero() {
+  const navigate = useNavigate();
   const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
@@ -25,6 +26,13 @@ export default function Hero() {
 
     return () => subscription.unsubscribe();
   }, []);
+
+  // Redirect authenticated users to profile page
+  useEffect(() => {
+    if (!loading && user) {
+      navigate('/profile');
+    }
+  }, [user, loading, navigate]);
 
   return (
     <main className="min-h-screen bg-gradient-to-br from-blue-950 to-gray-900 text-white flex flex-col items-center justify-center p-8">
@@ -63,9 +71,9 @@ export default function Hero() {
               Loading...
             </div>
           ) : (
-            <Link to={user ? "/profile" : "/auth"}>
+            <Link to="/auth">
               <button className="bg-yellow-500 text-black hover:bg-yellow-400 px-8 py-6 rounded-2xl text-lg font-semibold shadow-lg flex items-center">
-                {user ? "Go to Profile" : "Try Demo"} <Sparkles className="ml-2 w-5 h-5" />
+                Try Demo <Sparkles className="ml-2 w-5 h-5" />
               </button>
             </Link>
           )}
