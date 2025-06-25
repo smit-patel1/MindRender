@@ -699,8 +699,8 @@ export default function Demo(): JSX.Element {
         {/* Main Content */}
         <main className="flex-1 overflow-hidden">
           <div className="hidden md:grid md:grid-cols-12 h-full">
-            {/* Controls Panel - Reduced width */}
-            <aside className="md:col-span-2 lg:col-span-2 xl:col-span-2 bg-gray-800 border-r border-gray-700 flex flex-col h-full">
+            {/* Controls Panel */}
+            <aside className="md:col-span-3 lg:col-span-3 xl:col-span-3 bg-gray-800 border-r border-gray-700 flex flex-col h-full">
               <div className="p-3 space-y-3 flex-1 overflow-y-auto">
                 <div className="flex items-center space-x-2 pb-2 border-b border-gray-700">
                   <Monitor className="w-4 h-4 text-yellow-500" />
@@ -845,8 +845,8 @@ export default function Demo(): JSX.Element {
               </div>
             </aside>
 
-            {/* Simulation Viewer - Increased width */}
-            <section className="md:col-span-7 lg:col-span-8 xl:col-span-8 bg-white border-r border-gray-300 flex flex-col h-full">
+            {/* Simulation Viewer */}
+            <section className="md:col-span-5 lg:col-span-6 xl:col-span-6 bg-white border-r border-gray-300 flex flex-col h-full">
               <div className="bg-gray-50 border-b border-gray-200 px-4 py-3 flex-shrink-0">
                 <div className="flex items-center space-x-2">
                   <Monitor className="w-5 h-5 text-gray-600" />
@@ -898,8 +898,8 @@ export default function Demo(): JSX.Element {
               </div>
             </section>
 
-            {/* Explanation Panel - Reduced width */}
-            <aside className="md:col-span-3 lg:col-span-2 xl:col-span-2 bg-gray-50 flex flex-col h-full">
+            {/* Explanation Panel */}
+            <aside className="md:col-span-4 lg:col-span-3 xl:col-span-3 bg-gray-50 flex flex-col h-full">
               <div className="bg-white border-b border-gray-200 px-3 py-3 flex-shrink-0">
                 <div className="flex items-center space-x-2">
                   <BookOpen className="w-4 h-4 text-blue-600" />
