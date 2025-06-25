@@ -130,7 +130,7 @@ const FormattedExplanation = React.memo(({ explanation }: { explanation: string 
     <div className="space-y-3">
       <style>{`
         .explanation-heading {
-          font-size: 15px;
+          font-size: 16px;
           font-weight: 700;
           color: #1f2937;
           margin: 12px 0 6px 0;
@@ -159,13 +159,13 @@ const FormattedExplanation = React.memo(({ explanation }: { explanation: string 
           font-weight: bold;
           position: absolute;
           left: 0;
-          font-size: 14px;
+          font-size: 15px;
         }
         .explanation-text {
           margin: 6px 0;
           line-height: 1.4;
           color: #4b5563;
-          font-size: 13px;
+          font-size: 14px;
           word-wrap: break-word;
           overflow-wrap: break-word;
           hyphens: auto;
@@ -182,7 +182,7 @@ const FormattedExplanation = React.memo(({ explanation }: { explanation: string 
       {needsTruncation && (
         <button
           onClick={() => setIsExpanded(!isExpanded)}
-          className="text-blue-600 hover:text-blue-800 text-xs font-medium underline focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 rounded"
+          className="text-blue-600 hover:text-blue-800 text-sm font-medium underline focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 rounded"
         >
           {isExpanded ? 'Show Less' : 'Read More'}
         </button>
@@ -700,20 +700,20 @@ export default function Demo(): JSX.Element {
         <main className="flex-1 overflow-hidden">
           <div className="hidden md:grid md:grid-cols-12 h-full">
             {/* Controls Panel */}
-            <aside className="md:col-span-3 lg:col-span-3 xl:col-span-3 bg-gray-800 border-r border-gray-700 flex flex-col h-full">
+            <aside className="md:col-span-2 lg:col-span-2 xl:col-span-2 bg-gray-800 border-r border-gray-700 flex flex-col h-full">
               <div className="p-3 space-y-3 flex-1 overflow-y-auto">
                 <div className="flex items-center space-x-2 pb-2 border-b border-gray-700">
                   <Monitor className="w-4 h-4 text-yellow-500" />
-                  <h2 className="text-xs font-semibold">Controls</h2>
+                  <h2 className="text-sm font-semibold">Controls</h2>
                 </div>
 
                 {!isJudgeAccount && isTokenLimitReached && (
                   <div className="bg-red-500/10 border border-red-500/20 rounded-lg p-2">
                     <div className="flex items-center space-x-1 mb-1">
                       <AlertTriangle className="w-3 h-3 text-red-400" />
-                      <div className="text-red-400 font-medium text-xs">Token Limit</div>
+                      <div className="text-red-400 font-medium text-sm">Token Limit</div>
                     </div>
-                    <div className="text-red-300 text-xs">
+                    <div className="text-red-300 text-sm">
                       Used {tokenUsage}/{TOKEN_LIMIT} tokens.
                     </div>
                   </div>
@@ -723,23 +723,23 @@ export default function Demo(): JSX.Element {
                   <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-lg p-2">
                     <div className="flex items-center space-x-1 mb-1">
                       <AlertTriangle className="w-3 h-3 text-yellow-400" />
-                      <div className="text-yellow-400 font-medium text-xs">Warning</div>
+                      <div className="text-yellow-400 font-medium text-sm">Warning</div>
                     </div>
-                    <div className="text-yellow-300 text-xs">
+                    <div className="text-yellow-300 text-sm">
                       {tokensRemaining} tokens left.
                     </div>
                   </div>
                 )}
 
                 <div>
-                  <label className="block text-xs font-medium text-gray-300 mb-1">
+                  <label className="block text-sm font-medium text-gray-300 mb-1">
                     Subject
                   </label>
                   <select
                     value={subject}
                     onChange={(e) => setSubject(e.target.value)}
                     disabled={isTokenLimitReached}
-                    className="w-full bg-gray-700 border border-gray-600 rounded-md px-2 py-1 text-white text-xs focus:ring-1 focus:ring-yellow-500 focus:border-transparent transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="w-full bg-gray-700 border border-gray-600 rounded-md px-2 py-1 text-white text-sm focus:ring-1 focus:ring-yellow-500 focus:border-transparent transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     <option value="Mathematics">Mathematics</option>
                     <option value="Physics">Physics</option>
@@ -749,7 +749,7 @@ export default function Demo(): JSX.Element {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-medium text-gray-300 mb-1">
+                  <label className="block text-sm font-medium text-gray-300 mb-1">
                     Prompt
                   </label>
                   <textarea
@@ -757,9 +757,9 @@ export default function Demo(): JSX.Element {
                     onChange={(e) => setPrompt(e.target.value)}
                     placeholder="Describe simulation..."
                     disabled={isTokenLimitReached}
-                    className="w-full bg-gray-700 border border-gray-600 rounded-md px-2 py-1 text-white h-16 resize-none text-xs focus:ring-1 focus:ring-yellow-500 focus:border-transparent transition-colors placeholder-gray-400 disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="w-full bg-gray-700 border border-gray-600 rounded-md px-2 py-1 text-white h-16 resize-none text-sm focus:ring-1 focus:ring-yellow-500 focus:border-transparent transition-colors placeholder-gray-400 disabled:opacity-50 disabled:cursor-not-allowed"
                   />
-                  <div className="text-xs text-gray-400 mt-1">
+                  <div className="text-sm text-gray-400 mt-1">
                     {prompt.length}/500
                   </div>
                 </div>
@@ -767,7 +767,7 @@ export default function Demo(): JSX.Element {
                 <button
                   onClick={() => handleRunSimulation()}
                   disabled={loading || !prompt.trim() || isTokenLimitReached}
-                  className="w-full bg-yellow-500 text-black py-2 rounded-md hover:bg-yellow-400 transition-colors flex items-center justify-center space-x-1 disabled:opacity-50 disabled:cursor-not-allowed font-medium text-xs disabled:bg-gray-600 disabled:text-gray-400"
+                  className="w-full bg-yellow-500 text-black py-2 rounded-md hover:bg-yellow-400 transition-colors flex items-center justify-center space-x-1 disabled:opacity-50 disabled:cursor-not-allowed font-medium text-sm disabled:bg-gray-600 disabled:text-gray-400"
                 >
                   {loading ? (
                     <>
@@ -791,7 +791,7 @@ export default function Demo(): JSX.Element {
                   <div className="pt-2 border-t border-gray-700">
                     <div className="flex items-center space-x-1 mb-1">
                       <MessageSquare className="w-3 h-3 text-blue-400" />
-                      <label className="text-xs font-medium text-gray-300">
+                      <label className="text-sm font-medium text-gray-300">
                         Follow-up
                       </label>
                     </div>
@@ -802,7 +802,7 @@ export default function Demo(): JSX.Element {
                         onChange={(e) => setFollowUpPrompt(e.target.value)}
                         placeholder="Ask more..."
                         disabled={isTokenLimitReached}
-                        className="flex-1 bg-gray-700 border border-gray-600 rounded-md px-2 py-1 text-white text-xs focus:ring-1 focus:ring-blue-500 focus:border-transparent transition-colors placeholder-gray-400 disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="flex-1 bg-gray-700 border border-gray-600 rounded-md px-2 py-1 text-white text-sm focus:ring-1 focus:ring-blue-500 focus:border-transparent transition-colors placeholder-gray-400 disabled:opacity-50 disabled:cursor-not-allowed"
                         onKeyPress={(e) => e.key === 'Enter' && handleFollowUpSubmit()}
                       />
                       <button
@@ -819,7 +819,7 @@ export default function Demo(): JSX.Element {
                 {simulationData && (
                   <button
                     onClick={handleNewSimulation}
-                    className="w-full bg-gray-600 text-white py-1 px-2 rounded-md hover:bg-gray-500 transition-colors text-xs"
+                    className="w-full bg-gray-600 text-white py-1 px-2 rounded-md hover:bg-gray-500 transition-colors text-sm"
                   >
                     New
                   </button>
@@ -830,11 +830,11 @@ export default function Demo(): JSX.Element {
                     <div className="flex items-start space-x-1">
                       <AlertTriangle className="w-3 h-3 text-red-400 mt-0.5 flex-shrink-0" />
                       <div className="flex-1">
-                        <div className="text-red-400 font-medium text-xs">Error</div>
-                        <div className="text-red-300 text-xs mt-1 break-words leading-tight">{error}</div>
+                        <div className="text-red-400 font-medium text-sm">Error</div>
+                        <div className="text-red-300 text-sm mt-1 break-words leading-tight">{error}</div>
                         <button
                           onClick={dismissError}
-                          className="text-red-400 hover:text-red-300 text-xs mt-1 underline"
+                          className="text-red-400 hover:text-red-300 text-sm mt-1 underline"
                         >
                           Dismiss
                         </button>
@@ -846,7 +846,7 @@ export default function Demo(): JSX.Element {
             </aside>
 
             {/* Simulation Viewer */}
-            <section className="md:col-span-5 lg:col-span-6 xl:col-span-6 bg-white border-r border-gray-300 flex flex-col h-full">
+            <section className="md:col-span-6 lg:col-span-7 xl:col-span-7 bg-white border-r border-gray-300 flex flex-col h-full">
               <div className="bg-gray-50 border-b border-gray-200 px-4 py-3 flex-shrink-0">
                 <div className="flex items-center space-x-2">
                   <Monitor className="w-5 h-5 text-gray-600" />
@@ -903,10 +903,10 @@ export default function Demo(): JSX.Element {
               <div className="bg-white border-b border-gray-200 px-3 py-3 flex-shrink-0">
                 <div className="flex items-center space-x-2">
                   <BookOpen className="w-4 h-4 text-blue-600" />
-                  <h2 className="text-sm font-semibold text-gray-800">Explanation</h2>
+                  <h2 className="text-base font-semibold text-gray-800">Explanation</h2>
                   {simulationData?.explanation && (
                     <div className="ml-auto">
-                      <span className="text-xs bg-blue-100 text-blue-800 px-1 py-0.5 rounded-full font-medium">
+                      <span className="text-sm bg-blue-100 text-blue-800 px-1 py-0.5 rounded-full font-medium">
                         Ready
                       </span>
                     </div>
@@ -923,10 +923,10 @@ export default function Demo(): JSX.Element {
                   <div className="flex items-center justify-center h-full text-center">
                     <div className="max-w-xs">
                       <BookOpen className="w-12 h-12 text-gray-300 mx-auto mb-3" />
-                      <h3 className="text-sm font-medium text-gray-600 mb-2">
+                      <h3 className="text-base font-medium text-gray-600 mb-2">
                         Explanation Ready
                       </h3>
-                      <p className="text-gray-500 text-xs leading-relaxed">
+                      <p className="text-gray-500 text-sm leading-relaxed">
                         Run a simulation to see a detailed explanation of the concepts involved.
                       </p>
                     </div>
