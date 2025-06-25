@@ -757,7 +757,7 @@ export default function Demo(): JSX.Element {
                     onChange={(e) => setPrompt(e.target.value)}
                     placeholder="Describe simulation..."
                     disabled={isTokenLimitReached}
-                    className="w-full bg-gray-700 border border-gray-600 rounded-md px-2 py-1 text-white h-16 resize-none text-sm focus:ring-1 focus:ring-yellow-500 focus:border-transparent transition-colors placeholder-gray-400 disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="w-full bg-gray-700 border border-gray-600 rounded-md px-2 py-1 text-white h-24 resize-none text-sm focus:ring-1 focus:ring-yellow-500 focus:border-transparent transition-colors placeholder-gray-400 disabled:opacity-50 disabled:cursor-not-allowed"
                   />
                   <div className="text-sm text-gray-400 mt-1">
                     {prompt.length}/500
