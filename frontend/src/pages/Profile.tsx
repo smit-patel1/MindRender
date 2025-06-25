@@ -219,11 +219,11 @@ export default function Profile() {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               onClick={() => navigate('/demo')}
-              className="bg-yellow-500 hover:bg-yellow-400 text-black p-8 rounded-xl transition-all duration-200 hover:scale-105 hover:shadow-lg text-center max-w-md w-full"
+              className="bg-yellow-500 hover:bg-yellow-400 text-black p-6 rounded-xl transition-all duration-200 hover:scale-105 hover:shadow-lg text-center max-w-sm w-full"
             >
-              <Play className="w-12 h-12 mb-4 mx-auto" />
-              <h3 className="text-2xl font-semibold mb-3">Start New Simulation</h3>
-              <p className="text-lg opacity-90">Create an interactive visualization</p>
+              <Play className="w-10 h-10 mb-3 mx-auto" />
+              <h3 className="text-xl font-semibold mb-2">Start New Simulation</h3>
+              <p className="text-base opacity-90">Create an interactive visualization</p>
             </motion.button>
           </div>
         </div>
