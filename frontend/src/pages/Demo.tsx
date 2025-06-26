@@ -50,9 +50,10 @@ const SUBJECT_INFO: Record<SubjectType, {
 };
 
 const validatePromptClient = (prompt: string, subject: string): { isValid: boolean; reason?: string } => {
-  const BLOCKED_KEYWORDS = [
+  // Only strictly inappropriate keywords for client-side
+  const STRICTLY_BLOCKED_KEYWORDS = [
     'kiss', 'kissing', 'sexual', 'nude', 'naked', 'porn', 'sex', 'erotic', 'intimate', 'romance', 'dating',
-    'kill', 'murder', 'violence', 'weapon', 'gun', 'bomb', 'fight', 'attack',
+    'kill', 'murder', 'blood', 'death',
     'hate', 'racist', 'terrorist', 'drug', 'alcohol', 'suicide'
   ];
 
@@ -71,7 +72,8 @@ const validatePromptClient = (prompt: string, subject: string): { isValid: boole
     };
   }
   
-  const blockedWord = BLOCKED_KEYWORDS.find(keyword => 
+  // Only block strictly inappropriate content - let server handle context validation
+  const blockedWord = STRICTLY_BLOCKED_KEYWORDS.find(keyword => 
     lowerPrompt.includes(keyword.toLowerCase())
   );
   
@@ -185,9 +187,9 @@ const FormattedExplanation = React.memo(({ explanation }: { explanation: string 
         .join('');
     };
 
-    // Reduced word limit to prevent overflow
+    // Much more aggressive truncation to prevent overflow
     const words = explanation.split(' ');
-    const wordLimit = 100; // Reduced from 150
+    const wordLimit = 60; // Reduced from 100 to 60
     const needsTruncation = words.length > wordLimit;
     
     const truncatedText = needsTruncation ? words.slice(0, wordLimit).join(' ') + '...' : explanation;
@@ -200,18 +202,19 @@ const FormattedExplanation = React.memo(({ explanation }: { explanation: string 
   }, [explanation]);
 
   return (
-    <div className="space-y-2 max-h-full overflow-hidden">
+    <div className="space-y-2 h-full flex flex-col">
       <style>{`
         .explanation-heading {
-          font-size: 14px;
+          font-size: 13px;
           font-weight: 700;
           color: #1f2937;
-          margin: 10px 0 4px 0;
+          margin: 8px 0 3px 0;
           padding-bottom: 2px;
           border-bottom: 2px solid #3b82f6;
           display: inline-block;
           line-height: 1.2;
           word-wrap: break-word;
+          overflow-wrap: break-word;
         }
         .explanation-heading:first-child {
           margin-top: 0;
@@ -219,11 +222,11 @@ const FormattedExplanation = React.memo(({ explanation }: { explanation: string 
         .explanation-bullet {
           list-style: none;
           position: relative;
-          padding-left: 16px;
-          margin: 3px 0;
+          padding-left: 14px;
+          margin: 2px 0;
           line-height: 1.3;
           color: #374151;
-          font-size: 12px;
+          font-size: 11px;
           word-wrap: break-word;
           overflow-wrap: break-word;
           hyphens: auto;
@@ -234,13 +237,13 @@ const FormattedExplanation = React.memo(({ explanation }: { explanation: string 
           font-weight: bold;
           position: absolute;
           left: 0;
-          font-size: 13px;
+          font-size: 12px;
         }
         .explanation-text {
-          margin: 4px 0;
+          margin: 3px 0;
           line-height: 1.3;
           color: #4b5563;
-          font-size: 12px;
+          font-size: 11px;
           word-wrap: break-word;
           overflow-wrap: break-word;
           hyphens: auto;
@@ -248,19 +251,21 @@ const FormattedExplanation = React.memo(({ explanation }: { explanation: string 
       `}</style>
       
       <div 
-        className="explanation-content overflow-hidden"
+        className="explanation-content flex-1 overflow-hidden"
         dangerouslySetInnerHTML={{ 
           __html: isExpanded ? fullContent : truncatedContent 
         }} 
       />
       
       {needsTruncation && (
-        <button
-          onClick={() => setIsExpanded(!isExpanded)}
-          className="text-blue-600 hover:text-blue-800 text-xs font-medium underline focus:outline-none focus:ring-1 focus:ring-blue-500 focus:ring-opacity-50 rounded mt-2"
-        >
-          {isExpanded ? 'Show Less' : 'Read More'}
-        </button>
+        <div className="flex-shrink-0 mt-2">
+          <button
+            onClick={() => setIsExpanded(!isExpanded)}
+            className="text-blue-600 hover:text-blue-800 text-xs font-medium underline focus:outline-none focus:ring-1 focus:ring-blue-500 focus:ring-opacity-50 rounded"
+          >
+            {isExpanded ? 'Show Less' : 'Read More'}
+          </button>
+        </div>
       )}
     </div>
   );
@@ -359,6 +364,7 @@ const SimulationIframe = React.memo(({ simulationData }: { simulationData: Simul
           image-rendering: crisp-edges;
           transform: translateZ(0);
           will-change: transform;
+          cursor: pointer;
         }
         .status {
           position: fixed;
@@ -420,6 +426,7 @@ const SimulationIframe = React.memo(({ simulationData }: { simulationData: Simul
         let canvas = null;
         
         window.onerror = function(message, source, lineno, colno, error) {
+          console.error('Simulation Error:', message, 'Line:', lineno);
           if (statusEl) {
             statusEl.className = 'status error';
             statusEl.textContent = 'Script Error';
@@ -427,12 +434,25 @@ const SimulationIframe = React.memo(({ simulationData }: { simulationData: Simul
           return true;
         };
         
+        window.addEventListener('unhandledrejection', function(event) {
+          console.error('Promise Rejection:', event.reason);
+          if (statusEl) {
+            statusEl.className = 'status error';
+            statusEl.textContent = 'Promise Error';
+          }
+        });
+        
         setTimeout(() => {
           canvas = document.querySelector('canvas');
           if (canvas) {
+            console.log('Canvas initialized:', canvas.id, canvas.width + 'x' + canvas.height);
+            
+            // Ensure canvas is interactive
             canvas.style.display = 'block';
             canvas.style.margin = '0 auto';
+            canvas.style.cursor = 'pointer';
             
+            // Optimize canvas sizing for better interaction
             const maxWidth = Math.min(window.innerWidth - 30, 900);
             const maxHeight = Math.min(window.innerHeight - 30, 700);
             
@@ -446,9 +466,12 @@ const SimulationIframe = React.memo(({ simulationData }: { simulationData: Simul
               statusEl.className = 'status loading';
               statusEl.textContent = 'Loading simulation...';
             }
-          } else if (statusEl) {
-            statusEl.className = 'status error';
-            statusEl.textContent = 'Canvas not found';
+          } else {
+            console.error('Canvas element not found');
+            if (statusEl) {
+              statusEl.className = 'status error';
+              statusEl.textContent = 'Canvas not found';
+            }
           }
         }, 100);
         
@@ -459,7 +482,7 @@ const SimulationIframe = React.memo(({ simulationData }: { simulationData: Simul
           setTimeout(() => {
             if (statusEl) {
               statusEl.className = 'status success';
-              statusEl.textContent = 'Active';
+              statusEl.textContent = 'Interactive';
               setTimeout(() => {
                 statusEl.style.opacity = '0.6';
               }, 3000);
@@ -468,6 +491,7 @@ const SimulationIframe = React.memo(({ simulationData }: { simulationData: Simul
           ` : ''}
           
         } catch (error) {
+          console.error('Execution Error:', error);
           if (statusEl) {
             statusEl.className = 'status error';
             statusEl.textContent = 'Error: ' + error.message;
@@ -939,7 +963,7 @@ export default function Demo(): JSX.Element {
               </div>
             </aside>
 
-            <section className="md:col-span-7 lg:col-span-8 xl:col-span-8 bg-white border-r border-gray-300 flex flex-col h-full">
+            <section className="md:col-span-8 lg:col-span-8 xl:col-span-8 bg-white border-r border-gray-300 flex flex-col h-full">
               <div className="bg-gray-50 border-b border-gray-200 px-4 py-3 flex-shrink-0">
                 <div className="flex items-center space-x-2">
                   <Monitor className="w-5 h-5 text-gray-600" />
@@ -949,7 +973,7 @@ export default function Demo(): JSX.Element {
                   {simulationData && !showContentWarning && (
                     <div className="ml-auto">
                       <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded-full font-medium">
-                        Active
+                        Interactive
                       </span>
                     </div>
                   )}
@@ -996,7 +1020,7 @@ export default function Demo(): JSX.Element {
               </div>
             </section>
 
-            <aside className="md:col-span-3 lg:col-span-2 xl:col-span-2 bg-gray-50 flex flex-col h-full">
+            <aside className="md:col-span-2 lg:col-span-2 xl:col-span-2 bg-gray-50 flex flex-col h-full">
               <div className="bg-white border-b border-gray-200 px-3 py-3 flex-shrink-0">
                 <div className="flex items-center space-x-2">
                   <BookOpen className="w-4 h-4 text-blue-600" />
@@ -1011,9 +1035,9 @@ export default function Demo(): JSX.Element {
                 </div>
               </div>
               
-              <div className="flex-1 overflow-y-auto overflow-x-hidden p-3">
+              <div className="flex-1 overflow-hidden p-2">
                 {simulationData?.explanation && !showContentWarning ? (
-                  <div className="bg-white rounded-lg p-3 shadow-sm border border-gray-200">
+                  <div className="bg-white rounded-lg p-3 shadow-sm border border-gray-200 h-full">
                     <FormattedExplanation explanation={simulationData.explanation} />
                   </div>
                 ) : (
