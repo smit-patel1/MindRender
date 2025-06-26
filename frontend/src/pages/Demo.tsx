@@ -185,8 +185,9 @@ const FormattedExplanation = React.memo(({ explanation }: { explanation: string 
         .join('');
     };
 
+    // Reduced word limit to prevent overflow
     const words = explanation.split(' ');
-    const wordLimit = 150;
+    const wordLimit = 100; // Reduced from 150
     const needsTruncation = words.length > wordLimit;
     
     const truncatedText = needsTruncation ? words.slice(0, wordLimit).join(' ') + '...' : explanation;
@@ -199,17 +200,18 @@ const FormattedExplanation = React.memo(({ explanation }: { explanation: string 
   }, [explanation]);
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-2 max-h-full overflow-hidden">
       <style>{`
         .explanation-heading {
-          font-size: 15px;
+          font-size: 14px;
           font-weight: 700;
           color: #1f2937;
-          margin: 12px 0 6px 0;
-          padding-bottom: 3px;
+          margin: 10px 0 4px 0;
+          padding-bottom: 2px;
           border-bottom: 2px solid #3b82f6;
           display: inline-block;
-          line-height: 1.3;
+          line-height: 1.2;
+          word-wrap: break-word;
         }
         .explanation-heading:first-child {
           margin-top: 0;
@@ -217,13 +219,14 @@ const FormattedExplanation = React.memo(({ explanation }: { explanation: string 
         .explanation-bullet {
           list-style: none;
           position: relative;
-          padding-left: 18px;
-          margin: 4px 0;
-          line-height: 1.4;
+          padding-left: 16px;
+          margin: 3px 0;
+          line-height: 1.3;
           color: #374151;
-          font-size: 13px;
+          font-size: 12px;
           word-wrap: break-word;
           overflow-wrap: break-word;
+          hyphens: auto;
         }
         .explanation-bullet:before {
           content: "•";
@@ -231,13 +234,13 @@ const FormattedExplanation = React.memo(({ explanation }: { explanation: string 
           font-weight: bold;
           position: absolute;
           left: 0;
-          font-size: 14px;
+          font-size: 13px;
         }
         .explanation-text {
-          margin: 6px 0;
-          line-height: 1.4;
+          margin: 4px 0;
+          line-height: 1.3;
           color: #4b5563;
-          font-size: 13px;
+          font-size: 12px;
           word-wrap: break-word;
           overflow-wrap: break-word;
           hyphens: auto;
@@ -245,7 +248,7 @@ const FormattedExplanation = React.memo(({ explanation }: { explanation: string 
       `}</style>
       
       <div 
-        className="explanation-content"
+        className="explanation-content overflow-hidden"
         dangerouslySetInnerHTML={{ 
           __html: isExpanded ? fullContent : truncatedContent 
         }} 
@@ -254,7 +257,7 @@ const FormattedExplanation = React.memo(({ explanation }: { explanation: string 
       {needsTruncation && (
         <button
           onClick={() => setIsExpanded(!isExpanded)}
-          className="text-blue-600 hover:text-blue-800 text-xs font-medium underline focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 rounded"
+          className="text-blue-600 hover:text-blue-800 text-xs font-medium underline focus:outline-none focus:ring-1 focus:ring-blue-500 focus:ring-opacity-50 rounded mt-2"
         >
           {isExpanded ? 'Show Less' : 'Read More'}
         </button>
