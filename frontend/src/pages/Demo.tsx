@@ -22,7 +22,16 @@ interface User {
 
 const JUDGE_EMAIL = 'judgeacc90@gmail.com';
 
-const SUBJECT_INFO = {
+// Define subjects as const array and extract type
+const SUBJECTS = ['Physics', 'Biology', 'Computer Science'] as const;
+type SubjectType = typeof SUBJECTS[number];
+
+// Properly typed SUBJECT_INFO object
+const SUBJECT_INFO: Record<SubjectType, {
+  icon: React.ComponentType<{ className?: string }>;
+  description: string;
+  examples: string[];
+}> = {
   'Physics': {
     icon: Atom,
     description: 'Interactive physics simulations with real-time controls',
@@ -51,7 +60,6 @@ const validatePromptClient = (prompt: string, subject: string): { isValid: boole
 
   const lowerPrompt = prompt.toLowerCase();
   
-  // Check for unavailable subjects
   const unavailableSubject = UNAVAILABLE_SUBJECTS.find(subj => 
     lowerPrompt.includes(subj) && !lowerPrompt.includes(subject.toLowerCase())
   );
@@ -275,7 +283,7 @@ const ContentWarningDisplay = React.memo(({ warningMessage, onDismiss }: { warni
   );
 });
 
-const SubjectSelector = React.memo(({ subject, onChange, disabled }: { subject: string; onChange: (value: string) => void; disabled: boolean }) => {
+const SubjectSelector = React.memo(({ subject, onChange, disabled }: { subject: SubjectType; onChange: (value: SubjectType) => void; disabled: boolean }) => {
   return (
     <div>
       <label className="block text-sm font-medium text-gray-300 mb-2">
@@ -283,27 +291,25 @@ const SubjectSelector = React.memo(({ subject, onChange, disabled }: { subject: 
       </label>
       <select
         value={subject}
-        onChange={(e) => onChange(e.target.value)}
+        onChange={(e) => onChange(e.target.value as SubjectType)}
         disabled={disabled}
         className="w-full bg-gray-700 border border-gray-600 rounded-md px-2 py-2 text-white text-sm focus:ring-1 focus:ring-yellow-500 focus:border-transparent transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
       >
-        {Object.entries(SUBJECT_INFO).map(([subj, info]) => (
+        {SUBJECTS.map((subj) => (
           <option key={subj} value={subj}>{subj}</option>
         ))}
       </select>
       
-      {SUBJECT_INFO[subject] && (
-        <div className="mt-2 p-2 bg-gray-600/30 rounded-md">
-          <div className="flex items-center space-x-2 mb-1">
-            {React.createElement(SUBJECT_INFO[subject].icon, { className: "w-4 h-4 text-yellow-400" })}
-            <span className="text-xs font-medium text-gray-300">{subject}</span>
-          </div>
-          <p className="text-xs text-gray-400 mb-2">{SUBJECT_INFO[subject].description}</p>
-          <div className="text-xs text-gray-500">
-            <strong>Try:</strong> {SUBJECT_INFO[subject].examples.join(', ')}
-          </div>
+      <div className="mt-2 p-2 bg-gray-600/30 rounded-md">
+        <div className="flex items-center space-x-2 mb-1">
+          {React.createElement(SUBJECT_INFO[subject].icon, { className: "w-4 h-4 text-yellow-400" })}
+          <span className="text-xs font-medium text-gray-300">{subject}</span>
         </div>
-      )}
+        <p className="text-xs text-gray-400 mb-2">{SUBJECT_INFO[subject].description}</p>
+        <div className="text-xs text-gray-500">
+          <strong>Try:</strong> {SUBJECT_INFO[subject].examples.join(', ')}
+        </div>
+      </div>
     </div>
   );
 });
@@ -488,7 +494,7 @@ const SimulationIframe = React.memo(({ simulationData }: { simulationData: Simul
 
 export default function Demo(): JSX.Element {
   const { user, loading: authLoading, error: authError, signOut } = useAuth();
-  const [subject, setSubject] = useState<string>('Physics');
+  const [subject, setSubject] = useState<SubjectType>('Physics');
   const [prompt, setPrompt] = useState<string>('Show how a pendulum behaves under the influence of gravity and explain the energy transformations during its swing');
   const [followUpPrompt, setFollowUpPrompt] = useState<string>('');
   const [loading, setLoading] = useState<boolean>(false);
