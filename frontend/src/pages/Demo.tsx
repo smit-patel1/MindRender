@@ -636,7 +636,7 @@ export default function Demo(): JSX.Element {
         const textResponse = await response.text();
         throw new Error(`Expected JSON response, got: ${contentType}`);
       }
-
+1
       const data: SimulationResponse = await response.json();
 
       if (data.contentWarning) {
