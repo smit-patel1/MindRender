@@ -349,8 +349,8 @@ const SimulationIframe = React.memo(({ simulationData }: { simulationData: Simul
           box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1);
           display: block !important;
           margin: 0 auto;
-          max-width: 85%;
-          max-height: 85%;
+          max-width: 90%;
+          max-height: 90%;
           width: auto;
           height: auto;
           cursor: pointer;
