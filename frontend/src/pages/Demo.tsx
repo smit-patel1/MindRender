@@ -200,7 +200,7 @@ const FormattedExplanation = React.memo(({ explanation }: { explanation: string 
     <div className="space-y-2 h-full flex flex-col">
       <style>{`
         .explanation-heading {
-          font-size: 13px;
+          font-size: 16px;
           font-weight: 700;
           color: #1f2937;
           margin: 8px 0 3px 0;
@@ -221,7 +221,7 @@ const FormattedExplanation = React.memo(({ explanation }: { explanation: string 
           margin: 2px 0;
           line-height: 1.3;
           color: #374151;
-          font-size: 11px;
+          font-size: 14px;
           word-wrap: break-word;
           overflow-wrap: break-word;
           hyphens: auto;
@@ -238,7 +238,7 @@ const FormattedExplanation = React.memo(({ explanation }: { explanation: string 
           margin: 3px 0;
           line-height: 1.3;
           color: #4b5563;
-          font-size: 11px;
+          font-size: 14px;
           word-wrap: break-word;
           overflow-wrap: break-word;
           hyphens: auto;
@@ -334,6 +334,8 @@ const SimulationIframe = React.memo(({ simulationData }: { simulationData: Simul
         html, body {
           height: 100vh;
           width: 100vw;
+          width: 100%;
+          height: 100%;
           overflow: hidden;
           font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
           background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
@@ -343,15 +345,15 @@ const SimulationIframe = React.memo(({ simulationData }: { simulationData: Simul
         }
         
         canvas {
-          max-width: 95%;
-          max-height: 95%;
-          width: auto;
-          height: auto;
-          display: block;
+          width: 100%;
+          height: 100%;
+          object-fit: contain;
           border: 2px solid #e5e7eb;
           border-radius: 12px;
           background: white;
-          box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+          box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
+          display: block !important;
+          margin: 0 auto;
           cursor: pointer;
         }
         
@@ -411,13 +413,19 @@ const SimulationIframe = React.memo(({ simulationData }: { simulationData: Simul
         setTimeout(() => {
           const canvas = document.querySelector('canvas');
           if (canvas) {
+            console.log('Canvas initialized:', canvas.id, canvas.width + 'x' + canvas.height);
+            
+            // Ensure canvas is interactive
             canvas.style.display = 'block';
+            canvas.style.margin = '0 auto';
+            canvas.style.cursor = 'pointer';
             
             if (statusEl && !${simulationData.contentWarning}) {
               statusEl.className = 'status loading';
-              statusEl.textContent = 'Loading...';
+              statusEl.textContent = 'Loading simulation...';
             }
           } else {
+            console.error('Canvas element not found');
             if (statusEl) {
               statusEl.className = 'status error';
               statusEl.textContent = 'Canvas not found';
@@ -904,7 +912,7 @@ export default function Demo(): JSX.Element {
               </div>
             </aside>
 
-            <section className="md:col-span-8 lg:col-span-8 xl:col-span-8 bg-white border-r border-gray-300 flex flex-col h-full">
+            <section className="md:col-span-7 lg:col-span-7 xl:col-span-7 bg-white border-r border-gray-300 flex flex-col h-full">
               <div className="bg-gray-50 border-b border-gray-200 px-4 py-3 flex-shrink-0">
                 <div className="flex items-center space-x-2">
                   <Monitor className="w-5 h-5 text-gray-600" />
@@ -961,7 +969,7 @@ export default function Demo(): JSX.Element {
               </div>
             </section>
 
-            <aside className="md:col-span-2 lg:col-span-2 xl:col-span-2 bg-gray-50 flex flex-col h-full">
+            <aside className="md:col-span-3 lg:col-span-3 xl:col-span-3 bg-gray-50 flex flex-col h-full">
               <div className="bg-white border-b border-gray-200 px-3 py-3 flex-shrink-0">
                 <div className="flex items-center space-x-2">
                   <BookOpen className="w-4 h-4 text-blue-600" />
