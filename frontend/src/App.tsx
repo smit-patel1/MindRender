@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Routes, Route, useNavigate, useLocation } from
 import { AuthProvider } from './contexts/AuthProvider';
 import ErrorBoundary from './components/ErrorBoundary';
 import Navbar from './components/Navbar';
+import { useAuth } from './contexts/AuthProvider';
 import Home from './pages/Home';
 import Demo from './pages/Demo';
 import Profile from './pages/Profile';
@@ -13,11 +14,33 @@ import AuthCallback from './pages/AuthCallback';
 function AppContent() {
   const navigate = useNavigate();
   const location = useLocation();
+  const { user, loading } = useAuth();
 
   useEffect(() => {
-    // Auto-redirect logic can be handled in individual components now
-    // since AuthProvider manages the global auth state
-  }, [navigate]);
+    // Don't redirect while auth is loading or during auth callback
+    if (loading || location.pathname === '/auth/callback') {
+      return;
+    }
+
+    const currentPath = location.pathname;
+    const isPublicRoute = ['/', '/learn'].includes(currentPath);
+    const isAuthRoute = currentPath === '/auth';
+    const isProtectedRoute = ['/demo', '/profile'].includes(currentPath);
+
+    if (user) {
+      // Authenticated user accessing public-only routes should go to profile
+      if (isPublicRoute || isAuthRoute) {
+        console.log('Redirecting authenticated user from', currentPath, 'to /profile');
+        navigate('/profile', { replace: true });
+      }
+    } else {
+      // Unauthenticated user accessing protected routes should go to auth
+      if (isProtectedRoute) {
+        console.log('Redirecting unauthenticated user from', currentPath, 'to /auth');
+        navigate('/auth', { replace: true });
+      }
+    }
+  }, [user, loading, location.pathname, navigate]);
 
   // Hide global navbar on demo page
   const showNavbar = location.pathname !== '/demo';

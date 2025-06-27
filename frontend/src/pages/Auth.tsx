@@ -21,13 +21,6 @@ export default function Auth() {
     password: ''
   });
 
-  useEffect(() => {
-    supabase.auth.onAuthStateChange((event, session) => {
-      if (event === 'SIGNED_IN' && session) {
-        navigate('/profile'); // Changed from '/demo' to '/profile'
-      }
-    });
-  }, [navigate]);
 
   const validateForm = () => {
     const newErrors = {
