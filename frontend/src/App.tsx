@@ -23,7 +23,7 @@ function AppContent() {
     }
 
     const currentPath = location.pathname;
-    const isPublicRoute = ['/', '/learn'].includes(currentPath);
+    const isPublicRoute = ['/'].includes(currentPath);
     const isAuthRoute = currentPath === '/auth';
     const isProtectedRoute = ['/demo', '/profile'].includes(currentPath);
 
