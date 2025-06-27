@@ -22,11 +22,9 @@ interface User {
 
 const JUDGE_EMAIL = 'judgeacc90@gmail.com';
 
-// Define subjects as const array and extract type
 const SUBJECTS = ['Physics', 'Biology', 'Computer Science'] as const;
 type SubjectType = typeof SUBJECTS[number];
 
-// Properly typed SUBJECT_INFO object
 const SUBJECT_INFO: Record<SubjectType, {
   icon: React.ComponentType<{ className?: string }>;
   description: string;
@@ -50,7 +48,6 @@ const SUBJECT_INFO: Record<SubjectType, {
 };
 
 const validatePromptClient = (prompt: string, subject: string): { isValid: boolean; reason?: string } => {
-  // Only strictly inappropriate keywords for client-side
   const STRICTLY_BLOCKED_KEYWORDS = [
     'kiss', 'kissing', 'sexual', 'nude', 'naked', 'porn', 'sex', 'erotic', 'intimate', 'romance', 'dating',
     'kill', 'murder', 'blood', 'death',
@@ -72,7 +69,6 @@ const validatePromptClient = (prompt: string, subject: string): { isValid: boole
     };
   }
   
-  // Only block strictly inappropriate content - let server handle context validation
   const blockedWord = STRICTLY_BLOCKED_KEYWORDS.find(keyword => 
     lowerPrompt.includes(keyword.toLowerCase())
   );
@@ -187,9 +183,8 @@ const FormattedExplanation = React.memo(({ explanation }: { explanation: string 
         .join('');
     };
 
-    // Much more aggressive truncation to prevent overflow
     const words = explanation.split(' ');
-    const wordLimit = 60; // Reduced from 100 to 60
+    const wordLimit = 60;
     const needsTruncation = words.length > wordLimit;
     
     const truncatedText = needsTruncation ? words.slice(0, wordLimit).join(' ') + '...' : explanation;
@@ -343,29 +338,23 @@ const SimulationIframe = React.memo(({ simulationData }: { simulationData: Simul
           font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
           background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
           display: flex;
-          flex-direction: column;
           align-items: center;
           justify-content: center;
-          padding: 10px;
         }
+        
         canvas {
+          max-width: 95%;
+          max-height: 95%;
+          width: auto;
+          height: auto;
+          display: block;
           border: 2px solid #e5e7eb;
           border-radius: 12px;
           background: white;
-          box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
-          display: block !important;
-          margin: 0 auto;
-          max-width: calc(100vw - 30px);
-          max-height: calc(100vh - 30px);
-          width: auto;
-          height: auto;
-          image-rendering: -webkit-optimize-contrast;
-          image-rendering: optimize-contrast;
-          image-rendering: crisp-edges;
-          transform: translateZ(0);
-          will-change: transform;
+          box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
           cursor: pointer;
         }
+        
         .status {
           position: fixed;
           top: 15px;
@@ -400,30 +389,15 @@ const SimulationIframe = React.memo(({ simulationData }: { simulationData: Simul
           color: #d97706;
           border-color: rgba(245, 158, 11, 0.4);
         }
-        .simulation-title {
-          position: fixed;
-          top: 15px;
-          left: 15px;
-          background: rgba(255, 255, 255, 0.95);
-          backdrop-filter: blur(8px);
-          padding: 6px 12px;
-          border-radius: 6px;
-          font-size: 12px;
-          font-weight: 600;
-          color: #374151;
-          border: 1px solid rgba(0, 0, 0, 0.1);
-          z-index: 1000;
-          opacity: 0.8;
-        }
       </style>
     </head>
     <body>
-      <div class="simulation-title">Educational Simulation</div>
       <div class="status ${simulationData.contentWarning ? 'warning' : 'loading'}" id="status">${simulationData.contentWarning ? 'Content Notice' : 'Initializing...'}</div>
+      
       ${simulationData.canvasHtml}
+      
       <script>
         const statusEl = document.getElementById('status');
-        let canvas = null;
         
         window.onerror = function(message, source, lineno, colno, error) {
           console.error('Simulation Error:', message, 'Line:', lineno);
@@ -434,40 +408,16 @@ const SimulationIframe = React.memo(({ simulationData }: { simulationData: Simul
           return true;
         };
         
-        window.addEventListener('unhandledrejection', function(event) {
-          console.error('Promise Rejection:', event.reason);
-          if (statusEl) {
-            statusEl.className = 'status error';
-            statusEl.textContent = 'Promise Error';
-          }
-        });
-        
         setTimeout(() => {
-          canvas = document.querySelector('canvas');
+          const canvas = document.querySelector('canvas');
           if (canvas) {
-            console.log('Canvas initialized:', canvas.id, canvas.width + 'x' + canvas.height);
-            
-            // Ensure canvas is interactive
             canvas.style.display = 'block';
-            canvas.style.margin = '0 auto';
-            canvas.style.cursor = 'pointer';
-            
-            // Optimize canvas sizing for better interaction
-            const maxWidth = Math.min(window.innerWidth - 30, 900);
-            const maxHeight = Math.min(window.innerHeight - 30, 700);
-            
-            if (canvas.width > maxWidth || canvas.height > maxHeight) {
-              const ratio = Math.min(maxWidth / canvas.width, maxHeight / canvas.height);
-              canvas.style.width = (canvas.width * ratio) + 'px';
-              canvas.style.height = (canvas.height * ratio) + 'px';
-            }
             
             if (statusEl && !${simulationData.contentWarning}) {
               statusEl.className = 'status loading';
-              statusEl.textContent = 'Loading simulation...';
+              statusEl.textContent = 'Loading...';
             }
           } else {
-            console.error('Canvas element not found');
             if (statusEl) {
               statusEl.className = 'status error';
               statusEl.textContent = 'Canvas not found';
@@ -485,9 +435,9 @@ const SimulationIframe = React.memo(({ simulationData }: { simulationData: Simul
               statusEl.textContent = 'Interactive';
               setTimeout(() => {
                 statusEl.style.opacity = '0.6';
-              }, 3000);
+              }, 2000);
             }
-          }, 1500);
+          }, 1000);
           ` : ''}
           
         } catch (error) {
@@ -636,7 +586,7 @@ export default function Demo(): JSX.Element {
         const textResponse = await response.text();
         throw new Error(`Expected JSON response, got: ${contentType}`);
       }
-1
+
       const data: SimulationResponse = await response.json();
 
       if (data.contentWarning) {
@@ -656,16 +606,7 @@ export default function Demo(): JSX.Element {
 
       setSimulationData(data);
       
-      if (data.usage?.totalTokens && !isJudgeAccount) {
-        const newTokenUsage = tokenUsage + data.usage.totalTokens;
-        setTokenUsage(newTokenUsage);
-        
-        if (newTokenUsage >= TOKEN_LIMIT) {
-          setError(`Token limit reached (${newTokenUsage}/${TOKEN_LIMIT}). This was your last simulation.`);
-        }
-      } else if (!isJudgeAccount) {
-        setTokenUsage(prev => prev + 1);
-      }
+      await fetchTokenUsage();
 
       if (inputPrompt) {
         setFollowUpPrompt('');
@@ -677,7 +618,7 @@ export default function Demo(): JSX.Element {
     } finally {
       setLoading(false);
     }
-  }, [prompt, subject, isTokenLimitReached, tokenUsage, isJudgeAccount]);
+  }, [prompt, subject, isTokenLimitReached, tokenUsage, isJudgeAccount, fetchTokenUsage]);
 
   const handleFollowUpSubmit = useCallback(async (): Promise<void> => {
     if (!followUpPrompt.trim()) return;
