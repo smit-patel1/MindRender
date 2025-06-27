@@ -332,10 +332,8 @@ const SimulationIframe = React.memo(({ simulationData }: { simulationData: Simul
           box-sizing: border-box;
         }
         html, body {
-          height: 100vh;
-          width: 100vw;
-          width: 100%;
           height: 100%;
+          width: 100%;
           overflow: hidden;
           font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
           background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
@@ -345,15 +343,16 @@ const SimulationIframe = React.memo(({ simulationData }: { simulationData: Simul
         }
         
         canvas {
-          width: 100%;
-          height: 100%;
-          object-fit: contain;
           border: 2px solid #e5e7eb;
           border-radius: 12px;
           background: white;
-          box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
+          box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1);
           display: block !important;
           margin: 0 auto;
+          max-width: calc(100% - 40px);
+          max-height: calc(100% - 40px);
+          width: auto;
+          height: auto;
           cursor: pointer;
         }
         
