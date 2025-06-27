@@ -197,7 +197,7 @@ const FormattedExplanation = React.memo(({ explanation }: { explanation: string 
   }, [explanation]);
 
   return (
-    <div className="space-y-2 h-full flex flex-col">
+    <div className="space-y-2 h-full overflow-y-auto">
       <style>{`
         .explanation-heading {
           font-size: 16px;
@@ -246,14 +246,14 @@ const FormattedExplanation = React.memo(({ explanation }: { explanation: string 
       `}</style>
       
       <div 
-        className="explanation-content flex-1 overflow-hidden"
+        className="explanation-content"
         dangerouslySetInnerHTML={{ 
           __html: isExpanded ? fullContent : truncatedContent 
         }} 
       />
       
       {needsTruncation && (
-        <div className="flex-shrink-0 mt-2">
+        <div className="mt-2">
           <button
             onClick={() => setIsExpanded(!isExpanded)}
             className="text-blue-600 hover:text-blue-800 text-xs font-medium underline focus:outline-none focus:ring-1 focus:ring-blue-500 focus:ring-opacity-50 rounded"
