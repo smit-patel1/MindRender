@@ -409,8 +409,8 @@ const SimulationIframe = React.memo(({ simulationData }: { simulationData: Simul
           const aspectRatio = originalWidth / originalHeight;
           
           // Calculate available space (99.5% of viewport)
-          const availableWidth = window.innerWidth * 0.995;
-          const availableHeight = window.innerHeight * 0.995;
+          const availableWidth = window.innerWidth * 0.92;
+          const availableHeight = window.innerHeight * 0.92;
           
           // Calculate new dimensions while maintaining aspect ratio
           let newWidth, newHeight;
