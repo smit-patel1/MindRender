@@ -349,8 +349,8 @@ const SimulationIframe = React.memo(({ simulationData }: { simulationData: Simul
           box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1);
           display: block !important;
           margin: 0 auto;
-          width: 99.5%;
-          height: 99.5%;
+          max-width: 100%;
+          max-height: 100%;
           cursor: pointer;
         }
         
@@ -398,6 +398,48 @@ const SimulationIframe = React.memo(({ simulationData }: { simulationData: Simul
       <script>
         const statusEl = document.getElementById('status');
         
+        // Dynamic canvas resizing for better quality and space utilization
+        function resizeCanvas() {
+          const canvas = document.querySelector('canvas');
+          if (!canvas) return;
+          
+          // Get original canvas dimensions or use defaults
+          const originalWidth = canvas.width || 800;
+          const originalHeight = canvas.height || 600;
+          const aspectRatio = originalWidth / originalHeight;
+          
+          // Calculate available space (99.5% of viewport)
+          const availableWidth = window.innerWidth * 0.995;
+          const availableHeight = window.innerHeight * 0.995;
+          
+          // Calculate new dimensions while maintaining aspect ratio
+          let newWidth, newHeight;
+          
+          if (availableWidth / aspectRatio <= availableHeight) {
+            // Width is the limiting factor
+            newWidth = availableWidth;
+            newHeight = availableWidth / aspectRatio;
+          } else {
+            // Height is the limiting factor
+            newHeight = availableHeight;
+            newWidth = availableHeight * aspectRatio;
+          }
+          
+          // Ensure minimum size for usability
+          newWidth = Math.max(newWidth, 400);
+          newHeight = Math.max(newHeight, 300);
+          
+          // Set canvas resolution (attributes) for crisp rendering
+          canvas.width = Math.floor(newWidth);
+          canvas.height = Math.floor(newHeight);
+          
+          // Set canvas display size (CSS) to match resolution
+          canvas.style.width = Math.floor(newWidth) + 'px';
+          canvas.style.height = Math.floor(newHeight) + 'px';
+          
+          console.log('Canvas resized to:', Math.floor(newWidth) + 'x' + Math.floor(newHeight));
+        }
+        
         window.onerror = function(message, source, lineno, colno, error) {
           console.error('Simulation Error:', message, 'Line:', lineno);
           if (statusEl) {
@@ -410,7 +452,10 @@ const SimulationIframe = React.memo(({ simulationData }: { simulationData: Simul
         setTimeout(() => {
           const canvas = document.querySelector('canvas');
           if (canvas) {
-            console.log('Canvas initialized:', canvas.id, canvas.width + 'x' + canvas.height);
+            console.log('Canvas found, original size:', canvas.width + 'x' + canvas.height);
+            
+            // Resize canvas for better quality and space usage
+            resizeCanvas();
             
             // Ensure canvas is interactive
             canvas.style.display = 'block';
@@ -421,6 +466,9 @@ const SimulationIframe = React.memo(({ simulationData }: { simulationData: Simul
               statusEl.className = 'status loading';
               statusEl.textContent = 'Loading simulation...';
             }
+            
+            // Execute simulation code after canvas is properly sized
+            executeSimulation();
           } else {
             console.error('Canvas element not found');
             if (statusEl) {
@@ -430,28 +478,35 @@ const SimulationIframe = React.memo(({ simulationData }: { simulationData: Simul
           }
         }, 100);
         
-        try {
-          ${simulationData.jsCode}
-          
-          ${!simulationData.contentWarning ? `
-          setTimeout(() => {
+        function executeSimulation() {
+          try {
+            ${simulationData.jsCode}
+            
+            ${!simulationData.contentWarning ? `
+            setTimeout(() => {
+              if (statusEl) {
+                statusEl.className = 'status success';
+                statusEl.textContent = 'Interactive';
+                setTimeout(() => {
+                  statusEl.style.opacity = '0.6';
+                }, 2000);
+              }
+            }, 1000);
+            ` : ''}
+            
+          } catch (error) {
+            console.error('Execution Error:', error);
             if (statusEl) {
-              statusEl.className = 'status success';
-              statusEl.textContent = 'Interactive';
-              setTimeout(() => {
-                statusEl.style.opacity = '0.6';
-              }, 2000);
+              statusEl.className = 'status error';
+              statusEl.textContent = 'Error: ' + error.message;
             }
-          }, 1000);
-          ` : ''}
-          
-        } catch (error) {
-          console.error('Execution Error:', error);
-          if (statusEl) {
-            statusEl.className = 'status error';
-            statusEl.textContent = 'Error: ' + error.message;
           }
         }
+        
+        // Handle window resize for responsive canvas
+        window.addEventListener('resize', () => {
+          setTimeout(resizeCanvas, 100);
+        });
       </script>
     </body>
     </html>
