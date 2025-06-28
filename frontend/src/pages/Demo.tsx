@@ -2,8 +2,7 @@ import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { useAuth } from '../contexts/AuthProvider';
 import { supabase } from '../lib/supabaseClient';
 import { TOKEN_LIMIT } from '../constants';
-import { Play, LogOut, Send, Loader2, BookOpen, Monitor, MessageSquare, AlertTriangle, Menu, X, ShieldAlert, Cpu, Atom, Dna } from 'lucide-react';
-import DemoNavbar from '../components/DemoNavbar';
+import { Play, LogOut, Send, Loader2, BookOpen, Monitor, MessageSquare, AlertTriangle, Menu, X, ShieldAlert, Cpu, Atom, Dna, User } from 'lucide-react';
 import TokenDisplay from '../components/TokenDisplay';
 
 interface SimulationResponse {
@@ -361,42 +360,33 @@ const SimulationIframe = React.memo(({ simulationData }: { simulationData: Simul
       <script>
         const statusEl = document.getElementById('status');
         
-        // Dynamic canvas resizing for better quality and space utilization
         function resizeCanvas() {
           const canvas = document.querySelector('canvas');
           if (!canvas) return;
           
-          // Get original canvas dimensions or use defaults
           const originalWidth = canvas.width || 800;
           const originalHeight = canvas.height || 600;
           const aspectRatio = originalWidth / originalHeight;
           
-          // Calculate available space (99.5% of viewport)
           const availableWidth = window.innerWidth * 0.92;
           const availableHeight = window.innerHeight * 0.92;
           
-          // Calculate new dimensions while maintaining aspect ratio
           let newWidth, newHeight;
           
           if (availableWidth / aspectRatio <= availableHeight) {
-            // Width is the limiting factor
             newWidth = availableWidth;
             newHeight = availableWidth / aspectRatio;
           } else {
-            // Height is the limiting factor
             newHeight = availableHeight;
             newWidth = availableHeight * aspectRatio;
           }
           
-          // Ensure minimum size for usability
           newWidth = Math.max(newWidth, 400);
           newHeight = Math.max(newHeight, 300);
           
-          // Set canvas resolution (attributes) for crisp rendering
           canvas.width = Math.floor(newWidth);
           canvas.height = Math.floor(newHeight);
           
-          // Set canvas display size (CSS) to match resolution
           canvas.style.width = Math.floor(newWidth) + 'px';
           canvas.style.height = Math.floor(newHeight) + 'px';
           
@@ -417,10 +407,8 @@ const SimulationIframe = React.memo(({ simulationData }: { simulationData: Simul
           if (canvas) {
             console.log('Canvas found, original size:', canvas.width + 'x' + canvas.height);
             
-            // Resize canvas for better quality and space usage
             resizeCanvas();
             
-            // Ensure canvas is interactive
             canvas.style.display = 'block';
             canvas.style.margin = '0 auto';
             canvas.style.cursor = 'pointer';
@@ -430,7 +418,6 @@ const SimulationIframe = React.memo(({ simulationData }: { simulationData: Simul
               statusEl.textContent = 'Loading simulation...';
             }
             
-            // Execute simulation code after canvas is properly sized
             executeSimulation();
           } else {
             console.error('Canvas element not found');
@@ -466,7 +453,6 @@ const SimulationIframe = React.memo(({ simulationData }: { simulationData: Simul
           }
         }
         
-        // Handle window resize for responsive canvas
         window.addEventListener('resize', () => {
           setTimeout(resizeCanvas, 100);
         });
@@ -489,6 +475,49 @@ const SimulationIframe = React.memo(({ simulationData }: { simulationData: Simul
         height: '100%'
       }}
     />
+  );
+});
+
+const DemoNavbar = React.memo(({ user, handleSignOut }: { user: User; handleSignOut: () => void }) => {
+  const [showProfileDropdown, setShowProfileDropdown] = useState(false);
+
+  return (
+    <nav className="bg-gray-800 border-b border-gray-700 px-4 py-3">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center space-x-4">
+          <Menu className="w-5 h-5 text-gray-400" />
+          <h1 className="text-xl font-bold text-white">MindRender</h1>
+        </div>
+        
+        <div className="flex items-center space-x-4">
+          <button className="bg-yellow-500 text-black px-4 py-2 rounded-md hover:bg-yellow-400 transition-colors font-medium">
+            New Simulation
+          </button>
+          
+          <div className="relative">
+            <button
+              onClick={() => setShowProfileDropdown(!showProfileDropdown)}
+              className="flex items-center space-x-2 text-gray-300 hover:text-white transition-colors"
+            >
+              <User className="w-5 h-5" />
+              <span className="text-sm">{user.email}</span>
+            </button>
+            
+            {showProfileDropdown && (
+              <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-50">
+                <button
+                  onClick={handleSignOut}
+                  className="flex items-center space-x-2 w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                >
+                  <LogOut className="w-4 h-4" />
+                  <span>Sign Out</span>
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    </nav>
   );
 });
 
@@ -680,6 +709,19 @@ export default function Demo(): JSX.Element {
     setError(null);
   }, []);
 
+  useEffect(() => {
+    const style = document.createElement('style');
+    style.textContent = `
+      .global-navbar { display: none !important; }
+      nav:not([class*="demo"]):not([class*="Demo"]) { display: none !important; }
+    `;
+    document.head.appendChild(style);
+    
+    return () => {
+      document.head.removeChild(style);
+    };
+  }, []);
+
   if (authLoading) {
     return (
       <div className="min-h-screen bg-gray-900 flex items-center justify-center p-4">
@@ -728,15 +770,7 @@ export default function Demo(): JSX.Element {
   return (
     <ErrorBoundary fallback={<div className="text-red-500 p-4">Something went wrong. Please refresh the page.</div>}>
       <div className="bg-gray-900 text-white min-h-screen">
-        <DemoNavbar
-          user={user}
-          isJudgeAccount={isJudgeAccount}
-          tokenUsage={tokenUsage}
-          isTokenLimitReached={isTokenLimitReached}
-          mobileMenuOpen={mobileMenuOpen}
-          toggleMobileMenu={toggleMobileMenu}
-          handleSignOut={handleSignOut}
-        />
+        <DemoNavbar user={user} handleSignOut={handleSignOut} />
         
         <main className="h-screen overflow-hidden">
           <div className="hidden md:grid md:grid-cols-12 h-full">
