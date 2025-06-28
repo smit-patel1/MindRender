@@ -43,8 +43,8 @@ function AppContent() {
     }
   }, [user, loading, location.pathname, navigate]);
 
-  // Show global navbar on all pages
-  const showNavbar = true;
+  // Hide global navbar on demo page
+  const showNavbar = location.pathname !== '/demo';
 
   return (
     <div className="min-h-screen">

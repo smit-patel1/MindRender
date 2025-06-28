@@ -3,6 +3,7 @@ import { useAuth } from '../contexts/AuthProvider';
 import { supabase } from '../lib/supabaseClient';
 import { TOKEN_LIMIT } from '../constants';
 import { Play, LogOut, Send, Loader2, BookOpen, Monitor, MessageSquare, AlertTriangle, Menu, X, ShieldAlert, Cpu, Atom, Dna } from 'lucide-react';
+import DemoNavbar from '../components/DemoNavbar';
 
 interface SimulationResponse {
   canvasHtml: string;
@@ -117,45 +118,6 @@ const LoadingSpinner = React.memo(({ size = 'default', text }: { size?: 'small' 
     <div className="flex flex-col items-center space-y-2">
       <Loader2 className={`${sizeClasses[size]} text-blue-500 animate-spin`} />
       {text && <div className="text-gray-700 font-medium text-sm">{text}</div>}
-    </div>
-  );
-});
-
-const TokenDisplay = React.memo(({ 
-  isJudgeAccount, 
-  tokenUsage, 
-  isTokenLimitReached 
-}: { 
-  isJudgeAccount: boolean; 
-  tokenUsage: number; 
-  isTokenLimitReached: boolean; 
-}) => {
-  if (isJudgeAccount) {
-    return (
-      <div className="rounded-lg px-3 py-1 text-sm bg-green-500/20 border border-green-500/30">
-        <span className="text-green-400 font-semibold">Unlimited</span>
-      </div>
-    );
-  }
-
-  return (
-    <div className={`rounded-lg px-3 py-1 text-sm ${
-      isTokenLimitReached 
-        ? 'bg-red-500/20 border border-red-500/30' 
-        : tokenUsage > TOKEN_LIMIT * 0.8
-          ? 'bg-yellow-500/20 border border-yellow-500/30'
-          : 'bg-gray-700/50'
-    }`}>
-      <span className="text-gray-300">
-        <span className="hidden sm:inline">Tokens: </span>
-        <span className={`font-medium ${
-          isTokenLimitReached 
-            ? 'text-red-400' 
-            : tokenUsage > TOKEN_LIMIT * 0.8
-              ? 'text-yellow-400'
-              : 'text-yellow-400'
-        }`}>{tokenUsage} / {TOKEN_LIMIT}</span>
-      </span>
     </div>
   );
 });
@@ -767,59 +729,15 @@ export default function Demo(): JSX.Element {
   return (
     <ErrorBoundary fallback={<div className="text-red-500 p-4">Something went wrong. Please refresh the page.</div>}>
       <div className="h-screen bg-gray-900 text-white overflow-hidden flex flex-col">
-        <header className="border-b border-gray-700 bg-gray-800/50 backdrop-blur-sm flex-shrink-0">
-          <div className="flex justify-between items-center px-3 sm:px-6 py-3 sm:py-4">
-            <div className="flex items-center space-x-2 sm:space-x-4">
-              <h1 className="text-lg sm:text-2xl font-bold text-white">MindRender</h1>
-              <div className="hidden md:block w-px h-6 bg-gray-600" />
-              <div className="hidden md:block text-sm text-gray-400">
-                Interactive Learning Simulations
-              </div>
-            </div>
-            
-            <div className="flex items-center space-x-2 sm:space-x-4">
-              <TokenDisplay 
-                isJudgeAccount={isJudgeAccount}
-                tokenUsage={tokenUsage}
-                isTokenLimitReached={isTokenLimitReached}
-              />
-              
-              <button
-                onClick={toggleMobileMenu}
-                className="md:hidden bg-gray-700 text-white p-2 rounded-lg hover:bg-gray-600 transition-colors"
-                aria-label="Toggle menu"
-              >
-                {mobileMenuOpen ? <X className="w-4 h-4" /> : <Menu className="w-4 h-4" />}
-              </button>
-              
-              <div className="hidden md:flex items-center space-x-4">
-                <div className="text-sm text-gray-300 hidden lg:block truncate max-w-32">{user.email}</div>
-                <button
-                  onClick={handleSignOut}
-                  className="bg-red-500 text-white px-3 sm:px-4 py-2 rounded-lg hover:bg-red-400 transition-colors flex items-center space-x-2 text-sm"
-                >
-                  <LogOut className="w-4 h-4" />
-                  <span className="hidden sm:inline">Sign Out</span>
-                </button>
-              </div>
-            </div>
-          </div>
-          
-          {mobileMenuOpen && (
-            <div className="md:hidden border-t border-gray-700 bg-gray-800 p-4">
-              <div className="flex flex-col space-y-3">
-                <div className="text-sm text-gray-300 truncate">{user.email}</div>
-                <button
-                  onClick={handleSignOut}
-                  className="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-400 transition-colors flex items-center justify-center space-x-2 text-sm"
-                >
-                  <LogOut className="w-4 h-4" />
-                  <span>Sign Out</span>
-                </button>
-              </div>
-            </div>
-          )}
-        </header>
+        <DemoNavbar
+          user={user}
+          isJudgeAccount={isJudgeAccount}
+          tokenUsage={tokenUsage}
+          isTokenLimitReached={isTokenLimitReached}
+          mobileMenuOpen={mobileMenuOpen}
+          toggleMobileMenu={toggleMobileMenu}
+          handleSignOut={handleSignOut}
+        />
 
         <main className="flex-1 overflow-hidden">
           <div className="hidden md:grid md:grid-cols-12 h-full">
