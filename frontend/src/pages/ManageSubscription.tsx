@@ -272,13 +272,13 @@ export default function ManageSubscription() {
           <div className="container mx-auto px-4">
             <div className="max-w-6xl mx-auto">
               <h2 className="text-3xl font-bold mb-8 text-center">Available Plans</h2>
-              <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+              <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
                 {SUBSCRIPTION_PLANS.map((plan) => (
                   <motion.div
                     key={plan.id}
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className={`bg-gray-800 rounded-xl p-6 relative ${
+                    className={`bg-gray-800 rounded-xl p-6 relative flex flex-col h-full ${
                       plan.popular ? 'ring-2 ring-yellow-500' : ''
                     } ${plan.current ? 'ring-2 ring-green-500' : ''}`}
                   >
@@ -307,7 +307,7 @@ export default function ManageSubscription() {
                       <div className="text-sm text-yellow-400 font-medium">{plan.tokens}</div>
                     </div>
                     
-                    <ul className="space-y-3 mb-6">
+                    <ul className="space-y-3 mb-6 flex-grow">
                       {plan.features.map((feature, index) => (
                         <li key={index} className="flex items-center">
                           <CheckCircle className="w-5 h-5 text-green-500 mr-3 flex-shrink-0" />
@@ -317,15 +317,24 @@ export default function ManageSubscription() {
                     </ul>
                     
                     {!plan.current && (
-                      <button
-                        onClick={() => handleUpgrade(plan)}
-                        className="w-full bg-yellow-500 hover:bg-yellow-400 text-black py-3 rounded-lg font-semibold transition-colors"
-                      >
-                        {plan.price === 0 ? 'Downgrade' : 'Upgrade'}
-                      </button>
+                      <div className="mt-auto">
+                        <button
+                          onClick={() => handleUpgrade(plan)}
+                          className="w-full bg-yellow-500 hover:bg-yellow-400 text-black py-3 rounded-lg font-semibold transition-colors"
+                        >
+                          {plan.price === 0 ? 'Downgrade' : 'Upgrade'}
+                        </button>
+                      </div>
                     )}
                   </motion.div>
                 ))}
+              </div>
+              
+              {/* Warning Text */}
+              <div className="text-center">
+                <p className="text-red-400 text-lg font-medium">
+                  Purchase Plans Will Be Available in the Future.
+                </p>
               </div>
             </div>
           </div>
