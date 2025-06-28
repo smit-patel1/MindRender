@@ -482,7 +482,7 @@ const DemoNavbar = React.memo(({ user, handleSignOut }: { user: User; handleSign
   const [showProfileDropdown, setShowProfileDropdown] = useState(false);
 
   return (
-    <nav className="bg-gray-800 border-b border-gray-700 px-4 py-3">
+    <nav className="demo-navbar bg-gray-800 border-b border-gray-700 px-4 py-3">
       <div className="flex items-center justify-between">
         <div className="flex items-center space-x-4">
           <Menu className="w-5 h-5 text-gray-400" />
@@ -707,19 +707,6 @@ export default function Demo(): JSX.Element {
 
   const dismissError = useCallback(() => {
     setError(null);
-  }, []);
-
-  useEffect(() => {
-    const style = document.createElement('style');
-    style.textContent = `
-      .global-navbar { display: none !important; }
-      nav:not([class*="demo"]):not([class*="Demo"]) { display: none !important; }
-    `;
-    document.head.appendChild(style);
-    
-    return () => {
-      document.head.removeChild(style);
-    };
   }, []);
 
   if (authLoading) {
