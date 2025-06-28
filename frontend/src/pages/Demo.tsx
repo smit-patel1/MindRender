@@ -3,7 +3,6 @@ import { useAuth } from '../contexts/AuthProvider';
 import { supabase } from '../lib/supabaseClient';
 import { TOKEN_LIMIT } from '../constants';
 import { Play, LogOut, Send, Loader2, BookOpen, Monitor, MessageSquare, AlertTriangle, Menu, X, ShieldAlert, Cpu, Atom, Dna } from 'lucide-react';
-import DemoNavbar from '../components/DemoNavbar';
 
 interface SimulationResponse {
   canvasHtml: string;
@@ -500,7 +499,6 @@ export default function Demo(): JSX.Element {
   const [simulationData, setSimulationData] = useState<SimulationResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [tokenUsage, setTokenUsage] = useState<number>(0);
-  const [mobileMenuOpen, setMobileMenuOpen] = useState<boolean>(false);
   const [showContentWarning, setShowContentWarning] = useState<boolean>(false);
   const [contentWarningMessage, setContentWarningMessage] = useState<string>('');
 
@@ -651,30 +649,17 @@ export default function Demo(): JSX.Element {
     await handleRunSimulation(followUpPrompt);
   }, [followUpPrompt, isTokenLimitReached, tokenUsage, handleRunSimulation]);
 
-  const handleSignOut = useCallback(async (): Promise<void> => {
-    try {
-      await signOut();
-    } catch (error) {
-      console.error('Sign out failed:', error);
-    }
-  }, [signOut]);
-
   const handleNewSimulation = useCallback((): void => {
     setSimulationData(null);
     setPrompt('');
     setFollowUpPrompt('');
     setError(null);
     setShowContentWarning(false);
-    setMobileMenuOpen(false);
   }, []);
 
   const handleContentWarningDismiss = useCallback(() => {
     setShowContentWarning(false);
     setSimulationData(null);
-  }, []);
-
-  const toggleMobileMenu = useCallback(() => {
-    setMobileMenuOpen(prev => !prev);
   }, []);
 
   const dismissError = useCallback(() => {
@@ -728,18 +713,8 @@ export default function Demo(): JSX.Element {
 
   return (
     <ErrorBoundary fallback={<div className="text-red-500 p-4">Something went wrong. Please refresh the page.</div>}>
-      <div className="h-screen bg-gray-900 text-white overflow-hidden flex flex-col">
-        <DemoNavbar
-          user={user}
-          isJudgeAccount={isJudgeAccount}
-          tokenUsage={tokenUsage}
-          isTokenLimitReached={isTokenLimitReached}
-          mobileMenuOpen={mobileMenuOpen}
-          toggleMobileMenu={toggleMobileMenu}
-          handleSignOut={handleSignOut}
-        />
-
-        <main className="flex-1 overflow-hidden">
+      <div className="pt-24 bg-gray-900 text-white min-h-screen">
+        <main className="h-screen overflow-hidden">
           <div className="hidden md:grid md:grid-cols-12 h-full">
             <aside className="md:col-span-2 lg:col-span-2 xl:col-span-2 bg-gray-800 border-r border-gray-700 flex flex-col h-full">
               <div className="p-3 space-y-3 flex-1 overflow-y-auto">
