@@ -191,7 +191,7 @@ export default function ManageSubscription() {
             <div className="mb-8">
               <Link 
                 to="/profile" 
-                className="inline-flex items-center bg-gray-800 hover:bg-gray-700 text-white px-4 py-3 rounded-lg transition-colors shadow-lg border border-gray-600"
+                className="inline-flex items-center bg-yellow-500 hover:bg-yellow-400 text-black px-4 py-3 rounded-lg transition-colors shadow-lg font-medium"
               >
                 <ArrowLeft className="w-5 h-5 mr-2" />
                 Back to Profile
