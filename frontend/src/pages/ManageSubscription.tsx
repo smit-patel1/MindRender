@@ -401,6 +401,13 @@ export default function ManageSubscription() {
                 </div>
               </div>
             </div>
+            
+            {/* Work in Progress Disclaimer */}
+            <div className="text-center mt-8">
+              <p className="text-red-400 text-lg font-medium">
+                This Section is Still a Work in Progress.
+              </p>
+            </div>
           </div>
         </div>
       </section>
