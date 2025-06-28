@@ -10,6 +10,7 @@ import Profile from './pages/Profile';
 import LearnMore from './pages/LearnMore';
 import Auth from './pages/Auth';
 import AuthCallback from './pages/AuthCallback';
+import ManageSubscription from './pages/ManageSubscription';
 
 function AppContent() {
   const navigate = useNavigate();
@@ -25,7 +26,7 @@ function AppContent() {
     const currentPath = location.pathname;
     const isPublicRoute = ['/'].includes(currentPath);
     const isAuthRoute = currentPath === '/auth';
-    const isProtectedRoute = ['/demo', '/profile'].includes(currentPath);
+    const isProtectedRoute = ['/demo', '/profile', '/manage-subscription'].includes(currentPath);
 
     if (user) {
       // Authenticated user accessing public-only routes should go to profile
@@ -53,6 +54,7 @@ function AppContent() {
           <Route path="/" element={<Home />} />
           <Route path="/demo" element={<Demo />} />
           <Route path="/profile" element={<Profile />} />
+          <Route path="/manage-subscription" element={<ManageSubscription />} />
           <Route path="/learn" element={<LearnMore />} />
           <Route path="/auth" element={<Auth />} />
           <Route path="/auth/callback" element={<AuthCallback />} />

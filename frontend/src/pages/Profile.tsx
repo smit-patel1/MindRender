@@ -148,10 +148,12 @@ export default function Profile() {
               animate={{ opacity: 1, x: 0 }}
               className="flex-shrink-0"
             >
-              <button className="bg-purple-600 hover:bg-purple-500 text-white px-6 py-3 rounded-lg transition-colors flex items-center space-x-2 font-medium">
-                <CreditCard className="w-5 h-5" />
-                <span>Manage Subscription</span>
-              </button>
+              <Link to="/manage-subscription">
+                <button className="bg-purple-600 hover:bg-purple-500 text-white px-6 py-3 rounded-lg transition-colors flex items-center space-x-2 font-medium">
+                  <CreditCard className="w-5 h-5" />
+                  <span>Manage Subscription</span>
+                </button>
+              </Link>
             </motion.div>
           </div>
         </div>
