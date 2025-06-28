@@ -21,7 +21,7 @@ export default function LearnMore() {
               MindRender is an AI-powered simulation engine that transforms natural language prompts into real-time visualizations. Our platform bridges the gap between abstract concepts and tangible understanding through interactive, dynamic simulations.
             </p>
             <p>
-              Designed for students, educators, and independent learners, MindRender helps users grasp complex topics in subjects like mathematics, biology, and computer science. By providing hands-on, intuitive ways to explore technical subjects, we make learning more engaging and effective.
+              Designed for students, educators, and independent learners, MindRender helps users grasp complex topics in subjects like physics, biology, and computer science. By providing hands-on, intuitive ways to explore technical subjects, we make learning more engaging and effective.
             </p>
             <p>
               The system leverages advanced large language models and code generation capabilities to create sophisticated canvas-based and animation-based visual outputs that respond to user input in real time.
