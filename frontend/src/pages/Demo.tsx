@@ -3,6 +3,8 @@ import { useAuth } from '../contexts/AuthProvider';
 import { supabase } from '../lib/supabaseClient';
 import { TOKEN_LIMIT } from '../constants';
 import { Play, LogOut, Send, Loader2, BookOpen, Monitor, MessageSquare, AlertTriangle, Menu, X, ShieldAlert, Cpu, Atom, Dna } from 'lucide-react';
+import DemoNavbar from '../components/DemoNavbar';
+import TokenDisplay from '../components/TokenDisplay';
 
 interface SimulationResponse {
   canvasHtml: string;
@@ -501,10 +503,23 @@ export default function Demo(): JSX.Element {
   const [tokenUsage, setTokenUsage] = useState<number>(0);
   const [showContentWarning, setShowContentWarning] = useState<boolean>(false);
   const [contentWarningMessage, setContentWarningMessage] = useState<string>('');
+  const [mobileMenuOpen, setMobileMenuOpen] = useState<boolean>(false);
 
   const isJudgeAccount = useMemo(() => user?.email === JUDGE_EMAIL, [user?.email]);
   const isTokenLimitReached = useMemo(() => !isJudgeAccount && tokenUsage >= TOKEN_LIMIT, [isJudgeAccount, tokenUsage]);
   const tokensRemaining = useMemo(() => Math.max(0, TOKEN_LIMIT - tokenUsage), [tokenUsage]);
+
+  const toggleMobileMenu = useCallback(() => {
+    setMobileMenuOpen(prev => !prev);
+  }, []);
+
+  const handleSignOut = useCallback(async () => {
+    try {
+      await signOut();
+    } catch (error) {
+      console.error('Sign out failed:', error);
+    }
+  }, [signOut]);
 
   const fetchTokenUsage = useCallback(async () => {
     if (!user || isJudgeAccount) return;
@@ -712,7 +727,17 @@ export default function Demo(): JSX.Element {
 
   return (
     <ErrorBoundary fallback={<div className="text-red-500 p-4">Something went wrong. Please refresh the page.</div>}>
-      <div className="pt-24 bg-gray-900 text-white min-h-screen">
+      <div className="bg-gray-900 text-white min-h-screen">
+        <DemoNavbar
+          user={user}
+          isJudgeAccount={isJudgeAccount}
+          tokenUsage={tokenUsage}
+          isTokenLimitReached={isTokenLimitReached}
+          mobileMenuOpen={mobileMenuOpen}
+          toggleMobileMenu={toggleMobileMenu}
+          handleSignOut={handleSignOut}
+        />
+        
         <main className="h-screen overflow-hidden">
           <div className="hidden md:grid md:grid-cols-12 h-full">
             <aside className="md:col-span-2 lg:col-span-2 xl:col-span-2 bg-gray-800 border-r border-gray-700 flex flex-col h-full">

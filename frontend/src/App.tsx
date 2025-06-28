@@ -43,12 +43,12 @@ function AppContent() {
     }
   }, [user, loading, location.pathname, navigate]);
 
-  // Hide global navbar on demo page
-  const showNavbar = true; // Always show the global navbar
+  // Only show the main navbar on non-demo pages
+  const showMainNavbar = location.pathname !== '/demo';
 
   return (
     <div className="min-h-screen">
-      {showNavbar && <Navbar />}
+      {showMainNavbar && <Navbar />}
       <ErrorBoundary>
         <Routes>
           <Route path="/" element={<Home />} />
