@@ -570,7 +570,6 @@ export default function Demo(): JSX.Element {
     setLoading(true);
     setError(null);
     setShowContentWarning(false);
-    setMobileMenuOpen(false);
     
     try {
       const { data: sessionData, error: sessionError } = await supabase.auth.getSession();

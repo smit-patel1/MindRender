@@ -47,6 +47,15 @@ export default function Navbar() {
           </Link>
           
           <div className="flex items-center space-x-6">
+            {/* Show token display on demo page for authenticated users */}
+            {user && isDemoPage && (
+              <TokenDisplay 
+                isJudgeAccount={isJudgeAccount}
+                tokenUsage={tokenUsage}
+                isTokenLimitReached={isTokenLimitReached}
+              />
+            )}
+            
             <Link to="/" className="text-gray-300 hover:text-white transition-colors">
               Home
             </Link>
