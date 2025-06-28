@@ -74,10 +74,10 @@ export default function Navbar() {
               <div className="flex items-center space-x-3">
                 <button
                   onClick={handleProfileClick}
-                  className="flex items-center space-x-2 text-gray-300 hover:text-white transition-colors"
+                  className="flex items-center space-x-2 text-gray-300 hover:text-white transition-colors bg-gray-700 hover:bg-gray-600 px-3 py-2 rounded-lg"
                 >
                   <User className="w-4 h-4" />
-                  <span className="text-sm hidden sm:inline">{user.email}</span>
+                  <span className="text-sm">Profile</span>
                 </button>
                 <button 
                   onClick={handleSignOut}
