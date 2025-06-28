@@ -2,8 +2,7 @@ import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { useAuth } from '../contexts/AuthProvider';
 import { supabase } from '../lib/supabaseClient';
 import { TOKEN_LIMIT } from '../constants';
-import { Play, LogOut, Send, Loader2, BookOpen, Monitor, MessageSquare, AlertTriangle, Menu, X, ShieldAlert, Cpu, Atom, Dna, User } from 'lucide-react';
-import TokenDisplay from '../components/TokenDisplay';
+import { Play, Send, Loader2, BookOpen, Monitor, MessageSquare, AlertTriangle, ShieldAlert, Cpu, Atom, Dna } from 'lucide-react';
 
 interface SimulationResponse {
   canvasHtml: string;
@@ -478,51 +477,8 @@ const SimulationIframe = React.memo(({ simulationData }: { simulationData: Simul
   );
 });
 
-const DemoNavbar = React.memo(({ user, handleSignOut }: { user: User; handleSignOut: () => void }) => {
-  const [showProfileDropdown, setShowProfileDropdown] = useState(false);
-
-  return (
-    <nav className="demo-navbar bg-gray-800 border-b border-gray-700 px-4 py-3">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center space-x-4">
-          <Menu className="w-5 h-5 text-gray-400" />
-          <h1 className="text-xl font-bold text-white">MindRender</h1>
-        </div>
-        
-        <div className="flex items-center space-x-4">
-          <button className="bg-yellow-500 text-black px-4 py-2 rounded-md hover:bg-yellow-400 transition-colors font-medium">
-            New Simulation
-          </button>
-          
-          <div className="relative">
-            <button
-              onClick={() => setShowProfileDropdown(!showProfileDropdown)}
-              className="flex items-center space-x-2 text-gray-300 hover:text-white transition-colors"
-            >
-              <User className="w-5 h-5" />
-              <span className="text-sm">{user.email}</span>
-            </button>
-            
-            {showProfileDropdown && (
-              <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-50">
-                <button
-                  onClick={handleSignOut}
-                  className="flex items-center space-x-2 w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                >
-                  <LogOut className="w-4 h-4" />
-                  <span>Sign Out</span>
-                </button>
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
-    </nav>
-  );
-});
-
 export default function Demo(): JSX.Element {
-  const { user, loading: authLoading, error: authError, signOut } = useAuth();
+  const { user, loading: authLoading, error: authError } = useAuth();
   const [subject, setSubject] = useState<SubjectType>('Physics');
   const [prompt, setPrompt] = useState<string>('Show how a pendulum behaves under the influence of gravity and explain the energy transformations during its swing');
   const [followUpPrompt, setFollowUpPrompt] = useState<string>('');
@@ -530,25 +486,13 @@ export default function Demo(): JSX.Element {
   const [simulationData, setSimulationData] = useState<SimulationResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [tokenUsage, setTokenUsage] = useState<number>(0);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState<boolean>(false);
   const [showContentWarning, setShowContentWarning] = useState<boolean>(false);
   const [contentWarningMessage, setContentWarningMessage] = useState<string>('');
-  const [mobileMenuOpen, setMobileMenuOpen] = useState<boolean>(false);
 
   const isJudgeAccount = useMemo(() => user?.email === JUDGE_EMAIL, [user?.email]);
   const isTokenLimitReached = useMemo(() => !isJudgeAccount && tokenUsage >= TOKEN_LIMIT, [isJudgeAccount, tokenUsage]);
   const tokensRemaining = useMemo(() => Math.max(0, TOKEN_LIMIT - tokenUsage), [tokenUsage]);
-
-  const toggleMobileMenu = useCallback(() => {
-    setMobileMenuOpen(prev => !prev);
-  }, []);
-
-  const handleSignOut = useCallback(async () => {
-    try {
-      await signOut();
-    } catch (error) {
-      console.error('Sign out failed:', error);
-    }
-  }, [signOut]);
 
   const fetchTokenUsage = useCallback(async () => {
     if (!user || isJudgeAccount) return;
@@ -614,6 +558,7 @@ export default function Demo(): JSX.Element {
     setLoading(true);
     setError(null);
     setShowContentWarning(false);
+    setMobileMenuOpen(false);
     
     try {
       const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
@@ -698,11 +643,16 @@ export default function Demo(): JSX.Element {
     setFollowUpPrompt('');
     setError(null);
     setShowContentWarning(false);
+    setMobileMenuOpen(false);
   }, []);
 
   const handleContentWarningDismiss = useCallback(() => {
     setShowContentWarning(false);
     setSimulationData(null);
+  }, []);
+
+  const toggleMobileMenu = useCallback(() => {
+    setMobileMenuOpen(prev => !prev);
   }, []);
 
   const dismissError = useCallback(() => {
@@ -756,10 +706,8 @@ export default function Demo(): JSX.Element {
 
   return (
     <ErrorBoundary fallback={<div className="text-red-500 p-4">Something went wrong. Please refresh the page.</div>}>
-      <div className="bg-gray-900 text-white min-h-screen">
-        <DemoNavbar user={user} handleSignOut={handleSignOut} />
-        
-        <main className="h-screen overflow-hidden">
+      <div className="h-screen bg-gray-900 text-white overflow-hidden flex flex-col pt-24">
+        <main className="flex-1 overflow-hidden">
           <div className="hidden md:grid md:grid-cols-12 h-full">
             <aside className="md:col-span-2 lg:col-span-2 xl:col-span-2 bg-gray-800 border-r border-gray-700 flex flex-col h-full">
               <div className="p-3 space-y-3 flex-1 overflow-y-auto">

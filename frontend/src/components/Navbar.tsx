@@ -1,11 +1,67 @@
 import React from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { Github, LogIn, LogOut, User } from 'lucide-react';
 import { useAuth } from '../contexts/AuthProvider';
+import { TOKEN_LIMIT } from '../constants';
+import { supabase } from '../lib/supabaseClient';
+import TokenDisplay from './TokenDisplay';
 
 export default function Navbar() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { user, loading, error, signOut } = useAuth();
+  const [tokenUsage, setTokenUsage] = useState<number>(0);
+
+  const isDemoPage = location.pathname === '/demo';
+  const isJudgeAccount = useMemo(() => user?.email === 'judgeacc90@gmail.com', [user?.email]);
+  const isTokenLimitReached = useMemo(() => !isJudgeAccount && tokenUsage >= TOKEN_LIMIT, [isJudgeAccount, tokenUsage]);
+
+  const fetchTokenUsage = useCallback(async () => {
+    if (!user || isJudgeAccount) return;
+
+    try {
+      const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+      
+      if (sessionError || !sessionData?.session?.access_token) {
+        throw new Error('No valid session found');
+      }
+
+      const response = await fetch(
+        'https://zurfhydnztcxlomdyqds.supabase.co/functions/v1/get_token_total',
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${sessionData.session.access_token}`,
+          },
+          body: JSON.stringify({ user_id: user.id }),
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+
+      const data = await response.json();
+      
+      if (typeof data.total_tokens === 'number' && data.total_tokens >= 0) {
+        setTokenUsage(data.total_tokens);
+      } else {
+        throw new Error('Invalid response format');
+      }
+
+    } catch (error) {
+      console.warn('Failed to fetch token usage:', error);
+      setTokenUsage(0);
+    }
+  }, [user, isJudgeAccount]);
+
+  useEffect(() => {
+    if (user && !loading && isDemoPage) {
+      fetchTokenUsage();
+    }
+  }, [user, loading, isDemoPage, fetchTokenUsage]);
 
   const handleSignOut = async () => {
     try {
@@ -47,15 +103,6 @@ export default function Navbar() {
           </Link>
           
           <div className="flex items-center space-x-6">
-            {/* Show token display on demo page for authenticated users */}
-            {user && isDemoPage && (
-              <TokenDisplay 
-                isJudgeAccount={isJudgeAccount}
-                tokenUsage={tokenUsage}
-                isTokenLimitReached={isTokenLimitReached}
-              />
-            )}
-            
             <Link to="/" className="text-gray-300 hover:text-white transition-colors">
               Home
             </Link>
@@ -81,6 +128,14 @@ export default function Navbar() {
               <div className="w-20 h-10 bg-gray-700 rounded-lg animate-pulse"></div>
             ) : user ? (
               <div className="flex items-center space-x-3">
+                {/* Show token display on demo page for authenticated users */}
+                {isDemoPage && (
+                  <TokenDisplay 
+                    isJudgeAccount={isJudgeAccount}
+                    tokenUsage={tokenUsage}
+                    isTokenLimitReached={isTokenLimitReached}
+                  />
+                )}
                 <button
                   onClick={handleProfileClick}
                   className="flex items-center space-x-2 text-gray-300 hover:text-white transition-colors bg-gray-700 hover:bg-gray-600 px-3 py-2 rounded-lg"

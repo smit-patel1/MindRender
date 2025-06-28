@@ -43,12 +43,9 @@ function AppContent() {
     }
   }, [user, loading, location.pathname, navigate]);
 
-  // Only show the main navbar on non-demo pages
-  const showMainNavbar = !location.pathname.startsWith('/demo');
-
   return (
     <div className="min-h-screen">
-      {showMainNavbar && <Navbar />}
+      <Navbar />
       <ErrorBoundary>
         <Routes>
           <Route path="/" element={<Home />} />
