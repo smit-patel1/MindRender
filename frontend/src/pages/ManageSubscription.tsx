@@ -401,9 +401,15 @@ export default function ManageSubscription() {
                 </div>
               </div>
             </div>
-            
-            {/* Work in Progress Disclaimer */}
-            <div className="text-center mt-8">
+          </div>
+        </div>
+      </section>
+
+      {/* Work in Progress Disclaimer */}
+      <section className="py-4">
+        <div className="container mx-auto px-4">
+          <div className="max-w-6xl mx-auto">
+            <div className="text-center">
               <p className="text-red-400 text-lg font-medium">
                 This Section is Still a Work in Progress.
               </p>
