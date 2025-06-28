@@ -2,7 +2,8 @@ import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { useAuth } from '../contexts/AuthProvider';
 import { supabase } from '../lib/supabaseClient';
 import { TOKEN_LIMIT } from '../constants';
-import { Play, Send, Loader2, BookOpen, Monitor, MessageSquare, AlertTriangle, ShieldAlert, Cpu, Atom, Dna } from 'lucide-react';
+import { Play, LogOut, Send, Loader2, BookOpen, Monitor, MessageSquare, AlertTriangle, Menu, X, ShieldAlert, Cpu, Atom, Dna } from 'lucide-react';
+import DemoNavbar from '../components/DemoNavbar';
 
 interface SimulationResponse {
   canvasHtml: string;
@@ -478,7 +479,7 @@ const SimulationIframe = React.memo(({ simulationData }: { simulationData: Simul
 });
 
 export default function Demo(): JSX.Element {
-  const { user, loading: authLoading, error: authError } = useAuth();
+  const { user, loading: authLoading, error: authError, signOut } = useAuth();
   const [subject, setSubject] = useState<SubjectType>('Physics');
   const [prompt, setPrompt] = useState<string>('Show how a pendulum behaves under the influence of gravity and explain the energy transformations during its swing');
   const [followUpPrompt, setFollowUpPrompt] = useState<string>('');
@@ -486,6 +487,7 @@ export default function Demo(): JSX.Element {
   const [simulationData, setSimulationData] = useState<SimulationResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [tokenUsage, setTokenUsage] = useState<number>(0);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState<boolean>(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState<boolean>(false);
   const [showContentWarning, setShowContentWarning] = useState<boolean>(false);
   const [contentWarningMessage, setContentWarningMessage] = useState<string>('');
@@ -637,6 +639,14 @@ export default function Demo(): JSX.Element {
     await handleRunSimulation(followUpPrompt);
   }, [followUpPrompt, isTokenLimitReached, tokenUsage, handleRunSimulation]);
 
+  const handleSignOut = useCallback(async (): Promise<void> => {
+    try {
+      await signOut();
+    } catch (error) {
+      console.error('Sign out failed:', error);
+    }
+  }, [signOut]);
+
   const handleNewSimulation = useCallback((): void => {
     setSimulationData(null);
     setPrompt('');
@@ -644,11 +654,16 @@ export default function Demo(): JSX.Element {
     setError(null);
     setShowContentWarning(false);
     setMobileMenuOpen(false);
+    setMobileMenuOpen(false);
   }, []);
 
   const handleContentWarningDismiss = useCallback(() => {
     setShowContentWarning(false);
     setSimulationData(null);
+  }, []);
+
+  const toggleMobileMenu = useCallback(() => {
+    setMobileMenuOpen(prev => !prev);
   }, []);
 
   const toggleMobileMenu = useCallback(() => {
@@ -706,7 +721,17 @@ export default function Demo(): JSX.Element {
 
   return (
     <ErrorBoundary fallback={<div className="text-red-500 p-4">Something went wrong. Please refresh the page.</div>}>
-      <div className="h-screen bg-gray-900 text-white overflow-hidden flex flex-col pt-24">
+      <div className="h-screen bg-gray-900 text-white overflow-hidden flex flex-col">
+        <DemoNavbar
+          user={user}
+          isJudgeAccount={isJudgeAccount}
+          tokenUsage={tokenUsage}
+          isTokenLimitReached={isTokenLimitReached}
+          mobileMenuOpen={mobileMenuOpen}
+          toggleMobileMenu={toggleMobileMenu}
+          handleSignOut={handleSignOut}
+        />
+
         <main className="flex-1 overflow-hidden">
           <div className="hidden md:grid md:grid-cols-12 h-full">
             <aside className="md:col-span-2 lg:col-span-2 xl:col-span-2 bg-gray-800 border-r border-gray-700 flex flex-col h-full">
