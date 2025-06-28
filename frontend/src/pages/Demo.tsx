@@ -488,7 +488,6 @@ export default function Demo(): JSX.Element {
   const [error, setError] = useState<string | null>(null);
   const [tokenUsage, setTokenUsage] = useState<number>(0);
   const [mobileMenuOpen, setMobileMenuOpen] = useState<boolean>(false);
-  const [mobileMenuOpen, setMobileMenuOpen] = useState<boolean>(false);
   const [showContentWarning, setShowContentWarning] = useState<boolean>(false);
   const [contentWarningMessage, setContentWarningMessage] = useState<string>('');
 
@@ -660,10 +659,6 @@ export default function Demo(): JSX.Element {
   const handleContentWarningDismiss = useCallback(() => {
     setShowContentWarning(false);
     setSimulationData(null);
-  }, []);
-
-  const toggleMobileMenu = useCallback(() => {
-    setMobileMenuOpen(prev => !prev);
   }, []);
 
   const toggleMobileMenu = useCallback(() => {
