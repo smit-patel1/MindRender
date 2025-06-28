@@ -27,6 +27,7 @@ interface SubscriptionPlan {
   features: string[];
   popular?: boolean;
   current?: boolean;
+  tokens: string;
 }
 
 interface BillingHistory {
@@ -40,12 +41,13 @@ interface BillingHistory {
 
 const SUBSCRIPTION_PLANS: SubscriptionPlan[] = [
   {
-    id: 'standard',
-    name: 'Standard',
+    id: 'free',
+    name: 'Free',
     price: 0,
     interval: 'month',
+    tokens: '10,000 tokens',
     features: [
-      '8,000 tokens per month',
+      '10,000 tokens per month',
       'Basic simulations',
       'Email support',
       'Standard processing speed'
@@ -53,33 +55,51 @@ const SUBSCRIPTION_PLANS: SubscriptionPlan[] = [
     current: true
   },
   {
-    id: 'premium',
-    name: 'Premium',
-    price: 19.99,
+    id: 'starter',
+    name: 'Starter',
+    price: 4.99,
     interval: 'month',
-    popular: true,
+    tokens: '150,000 tokens',
     features: [
-      'Unlimited tokens',
-      'Advanced simulations',
-      'Priority support',
+      '150,000 tokens per month',
+      'Enhanced simulations',
+      'Priority email support',
       'Faster processing',
-      'Export capabilities',
-      'Custom themes'
+      'Basic export capabilities'
     ]
   },
   {
-    id: 'premium-yearly',
-    name: 'Premium Annual',
-    price: 199.99,
-    interval: 'year',
+    id: 'pro',
+    name: 'Pro',
+    price: 11.99,
+    interval: 'month',
+    tokens: '400,000 tokens',
+    popular: true,
     features: [
-      'Unlimited tokens',
+      '400,000 tokens per month',
       'Advanced simulations',
       'Priority support',
-      'Fastest processing',
-      'Export capabilities',
+      'Fast processing',
+      'Full export capabilities',
       'Custom themes',
-      '2 months free'
+      'API access'
+    ]
+  },
+  {
+    id: 'ultra',
+    name: 'Ultra',
+    price: 19.99,
+    interval: 'month',
+    tokens: '1,000,000 tokens',
+    features: [
+      '1,000,000 tokens per month',
+      'Premium simulations',
+      'Dedicated support',
+      'Fastest processing',
+      'Advanced export capabilities',
+      'Custom themes',
+      'Full API access',
+      'Priority queue'
     ]
   }
 ];
@@ -90,21 +110,21 @@ const MOCK_BILLING_HISTORY: BillingHistory[] = [
     date: '2024-12-01',
     amount: 0,
     status: 'paid',
-    description: 'Standard Plan - December 2024'
+    description: 'Free Plan - December 2024'
   },
   {
     id: '2',
     date: '2024-11-01',
     amount: 0,
     status: 'paid',
-    description: 'Standard Plan - November 2024'
+    description: 'Free Plan - November 2024'
   },
   {
     id: '3',
     date: '2024-10-01',
     amount: 0,
     status: 'paid',
-    description: 'Standard Plan - October 2024'
+    description: 'Free Plan - October 2024'
   }
 ];
 
@@ -118,7 +138,7 @@ export default function ManageSubscription() {
   const [billingHistory] = useState<BillingHistory[]>(MOCK_BILLING_HISTORY);
 
   const isJudgeAccount = user?.email === 'judgeacc90@gmail.com';
-  const currentPlan = isJudgeAccount ? 'Premium' : 'Standard';
+  const currentPlan = isJudgeAccount ? 'Ultra' : 'Free';
   const nextBillingDate = new Date();
   nextBillingDate.setMonth(nextBillingDate.getMonth() + 1);
 
@@ -157,9 +177,12 @@ export default function ManageSubscription() {
 
   const getPlanIcon = (planName: string) => {
     switch (planName.toLowerCase()) {
-      case 'premium':
-      case 'premium annual':
+      case 'ultra':
         return Crown;
+      case 'pro':
+        return Zap;
+      case 'starter':
+        return Users;
       default:
         return Shield;
     }
@@ -216,7 +239,7 @@ export default function ManageSubscription() {
                     <h3 className="text-lg font-semibold">{currentPlan} Plan</h3>
                   </div>
                   <p className="text-gray-300">
-                    {isJudgeAccount ? 'Unlimited access' : '8,000 tokens per month'}
+                    {isJudgeAccount ? '1,000,000 tokens per month' : '10,000 tokens per month'}
                   </p>
                 </div>
                 
@@ -249,7 +272,7 @@ export default function ManageSubscription() {
           <div className="container mx-auto px-4">
             <div className="max-w-6xl mx-auto">
               <h2 className="text-3xl font-bold mb-8 text-center">Available Plans</h2>
-              <div className="grid md:grid-cols-3 gap-6">
+              <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
                 {SUBSCRIPTION_PLANS.map((plan) => (
                   <motion.div
                     key={plan.id}
@@ -281,13 +304,14 @@ export default function ManageSubscription() {
                         ${plan.price}
                         <span className="text-lg text-gray-400">/{plan.interval}</span>
                       </div>
+                      <div className="text-sm text-yellow-400 font-medium">{plan.tokens}</div>
                     </div>
                     
                     <ul className="space-y-3 mb-6">
                       {plan.features.map((feature, index) => (
                         <li key={index} className="flex items-center">
                           <CheckCircle className="w-5 h-5 text-green-500 mr-3 flex-shrink-0" />
-                          <span className="text-gray-300">{feature}</span>
+                          <span className="text-gray-300 text-sm">{feature}</span>
                         </li>
                       ))}
                     </ul>
@@ -319,7 +343,7 @@ export default function ManageSubscription() {
                 {isJudgeAccount ? (
                   <div className="text-center py-8">
                     <Crown className="w-12 h-12 text-yellow-500 mx-auto mb-4" />
-                    <p className="text-gray-300">No payment method required for Premium account</p>
+                    <p className="text-gray-300">No payment method required for Ultra account</p>
                   </div>
                 ) : (
                   <>
@@ -432,8 +456,8 @@ export default function ManageSubscription() {
             </h3>
             <p className="text-gray-300 mb-6">
               {selectedPlan.price === 0 
-                ? 'Are you sure you want to downgrade to the Standard plan? You will lose access to premium features.'
-                : `Upgrade to ${selectedPlan.name} for $${selectedPlan.price}/${selectedPlan.interval} and unlock premium features.`
+                ? 'Are you sure you want to downgrade to the Free plan? You will lose access to premium features.'
+                : `Upgrade to ${selectedPlan.name} for $${selectedPlan.price}/${selectedPlan.interval} and unlock ${selectedPlan.tokens}.`
               }
             </p>
             <div className="flex space-x-4">
