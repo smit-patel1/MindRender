@@ -44,7 +44,7 @@ function AppContent() {
   }, [user, loading, location.pathname, navigate]);
 
   // Hide global navbar on demo page
-  const showNavbar = location.pathname !== '/demo';
+  const showNavbar = location.pathname.replace(/\/+$/, '') !== '/demo';
 
   return (
     <div className="min-h-screen">
