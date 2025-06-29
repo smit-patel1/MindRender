@@ -1,5 +1,5 @@
 // Application-wide constants
-export const TOKEN_LIMIT = 8000;
+export const TOKEN_LIMIT = 10000;
 
 // You can add other shared constants here in the future
 export const APP_NAME = 'MindRender';
