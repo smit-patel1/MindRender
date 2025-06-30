@@ -1,17 +1,11 @@
 import React from 'react';
-import { Link, useNavigate, useLocation } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Github, LogIn, LogOut, User } from 'lucide-react';
 import { useAuth } from '../contexts/AuthProvider';
 
 export default function Navbar() {
-  const location = useLocation();
   const navigate = useNavigate();
   const { user, loading, error, signOut } = useAuth();
-
-  // Hide navbar on demo page
-  if (location.pathname === '/demo') {
-    return null;
-  }
 
   const handleSignOut = async () => {
     try {
