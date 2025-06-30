@@ -826,24 +826,27 @@ export default function Demo(): JSX.Element {
                         Follow-up
                       </label>
                     </div>
-                    <div className="flex space-x-1">
+                    <div className="flex space-x-1 mb-2">
                       <input
                         type="text"
                         value={followUpPrompt}
                         onChange={(e) => setFollowUpPrompt(e.target.value)}
-                        placeholder="Modify or explore further..."
-                        disabled={isTokenLimitReached}
+                        placeholder="Feature coming soon..."
+                        disabled={true}
                         className="flex-1 bg-gray-700 border border-gray-600 rounded-md px-2 py-1 text-white text-xs focus:ring-1 focus:ring-blue-500 focus:border-transparent transition-colors placeholder-gray-400 disabled:opacity-50 disabled:cursor-not-allowed"
                         onKeyPress={(e) => e.key === 'Enter' && handleFollowUpSubmit()}
                       />
                       <button
                         onClick={handleFollowUpSubmit}
-                        disabled={loading || !followUpPrompt.trim() || isTokenLimitReached}
-                        className="bg-blue-500 text-white px-2 py-1 rounded-md hover:bg-blue-400 transition-colors flex items-center disabled:opacity-50 disabled:cursor-not-allowed disabled:bg-gray-600"
+                        disabled={true}
+                        className="bg-gray-600 text-white px-2 py-1 rounded-md transition-colors flex items-center disabled:opacity-50 disabled:cursor-not-allowed"
                       >
                         <Send className="w-3 h-3" />
                       </button>
                     </div>
+                    <p className="text-xs text-gray-500 italic">
+                      Follow-up feature is still being worked on
+                    </p>
                   </div>
                 )}
 
