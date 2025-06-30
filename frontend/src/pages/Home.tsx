@@ -10,15 +10,17 @@ import Footer from '@/components/sections/Footer';
 
 export default function Home() {
   return (
-    <div className="overflow-x-hidden pt-20">
+    <div className="overflow-x-hidden">
       <Navbar />
-      <Hero />
-      <Mission />
-      <Problem />
-      <HowItWorks />
-      <UseCases />
-      <CallToAction />
-      <Footer />
+      <div className="pt-24">
+        <Hero />
+        <Mission />
+        <Problem />
+        <HowItWorks />
+        <UseCases />
+        <CallToAction />
+        <Footer />
+      </div>
     </div>
   );
 }
