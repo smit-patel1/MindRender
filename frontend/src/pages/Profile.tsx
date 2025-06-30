@@ -17,7 +17,7 @@ interface TokenUsage {
 
 
 export default function Profile() {
-  const { user, loading: authLoading, signOut } = useAuth();
+  const { user, loading: authLoading, signOut, withValidSession } = useAuth();
   const navigate = useNavigate();
   const [tokenUsage, setTokenUsage] = useState<TokenUsage>({ total_tokens: 0, recent_activity: [] });
   const [loading, setLoading] = useState(true);
@@ -42,47 +42,48 @@ export default function Profile() {
       }
 
       try {
-        const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
-        
-        if (sessionError) {
-          console.error('Session error:', sessionError);
-          setError('Failed to get session');
-          setLoading(false);
-          return;
-        }
-        
-        if (!sessionData?.session?.access_token) {
-          console.error('No valid session or access token');
-          setError('No valid session found');
-          setLoading(false);
-          return;
-        }
-
-        const response = await fetch(
-          'https://zurfhydnztcxlomdyqds.supabase.co/functions/v1/get_token_total',
-          {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${sessionData.session.access_token}`,
-            },
-            body: JSON.stringify({ user_id: user.id }),
+        await withValidSession(async () => {
+          const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+          
+          if (sessionError) {
+            console.error('Session error:', sessionError);
+            setError('Failed to get session');
+            return;
           }
-        );
+          
+          if (!sessionData?.session?.access_token) {
+            console.error('No valid session or access token');
+            setError('No valid session found');
+            return;
+          }
 
-        if (response.ok) {
-          const data = await response.json();
-          console.log('Token usage data:', data);
-          setTokenUsage({
-            total_tokens: data.total_tokens || 0,
-            recent_activity: data.recent_activity || []
-          });
-          setError(null);
-        } else {
-          const errorText = await response.text();
-          console.error('Failed to fetch token usage:', response.status, errorText);
-          setError(`Failed to fetch usage data: ${response.status}`);
-        }
+          const response = await fetch(
+            'https://zurfhydnztcxlomdyqds.supabase.co/functions/v1/get_token_total',
+            {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${sessionData.session.access_token}`,
+              },
+              body: JSON.stringify({ user_id: user.id }),
+            }
+          );
+
+          if (response.ok) {
+            const data = await response.json();
+            console.log('Token usage data:', data);
+            setTokenUsage({
+              total_tokens: data.total_tokens || 0,
+              recent_activity: data.recent_activity || []
+            });
+            setError(null);
+          } else {
+            const errorText = await response.text();
+            console.error('Failed to fetch token usage:', response.status, errorText);
+            setError(`Failed to fetch usage data: ${response.status}`);
+            throw new Error(`Failed to fetch usage data: ${response.status}`);
+          }
+        });
       } catch (error) {
         console.error('Error fetching user data:', error);
         setError('Network error while fetching data');
@@ -94,7 +95,7 @@ export default function Profile() {
     if (user) {
       fetchUserData();
     }
-  }, [user, authLoading, navigate, isJudgeAccount]);
+  }, [user, authLoading, navigate, isJudgeAccount, withValidSession]);
 
   const handleSignOut = async () => {
     try {
