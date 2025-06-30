@@ -133,7 +133,7 @@ export default function Auth() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-950 to-gray-900 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gradient-to-br from-blue-950 to-gray-900 flex items-center justify-center p-4 pt-32">
       <Navbar />
       <motion.div
         initial={{ opacity: 0, y: 20 }}

@@ -76,7 +76,7 @@ export default function AuthCallback() {
   }, [navigate]);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-950 to-gray-900 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-gradient-to-br from-blue-950 to-gray-900 flex items-center justify-center p-4 pt-32">
       <Navbar />
       <div className="bg-gray-800 rounded-2xl shadow-xl p-8 max-w-md w-full text-center">
         {status === 'loading' && (

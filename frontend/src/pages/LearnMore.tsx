@@ -5,9 +5,9 @@ import Navbar from '../components/Navbar';
 
 export default function LearnMore() {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-950 to-gray-900 text-white">
+    <div className="min-h-screen bg-gradient-to-br from-blue-950 to-gray-900 text-white pt-20">
       <Navbar />
-      <div className="container mx-auto px-4 py-24">
+      <div className="container mx-auto px-4 py-12">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
