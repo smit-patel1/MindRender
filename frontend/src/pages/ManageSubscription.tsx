@@ -481,7 +481,7 @@ export default function ManageSubscription() {
             <p className="text-gray-300 mb-6">
               {selectedPlan.price === 0 
                 ? 'Are you sure you want to downgrade to the Free plan? You will lose access to premium features.'
-                : `Upgrade to ${selectedPlan.name} for $${selectedPlan.price}/${selectedPlan.interval} and unlock ${selectedPlan.tokens}.`
+                : `Upgrade to ${selectedPlan.name} for ${selectedPlan.price}/${selectedPlan.interval} and unlock ${selectedPlan.tokens}.`
               }
             </p>
             <div className="flex space-x-4">
