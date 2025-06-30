@@ -2,7 +2,6 @@ import React, { useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, useNavigate, useLocation } from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthProvider';
 import ErrorBoundary from './components/ErrorBoundary';
-import Navbar from './components/Navbar';
 import { useAuth } from './contexts/AuthProvider';
 import Home from './pages/Home';
 import Demo from './pages/Demo';
@@ -43,13 +42,8 @@ function AppContent() {
     }
   }, [user, loading, location.pathname, navigate]);
 
-  // ABSOLUTELY NO NAVBAR ON DEMO PAGE
-  const isDemoPage = location.pathname === '/demo';
-
   return (
     <div className="min-h-screen">
-      {/* Only show navbar if NOT on demo page */}
-      {!isDemoPage && <Navbar />}
       <ErrorBoundary>
         <Routes>
           <Route path="/" element={<Home />} />

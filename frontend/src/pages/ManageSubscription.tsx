@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
+import Navbar from '../components/Navbar';
 import { 
   ArrowLeft, 
   CreditCard, 
@@ -207,6 +208,7 @@ export default function ManageSubscription() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-950 to-gray-900 text-white">
+      <Navbar />
       {/* Header */}
       <div className="pt-32 pb-8">
         <div className="container mx-auto px-4">

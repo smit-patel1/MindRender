@@ -1,4 +1,5 @@
 import React from 'react';
+import Navbar from '@/components/Navbar';
 import Hero from '@/components/sections/Hero';
 import Mission from '@/components/sections/Mission';
 import Problem from '@/components/sections/Problem';
@@ -10,6 +11,7 @@ import Footer from '@/components/sections/Footer';
 export default function Home() {
   return (
     <div className="overflow-x-hidden">
+      <Navbar />
       <Hero />
       <Mission />
       <Problem />

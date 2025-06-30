@@ -1,10 +1,12 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
+import Navbar from '../components/Navbar';
 
 export default function LearnMore() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-950 to-gray-900 text-white">
+      <Navbar />
       <div className="container mx-auto px-4 py-24">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
