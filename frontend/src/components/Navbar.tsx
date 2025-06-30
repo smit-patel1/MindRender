@@ -1,15 +1,21 @@
 import React from 'react';
+import { useLocation } from 'react-router-dom';
 import { Link, useNavigate } from 'react-router-dom';
 import { Github, LogIn, LogOut, User } from 'lucide-react';
 import { useAuth } from '../contexts/AuthProvider';
 
 export default function Navbar() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { user, loading, error, signOut } = useAuth();
+
+  // CRITICAL: Never render navbar on demo page or auth callback page
+  if (location.pathname === '/demo' || location.pathname === '/auth/callback') {
+    return null;
+  }
 
   const handleSignOut = async () => {
     try {
-      console.log('Navbar: Initiating sign out...');
       await signOut();
     } catch (error: any) {
       console.error('Navbar: Sign out failed:', error);
@@ -18,10 +24,8 @@ export default function Navbar() {
 
   const handleDemoClick = () => {
     if (user) {
-      console.log('Navbar: Navigating to demo (user authenticated):', user.email);
       navigate('/demo');
     } else {
-      console.log('Navbar: Redirecting to auth (user not authenticated)');
       navigate('/auth');
     }
   };
@@ -35,7 +39,7 @@ export default function Navbar() {
   };
 
   return (
-    <nav className="fixed w-full bg-gray-900/90 backdrop-blur-sm z-50">
+    <nav className="fixed w-full bg-gray-900 z-50">
       <div className="container mx-auto px-4 py-4">
         <div className="flex items-center justify-between">
           <Link to="/" className="flex items-center">
