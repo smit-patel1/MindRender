@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import Navbar from '../components/Navbar';
 import { TOKEN_LIMIT } from '../constants';
 import { User, Play, BookOpen, Clock, Settings, LogOut, Sparkles, TrendingUp, Award, CreditCard } from 'lucide-react';
 import { useAuth } from '../contexts/AuthProvider';
@@ -22,6 +21,7 @@ export default function Profile() {
   const navigate = useNavigate();
   const [tokenUsage, setTokenUsage] = useState<TokenUsage>({ total_tokens: 0, recent_activity: [] });
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   const isJudgeAccount = user?.email === 'judgeacc90@gmail.com';
   const tokensUsed = tokenUsage.total_tokens;
@@ -42,8 +42,18 @@ export default function Profile() {
       }
 
       try {
-        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-        if (sessionError || !session?.access_token) {
+        const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+        
+        if (sessionError) {
+          console.error('Session error:', sessionError);
+          setError('Failed to get session');
+          setLoading(false);
+          return;
+        }
+        
+        if (!sessionData?.session?.access_token) {
+          console.error('No valid session or access token');
+          setError('No valid session found');
           setLoading(false);
           return;
         }
@@ -54,7 +64,7 @@ export default function Profile() {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
-              'Authorization': `Bearer ${session.access_token}`,
+              'Authorization': `Bearer ${sessionData.session.access_token}`,
             },
             body: JSON.stringify({ user_id: user.id }),
           }
@@ -62,13 +72,20 @@ export default function Profile() {
 
         if (response.ok) {
           const data = await response.json();
+          console.log('Token usage data:', data);
           setTokenUsage({
             total_tokens: data.total_tokens || 0,
             recent_activity: data.recent_activity || []
           });
+          setError(null);
+        } else {
+          const errorText = await response.text();
+          console.error('Failed to fetch token usage:', response.status, errorText);
+          setError(`Failed to fetch usage data: ${response.status}`);
         }
       } catch (error) {
         console.error('Error fetching user data:', error);
+        setError('Network error while fetching data');
       } finally {
         setLoading(false);
       }
@@ -90,7 +107,6 @@ export default function Profile() {
   if (authLoading || loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-950 to-gray-900 flex items-center justify-center">
-        <Navbar />
         <div className="text-white text-center pt-20">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-yellow-500 mx-auto mb-4"></div>
           <p>Loading your profile...</p>
@@ -120,7 +136,34 @@ export default function Profile() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-950 to-gray-900 text-white">
-      <Navbar />
+      {/* Custom Header for Profile Page */}
+      <header className="fixed w-full bg-gray-900 z-50 border-b border-gray-700">
+        <div className="container mx-auto px-4 py-4">
+          <div className="flex items-center justify-between">
+            <Link to="/" className="flex items-center">
+              <img 
+                src="/image copy copy copy.png" 
+                alt="MindRender Logo" 
+                className="h-12 w-auto transition-transform hover:scale-105"
+              />
+            </Link>
+            
+            <div className="flex items-center space-x-4">
+              <Link to="/demo" className="text-gray-300 hover:text-white transition-colors">
+                Try Demo
+              </Link>
+              <button 
+                onClick={handleSignOut}
+                className="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-400 transition-colors flex items-center space-x-2"
+              >
+                <LogOut className="w-4 h-4" />
+                <span>Sign Out</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </header>
+
       {/* Header Section with Welcome Back and Manage Subscription */}
       <section className="pt-32 pb-8">
         <div className="container mx-auto px-4">
@@ -161,6 +204,28 @@ export default function Profile() {
           </div>
         </div>
       </section>
+
+      {/* Error Display */}
+      {error && (
+        <section className="py-4">
+          <div className="container mx-auto px-4">
+            <div className="max-w-2xl mx-auto">
+              <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-4">
+                <div className="text-red-400 text-center">
+                  <div className="text-lg font-semibold mb-2">Data Loading Error</div>
+                  <div className="text-sm mb-4">{error}</div>
+                  <button 
+                    onClick={() => window.location.reload()}
+                    className="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-400 transition-colors text-sm"
+                  >
+                    Retry
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+      )}
 
       {/* Stats Section - Keep as is but remove Token Usage box */}
       <section className="py-8 bg-gray-900/50">
