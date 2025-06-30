@@ -29,10 +29,8 @@ export default function AuthCallback() {
           const cleanUrl = `${window.location.origin}/auth/callback`;
           window.history.replaceState({}, document.title, cleanUrl);
           
-          // Small delay to ensure AuthProvider has processed the session
-          setTimeout(() => {
-            navigate('/profile', { replace: true });
-          }, 2000);
+          // Navigate immediately after processing the session
+          navigate('/profile', { replace: true });
           
         } else {
           console.log('AuthCallback: No session found, checking URL parameters...');
@@ -53,10 +51,8 @@ export default function AuthCallback() {
               console.log('AuthCallback: Session established on retry for user:', retryData.session.user.email);
               setStatus('success');
               
-              // Additional delay for retry scenario
-              setTimeout(() => {
-                navigate('/profile', { replace: true });
-              }, 2500);
+              // Navigate immediately after retry
+              navigate('/profile', { replace: true });
             }, 2000);
           } else {
             throw new Error('No authentication data found');
