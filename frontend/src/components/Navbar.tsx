@@ -9,8 +9,8 @@ export default function Navbar() {
   const location = useLocation();
   const { user, loading, error, signOut } = useAuth();
 
-  // CRITICAL: Never render navbar on demo page or auth callback page
-  if (location.pathname === '/demo' || location.pathname === '/auth/callback') {
+  // CRITICAL: Never render navbar on demo page, auth callback page, or profile page
+  if (location.pathname === '/demo' || location.pathname === '/auth/callback' || location.pathname === '/profile') {
     return null;
   }
 
