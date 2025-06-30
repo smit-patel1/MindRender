@@ -51,12 +51,12 @@ export default function Footer() {
             href="https://bolt.new"
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-block hover:opacity-80 transition-opacity"
+            className="inline-block hover:opacity-80 transition-opacity hover:scale-105 transform duration-200"
           >
             <img
               src="/black_circle_360x360.png"
               alt="Built with Bolt"
-              className="w-16 h-16 mx-auto"
+              className="w-24 h-24 mx-auto"
             />
           </a>
         </div>
