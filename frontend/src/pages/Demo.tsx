@@ -17,7 +17,7 @@ interface SimulationResponse {
 }
 
 interface User {
-  email: string;
+  email: string | undefined;
   id: string;
 }
 
@@ -714,11 +714,17 @@ export default function Demo(): JSX.Element {
     );
   }
 
+  // Create a user object that matches the DemoNavbar interface
+  const demoUser: User = {
+    email: user.email,
+    id: user.id
+  };
+
   return (
     <ErrorBoundary fallback={<div className="text-red-500 p-4">Something went wrong. Please refresh the page.</div>}>
       <div className="h-screen bg-gray-900 text-white overflow-hidden flex flex-col">
         <DemoNavbar
-          user={user}
+          user={demoUser}
           isJudgeAccount={isJudgeAccount}
           tokenUsage={tokenUsage}
           isTokenLimitReached={isTokenLimitReached}
