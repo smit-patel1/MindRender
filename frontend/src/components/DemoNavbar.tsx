@@ -4,7 +4,7 @@ import { LogOut, Menu, X, User } from 'lucide-react';
 import TokenDisplay from './TokenDisplay';
 
 interface DemoNavbarProps {
-  user: { email: string; id: string };
+  user: { email: string | undefined; id: string };
   isJudgeAccount: boolean;
   tokenUsage: number;
   isTokenLimitReached: boolean;
