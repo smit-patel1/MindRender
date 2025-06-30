@@ -12,6 +12,16 @@ import Auth from './pages/Auth';
 import AuthCallback from './pages/AuthCallback';
 import ManageSubscription from './pages/ManageSubscription';
 
+// Layout component that includes the navbar for specific pages
+function LayoutWithNavbar({ children }: { children: React.ReactNode }) {
+  return (
+    <>
+      <Navbar />
+      {children}
+    </>
+  );
+}
+
 function AppContent() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -43,21 +53,20 @@ function AppContent() {
     }
   }, [user, loading, location.pathname, navigate]);
 
-  // Hide global navbar on demo page
-  const showNavbar = !location.pathname.startsWith('/demo');
-
   return (
     <div className="min-h-screen">
-      {showNavbar && <Navbar />}
       <ErrorBoundary>
         <Routes>
-          <Route path="/" element={<Home />} />
+          {/* Routes with navbar */}
+          <Route path="/" element={<LayoutWithNavbar><Home /></LayoutWithNavbar>} />
+          <Route path="/profile" element={<LayoutWithNavbar><Profile /></LayoutWithNavbar>} />
+          <Route path="/manage-subscription" element={<LayoutWithNavbar><ManageSubscription /></LayoutWithNavbar>} />
+          <Route path="/learn" element={<LayoutWithNavbar><LearnMore /></LayoutWithNavbar>} />
+          <Route path="/auth" element={<LayoutWithNavbar><Auth /></LayoutWithNavbar>} />
+          <Route path="/auth/callback" element={<LayoutWithNavbar><AuthCallback /></LayoutWithNavbar>} />
+          
+          {/* Routes without navbar */}
           <Route path="/demo" element={<Demo />} />
-          <Route path="/profile" element={<Profile />} />
-          <Route path="/manage-subscription" element={<ManageSubscription />} />
-          <Route path="/learn" element={<LearnMore />} />
-          <Route path="/auth" element={<Auth />} />
-          <Route path="/auth/callback" element={<AuthCallback />} />
         </Routes>
       </ErrorBoundary>
     </div>
