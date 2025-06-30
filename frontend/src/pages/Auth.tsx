@@ -1,10 +1,10 @@
+
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Mail, Lock, User, Loader2, AlertCircle, LogIn } from 'lucide-react';
-import Navbar from '../components/Navbar';
 import { supabase } from '@/lib/supabaseClient';
 import { useNavigate } from 'react-router-dom';
-
+import Navbar from '../components/Navbar';
 
 export default function Auth() {
   const navigate = useNavigate();
@@ -21,7 +21,6 @@ export default function Auth() {
     username: '',
     password: ''
   });
-
 
   const validateForm = () => {
     const newErrors = {
@@ -68,7 +67,7 @@ export default function Auth() {
         if (signInError) throw signInError;
 
         if (data.session) {
-          navigate('/profile'); // Changed from '/demo' to '/profile'
+          navigate('/profile');
         }
       } else {
         const { data, error: signUpError } = await supabase.auth.signUp({
@@ -116,7 +115,6 @@ export default function Auth() {
     }
   };
 
-
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({
@@ -133,124 +131,126 @@ export default function Auth() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-950 to-gray-900 flex items-center justify-center p-4 pt-32">
+    <div className="min-h-screen bg-gradient-to-br from-blue-950 to-gray-900 flex flex-col">
       <Navbar />
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="w-full max-w-md"
-      >
-        <div className="bg-gray-800 rounded-2xl shadow-xl p-8">
-          <div className="flex mb-8 bg-gray-700 rounded-lg p-1">
-            <button
-              onClick={() => setIsLogin(true)}
-              className={`flex-1 py-2 rounded-md transition-colors ${
-                isLogin ? 'bg-blue-600 text-white' : 'text-gray-400 hover:text-white'
-              }`}
-            >
-              Login
-            </button>
-            <button
-              onClick={() => setIsLogin(false)}
-              className={`flex-1 py-2 rounded-md transition-colors ${
-                !isLogin ? 'bg-blue-600 text-white' : 'text-gray-400 hover:text-white'
-              }`}
-            >
-              Sign Up
-            </button>
-          </div>
-
-          {error && (
-            <div className="mb-6 bg-red-500/10 border border-red-500/20 rounded-lg p-4 text-red-200 flex items-start">
-              <AlertCircle className="w-5 h-5 mr-2 flex-shrink-0 mt-0.5" />
-              <div>{error}</div>
-            </div>
-          )}
-
-          <form onSubmit={handleSubmit} className="space-y-6">
-            <div>
-              <div className="relative">
-                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-                <input
-                  type="email"
-                  name="email"
-                  placeholder="Email"
-                  value={formData.email}
-                  onChange={handleInputChange}
-                  className={`w-full bg-gray-700 text-white rounded-lg py-3 pl-12 pr-4 outline-none focus:ring-2 ${
-                    errors.email ? 'ring-2 ring-red-500' : 'focus:ring-blue-500'
-                  }`}
-                />
-              </div>
-              {errors.email && (
-                <p className="mt-1 text-sm text-red-500">{errors.email}</p>
-              )}
+      <div className="flex-1 flex items-center justify-center p-4 pt-24">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="w-full max-w-md"
+        >
+          <div className="bg-gray-800 rounded-2xl shadow-xl p-8">
+            <div className="flex mb-8 bg-gray-700 rounded-lg p-1">
+              <button
+                onClick={() => setIsLogin(true)}
+                className={`flex-1 py-2 rounded-md transition-colors ${
+                  isLogin ? 'bg-blue-600 text-white' : 'text-gray-400 hover:text-white'
+                }`}
+              >
+                Login
+              </button>
+              <button
+                onClick={() => setIsLogin(false)}
+                className={`flex-1 py-2 rounded-md transition-colors ${
+                  !isLogin ? 'bg-blue-600 text-white' : 'text-gray-400 hover:text-white'
+                }`}
+              >
+                Sign Up
+              </button>
             </div>
 
-            {!isLogin && (
-              <div>
-                <div className="relative">
-                  <User className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-                  <input
-                    type="text"
-                    name="username"
-                    placeholder="Username"
-                    value={formData.username}
-                    onChange={handleInputChange}
-                    className={`w-full bg-gray-700 text-white rounded-lg py-3 pl-12 pr-4 outline-none focus:ring-2 ${
-                      errors.username ? 'ring-2 ring-red-500' : 'focus:ring-blue-500'
-                    }`}
-                  />
-                </div>
-                {errors.username && (
-                  <p className="mt-1 text-sm text-red-500">{errors.username}</p>
-                )}
+            {error && (
+              <div className="mb-6 bg-red-500/10 border border-red-500/20 rounded-lg p-4 text-red-200 flex items-start">
+                <AlertCircle className="w-5 h-5 mr-2 flex-shrink-0 mt-0.5" />
+                <div>{error}</div>
               </div>
             )}
 
-            <div>
-              <div className="relative">
-                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-                <input
-                  type="password"
-                  name="password"
-                  placeholder="Password"
-                  value={formData.password}
-                  onChange={handleInputChange}
-                  className={`w-full bg-gray-700 text-white rounded-lg py-3 pl-12 pr-4 outline-none focus:ring-2 ${
-                    errors.password ? 'ring-2 ring-red-500' : 'focus:ring-blue-500'
-                  }`}
-                />
+            <form onSubmit={handleSubmit} className="space-y-6">
+              <div>
+                <div className="relative">
+                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                  <input
+                    type="email"
+                    name="email"
+                    placeholder="Email"
+                    value={formData.email}
+                    onChange={handleInputChange}
+                    className={`w-full bg-gray-700 text-white rounded-lg py-3 pl-12 pr-4 outline-none focus:ring-2 ${
+                      errors.email ? 'ring-2 ring-red-500' : 'focus:ring-blue-500'
+                    }`}
+                  />
+                </div>
+                {errors.email && (
+                  <p className="mt-1 text-sm text-red-500">{errors.email}</p>
+                )}
               </div>
-              {errors.password && (
-                <p className="mt-1 text-sm text-red-500">{errors.password}</p>
+
+              {!isLogin && (
+                <div>
+                  <div className="relative">
+                    <User className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                    <input
+                      type="text"
+                      name="username"
+                      placeholder="Username"
+                      value={formData.username}
+                      onChange={handleInputChange}
+                      className={`w-full bg-gray-700 text-white rounded-lg py-3 pl-12 pr-4 outline-none focus:ring-2 ${
+                        errors.username ? 'ring-2 ring-red-500' : 'focus:ring-blue-500'
+                      }`}
+                    />
+                  </div>
+                  {errors.username && (
+                    <p className="mt-1 text-sm text-red-500">{errors.username}</p>
+                  )}
+                </div>
               )}
+
+              <div>
+                <div className="relative">
+                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                  <input
+                    type="password"
+                    name="password"
+                    placeholder="Password"
+                    value={formData.password}
+                    onChange={handleInputChange}
+                    className={`w-full bg-gray-700 text-white rounded-lg py-3 pl-12 pr-4 outline-none focus:ring-2 ${
+                      errors.password ? 'ring-2 ring-red-500' : 'focus:ring-blue-500'
+                    }`}
+                  />
+                </div>
+                {errors.password && (
+                  <p className="mt-1 text-sm text-red-500">{errors.password}</p>
+                )}
+              </div>
+
+              <button
+                type="submit"
+                disabled={loading}
+                className="w-full bg-yellow-500 text-black py-3 rounded-lg font-semibold hover:bg-yellow-400 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
+              >
+                {loading ? (
+                  <Loader2 className="w-5 h-5 animate-spin" />
+                ) : (
+                  isLogin ? 'Login' : 'Sign Up'
+                )}
+              </button>
+            </form>
+
+            <div className="mt-6">
+              <button
+                onClick={handleGoogleSignIn}
+                className="w-full bg-white text-black py-3 rounded-lg font-semibold border hover:bg-gray-100 transition-colors flex items-center justify-center space-x-2"
+              >
+                <LogIn className="w-5 h-5" />
+                <span>Continue with Google</span>
+              </button>
             </div>
-
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full bg-yellow-500 text-black py-3 rounded-lg font-semibold hover:bg-yellow-400 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
-            >
-              {loading ? (
-                <Loader2 className="w-5 h-5 animate-spin" />
-              ) : (
-                isLogin ? 'Login' : 'Sign Up'
-              )}
-            </button>
-          </form>
-
-          <div className="mt-6">
-            <button
-              onClick={handleGoogleSignIn}
-              className="w-full bg-white text-black py-3 rounded-lg font-semibold border hover:bg-gray-100 transition-colors flex items-center justify-center space-x-2"
-            >
-              <LogIn className="w-5 h-5" />
-              <span>Continue with Google</span>
-            </button>
           </div>
-        </div>
-      </motion.div>
+        </motion.div>
+      </div>
     </div>
   );
 }
