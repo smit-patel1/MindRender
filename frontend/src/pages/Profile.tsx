@@ -90,7 +90,8 @@ export default function Profile() {
   if (authLoading || loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-950 to-gray-900 flex items-center justify-center">
-        <div className="text-white text-center">
+        <Navbar />
+        <div className="text-white text-center pt-20">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-yellow-500 mx-auto mb-4"></div>
           <p>Loading your profile...</p>
         </div>
