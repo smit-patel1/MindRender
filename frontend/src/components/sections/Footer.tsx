@@ -44,6 +44,22 @@ export default function Footer() {
             </a>
           </div>
         </div>
+        
+        {/* Built with Bolt Badge */}
+        <div className="mt-8 pt-8 border-t border-gray-700 text-center">
+          <a
+            href="https://bolt.new"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-block hover:opacity-80 transition-opacity"
+          >
+            <img
+              src="/black_circle_360x360.png"
+              alt="Built with Bolt"
+              className="w-16 h-16 mx-auto"
+            />
+          </a>
+        </div>
       </div>
     </footer>
   );
