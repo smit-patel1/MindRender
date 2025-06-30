@@ -1,83 +1,47 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Loader2, AlertCircle, CheckCircle } from 'lucide-react';
-import Navbar from '../components/Navbar';
-import { supabase } from '../lib/supabaseClient';
+import { useAuth } from '../contexts/AuthProvider';
 
 export default function AuthCallback() {
   const navigate = useNavigate();
+  const { user, loading: authLoading } = useAuth();
   const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading');
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const handleAuthCallback = async () => {
-      try {
-        console.log('AuthCallback: Processing OAuth callback...');
-        
-        // Get session from URL parameters
-        const { data, error } = await supabase.auth.getSession();
-        
-        if (error) {
-          console.error('AuthCallback: Session error:', error);
-          throw new Error(`Authentication failed: ${error.message}`);
-        }
+    // Wait for auth to finish loading
+    if (authLoading) {
+      return;
+    }
 
-        if (data.session?.user) {
-          console.log('AuthCallback: Session successfully restored for user:', data.session.user.email);
-          setStatus('success');
-          
-          // Clear any OAuth parameters from URL
-          const cleanUrl = `${window.location.origin}/auth/callback`;
-          window.history.replaceState({}, document.title, cleanUrl);
-          
-          // Navigate immediately after processing the session
-          navigate('/profile', { replace: true });
-          
-        } else {
-          console.log('AuthCallback: No session found, checking URL parameters...');
-          
-          // If no session but we have URL parameters, wait for Supabase to process them
-          const urlParams = new URLSearchParams(window.location.search);
-          const hasAuthParams = urlParams.has('code') || urlParams.has('access_token');
-          
-          if (hasAuthParams) {
-            // Wait a bit for Supabase to process the auth callback
-            setTimeout(async () => {
-              const { data: retryData, error: retryError } = await supabase.auth.getSession();
-              
-              if (retryError || !retryData.session) {
-                throw new Error('Failed to establish session after OAuth callback');
-              }
-              
-              console.log('AuthCallback: Session established on retry for user:', retryData.session.user.email);
-              setStatus('success');
-              
-              // Navigate immediately after retry
-              navigate('/profile', { replace: true });
-            }, 2000);
-          } else {
-            throw new Error('No authentication data found');
-          }
-        }
-        
-      } catch (error: any) {
-        console.error('AuthCallback: Authentication callback failed:', error);
-        setError(error.message || 'Authentication failed');
-        setStatus('error');
-        
-        // Redirect to auth page after showing error
-        setTimeout(() => {
-          navigate('/auth', { replace: true });
-        }, 3000);
-      }
-    };
+    // If we have a user, authentication was successful
+    if (user) {
+      console.log('AuthCallback: Authentication successful for user:', user.email);
+      setStatus('success');
+      
+      // Navigate to profile after a brief delay to show success state
+      setTimeout(() => {
+        navigate('/profile', { replace: true });
+      }, 1500);
+      
+      return;
+    }
 
-    handleAuthCallback();
-  }, [navigate]);
+    // If no user and auth is not loading, authentication failed
+    console.log('AuthCallback: Authentication failed - no user found');
+    setStatus('error');
+    setError('Authentication failed. Please try again.');
+    
+    // Redirect to auth page after showing error
+    setTimeout(() => {
+      navigate('/auth', { replace: true });
+    }, 3000);
+
+  }, [user, authLoading, navigate]);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-950 to-gray-900 flex items-center justify-center p-4 pt-32">
-      <Navbar />
+    <div className="min-h-screen bg-gradient-to-br from-blue-950 to-gray-900 flex items-center justify-center p-4">
       <div className="bg-gray-800 rounded-2xl shadow-xl p-8 max-w-md w-full text-center">
         {status === 'loading' && (
           <>
