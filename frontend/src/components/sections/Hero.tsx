@@ -1,21 +1,18 @@
-import React, { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import React from 'react';
+import { Link } from 'react-router-dom';
 import { Sparkles } from 'lucide-react';
 import { motion } from 'framer-motion';
-import { supabase } from '@/lib/supabaseClient';
 
 export default function Hero() {
-  const navigate = useNavigate();
-
   return (
     <main className="min-h-screen bg-gradient-to-br from-blue-950 to-gray-900 text-white flex flex-col items-center justify-center p-8">
-      <motion.section 
+      <motion.section
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.6 }}
         className="text-center max-w-3xl"
       >
-        <motion.h1 
+        <motion.h1
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.2 }}
@@ -23,17 +20,19 @@ export default function Hero() {
         >
           Welcome to <span className="text-yellow-400">MindRender</span>
         </motion.h1>
-        
-        <motion.p 
+
+        <motion.p
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.3 }}
           className="text-lg md:text-xl mb-8 text-gray-300"
         >
-          An AI-powered simulation engine that transforms natural language into live, interactive simulations. Designed for learning, discovery, and exploration.
+          An AI-powered simulation engine that transforms natural language into
+          live, interactive simulations. Designed for learning, discovery, and
+          exploration.
         </motion.p>
-        
-        <motion.div 
+
+        <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.4 }}

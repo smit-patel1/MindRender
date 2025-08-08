@@ -10,14 +10,18 @@ export default function Navbar() {
   const { user, loading, error, signOut } = useAuth();
 
   // CRITICAL: Never render navbar on demo page, auth callback page, or profile page
-  if (location.pathname === '/demo' || location.pathname === '/auth/callback' || location.pathname === '/profile') {
+  if (
+    location.pathname === '/demo' ||
+    location.pathname === '/auth/callback' ||
+    location.pathname === '/profile'
+  ) {
     return null;
   }
 
   const handleSignOut = async () => {
     try {
       await signOut();
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Navbar: Sign out failed:', error);
     }
   };
@@ -43,24 +47,30 @@ export default function Navbar() {
       <div className="container mx-auto px-4 py-4">
         <div className="flex items-center justify-between">
           <Link to="/" className="flex items-center">
-            <img 
-              src="/image copy copy copy.png" 
-              alt="MindRender Logo" 
+            <img
+              src="/image copy copy copy.png"
+              alt="MindRender Logo"
               className="h-12 w-auto sm:h-14 md:h-16 lg:h-18 transition-transform hover:scale-105"
             />
           </Link>
-          
+
           <div className="flex items-center space-x-6">
-            <Link to="/" className="text-gray-300 hover:text-white transition-colors">
+            <Link
+              to="/"
+              className="text-gray-300 hover:text-white transition-colors"
+            >
               Home
             </Link>
-            <button 
+            <button
               onClick={handleDemoClick}
               className="text-gray-300 hover:text-white transition-colors"
             >
               Try Demo
             </button>
-            <Link to="/learn" className="text-gray-300 hover:text-white transition-colors">
+            <Link
+              to="/learn"
+              className="text-gray-300 hover:text-white transition-colors"
+            >
               Learn More
             </Link>
             <a
@@ -71,7 +81,7 @@ export default function Navbar() {
             >
               <Github className="w-5 h-5" />
             </a>
-            
+
             {loading ? (
               <div className="w-20 h-10 bg-gray-700 rounded-lg animate-pulse"></div>
             ) : user ? (
@@ -83,7 +93,7 @@ export default function Navbar() {
                   <User className="w-4 h-4" />
                   <span className="text-sm">Profile</span>
                 </button>
-                <button 
+                <button
                   onClick={handleSignOut}
                   className="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-400 transition-colors flex items-center space-x-2"
                 >
@@ -92,15 +102,15 @@ export default function Navbar() {
                 </button>
               </div>
             ) : (
-              <Link 
-                to="/auth" 
+              <Link
+                to="/auth"
                 className="bg-yellow-500 text-black px-4 py-2 rounded-lg hover:bg-yellow-400 transition-colors flex items-center space-x-2"
               >
                 <LogIn className="w-4 h-4" />
                 <span>Login</span>
               </Link>
             )}
-            
+
             {error && (
               <div className="text-red-400 text-sm max-w-xs truncate">
                 Auth Error: {error}
