@@ -4,8 +4,7 @@ import { LogOut, Menu, X, User } from 'lucide-react';
 import TokenDisplay from './TokenDisplay';
 
 interface DemoNavbarProps {
-  user: { email: string | undefined; id: string };
-  isJudgeAccount: boolean;
+  role: 'user' | 'dev';
   tokenUsage: number;
   isTokenLimitReached: boolean;
   mobileMenuOpen: boolean;
@@ -14,13 +13,12 @@ interface DemoNavbarProps {
 }
 
 export default function DemoNavbar({
-  user,
-  isJudgeAccount,
+  role,
   tokenUsage,
   isTokenLimitReached,
   mobileMenuOpen,
   toggleMobileMenu,
-  handleSignOut
+  handleSignOut,
 }: DemoNavbarProps) {
   const navigate = useNavigate();
 
@@ -32,28 +30,34 @@ export default function DemoNavbar({
     <header className="border-b border-gray-700 bg-gray-800/50 backdrop-blur-sm flex-shrink-0">
       <div className="flex justify-between items-center px-3 sm:px-6 py-3 sm:py-4">
         <div className="flex items-center space-x-2 sm:space-x-4">
-          <h1 className="text-lg sm:text-2xl font-bold text-white">MindRender</h1>
+          <h1 className="text-lg sm:text-2xl font-bold text-white">
+            MindRender
+          </h1>
           <div className="hidden md:block w-px h-6 bg-gray-600" />
           <div className="hidden md:block text-sm text-gray-400">
             Interactive Learning Simulations
           </div>
         </div>
-        
+
         <div className="flex items-center space-x-2 sm:space-x-4">
-          <TokenDisplay 
-            isJudgeAccount={isJudgeAccount}
+          <TokenDisplay
+            role={role}
             tokenUsage={tokenUsage}
             isTokenLimitReached={isTokenLimitReached}
           />
-          
+
           <button
             onClick={toggleMobileMenu}
             className="md:hidden bg-gray-700 text-white p-2 rounded-lg hover:bg-gray-600 transition-colors"
             aria-label="Toggle menu"
           >
-            {mobileMenuOpen ? <X className="w-4 h-4" /> : <Menu className="w-4 h-4" />}
+            {mobileMenuOpen ? (
+              <X className="w-4 h-4" />
+            ) : (
+              <Menu className="w-4 h-4" />
+            )}
           </button>
-          
+
           <div className="hidden md:flex items-center space-x-4">
             <button
               onClick={handleProfileClick}
@@ -72,7 +76,7 @@ export default function DemoNavbar({
           </div>
         </div>
       </div>
-      
+
       {mobileMenuOpen && (
         <div className="md:hidden border-t border-gray-700 bg-gray-800 p-4">
           <div className="flex flex-col space-y-3">

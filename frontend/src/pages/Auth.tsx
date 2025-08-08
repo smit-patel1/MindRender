@@ -1,5 +1,4 @@
-
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Mail, Lock, User, Loader2, AlertCircle, LogIn } from 'lucide-react';
 import { supabase } from '@/lib/supabaseClient';
@@ -14,19 +13,19 @@ export default function Auth() {
   const [formData, setFormData] = useState({
     email: '',
     username: '',
-    password: ''
+    password: '',
   });
   const [errors, setErrors] = useState({
     email: '',
     username: '',
-    password: ''
+    password: '',
   });
 
   const validateForm = () => {
     const newErrors = {
       email: '',
       username: '',
-      password: ''
+      password: '',
     };
 
     if (!formData.email) {
@@ -46,7 +45,7 @@ export default function Auth() {
     }
 
     setErrors(newErrors);
-    return !Object.values(newErrors).some(error => error !== '');
+    return !Object.values(newErrors).some((error) => error !== '');
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -59,10 +58,11 @@ export default function Auth() {
 
     try {
       if (isLogin) {
-        const { data, error: signInError } = await supabase.auth.signInWithPassword({
-          email: trimmedEmail,
-          password: formData.password,
-        });
+        const { data, error: signInError } =
+          await supabase.auth.signInWithPassword({
+            email: trimmedEmail,
+            password: formData.password,
+          });
 
         if (signInError) throw signInError;
 
@@ -83,12 +83,18 @@ export default function Auth() {
         if (signUpError) throw signUpError;
 
         if (data.user) {
-          alert('Account created successfully! Please check your email to confirm your account.');
+          alert(
+            'Account created successfully! Please check your email to confirm your account.',
+          );
           setIsLogin(true);
         }
       }
-    } catch (error: any) {
-      setError(error.message || 'An error occurred during authentication');
+    } catch (error: unknown) {
+      if (error instanceof Error) {
+        setError(error.message || 'An error occurred during authentication');
+      } else {
+        setError('An error occurred during authentication');
+      }
     } finally {
       setLoading(false);
     }
@@ -97,38 +103,41 @@ export default function Auth() {
   const handleGoogleSignIn = async () => {
     try {
       setError('');
-      
-      const { data, error } = await supabase.auth.signInWithOAuth({
+
+      const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
           redirectTo: `${window.location.origin}/auth/callback`,
           queryParams: {
-            prompt: 'select_account'
-          }
+            prompt: 'select_account',
+          },
         },
       });
-      
+
       if (error) {
         throw error;
       }
-
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Google sign-in error:', error);
-      setError(error.message || 'Failed to sign in with Google');
+      if (error instanceof Error) {
+        setError(error.message || 'Failed to sign in with Google');
+      } else {
+        setError('Failed to sign in with Google');
+      }
     }
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    setFormData(prev => ({
+    setFormData((prev) => ({
       ...prev,
-      [name]: value
+      [name]: value,
     }));
 
     if (errors[name as keyof typeof errors]) {
-      setErrors(prev => ({
+      setErrors((prev) => ({
         ...prev,
-        [name]: ''
+        [name]: '',
       }));
     }
   };
@@ -147,7 +156,9 @@ export default function Auth() {
               <button
                 onClick={() => setIsLogin(true)}
                 className={`flex-1 py-2 rounded-md transition-colors ${
-                  isLogin ? 'bg-blue-600 text-white' : 'text-gray-400 hover:text-white'
+                  isLogin
+                    ? 'bg-blue-600 text-white'
+                    : 'text-gray-400 hover:text-white'
                 }`}
               >
                 Login
@@ -155,7 +166,9 @@ export default function Auth() {
               <button
                 onClick={() => setIsLogin(false)}
                 className={`flex-1 py-2 rounded-md transition-colors ${
-                  !isLogin ? 'bg-blue-600 text-white' : 'text-gray-400 hover:text-white'
+                  !isLogin
+                    ? 'bg-blue-600 text-white'
+                    : 'text-gray-400 hover:text-white'
                 }`}
               >
                 Sign Up
@@ -180,7 +193,9 @@ export default function Auth() {
                     value={formData.email}
                     onChange={handleInputChange}
                     className={`w-full bg-gray-700 text-white rounded-lg py-3 pl-12 pr-4 outline-none focus:ring-2 ${
-                      errors.email ? 'ring-2 ring-red-500' : 'focus:ring-blue-500'
+                      errors.email
+                        ? 'ring-2 ring-red-500'
+                        : 'focus:ring-blue-500'
                     }`}
                   />
                 </div>
@@ -200,12 +215,16 @@ export default function Auth() {
                       value={formData.username}
                       onChange={handleInputChange}
                       className={`w-full bg-gray-700 text-white rounded-lg py-3 pl-12 pr-4 outline-none focus:ring-2 ${
-                        errors.username ? 'ring-2 ring-red-500' : 'focus:ring-blue-500'
+                        errors.username
+                          ? 'ring-2 ring-red-500'
+                          : 'focus:ring-blue-500'
                       }`}
                     />
                   </div>
                   {errors.username && (
-                    <p className="mt-1 text-sm text-red-500">{errors.username}</p>
+                    <p className="mt-1 text-sm text-red-500">
+                      {errors.username}
+                    </p>
                   )}
                 </div>
               )}
@@ -220,7 +239,9 @@ export default function Auth() {
                     value={formData.password}
                     onChange={handleInputChange}
                     className={`w-full bg-gray-700 text-white rounded-lg py-3 pl-12 pr-4 outline-none focus:ring-2 ${
-                      errors.password ? 'ring-2 ring-red-500' : 'focus:ring-blue-500'
+                      errors.password
+                        ? 'ring-2 ring-red-500'
+                        : 'focus:ring-blue-500'
                     }`}
                   />
                 </div>
@@ -236,8 +257,10 @@ export default function Auth() {
               >
                 {loading ? (
                   <Loader2 className="w-5 h-5 animate-spin" />
+                ) : isLogin ? (
+                  'Login'
                 ) : (
-                  isLogin ? 'Login' : 'Sign Up'
+                  'Sign Up'
                 )}
               </button>
             </form>
