@@ -2,21 +2,19 @@ import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import Navbar from '../components/Navbar';
-import { 
-  ArrowLeft, 
-  CreditCard, 
-  Calendar, 
-  CheckCircle, 
-  AlertTriangle, 
-  Download, 
-  Edit3, 
+import {
+  ArrowLeft,
+  CreditCard,
+  Calendar,
+  CheckCircle,
+  AlertTriangle,
+  Download,
+  Edit3,
   Trash2,
   Crown,
   Shield,
   Zap,
   Users,
-  Clock,
-  DollarSign
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthProvider';
 
@@ -51,9 +49,9 @@ const SUBSCRIPTION_PLANS: SubscriptionPlan[] = [
       '10,000 tokens per month',
       'Basic simulations',
       'Email support',
-      'Standard processing speed'
+      'Standard processing speed',
     ],
-    current: true
+    current: true,
   },
   {
     id: 'starter',
@@ -66,8 +64,8 @@ const SUBSCRIPTION_PLANS: SubscriptionPlan[] = [
       'Enhanced simulations',
       'Priority email support',
       'Faster processing',
-      'Basic export capabilities'
-    ]
+      'Basic export capabilities',
+    ],
   },
   {
     id: 'pro',
@@ -83,8 +81,8 @@ const SUBSCRIPTION_PLANS: SubscriptionPlan[] = [
       'Fast processing',
       'Full export capabilities',
       'Custom themes',
-      'API access'
-    ]
+      'API access',
+    ],
   },
   {
     id: 'ultra',
@@ -100,9 +98,9 @@ const SUBSCRIPTION_PLANS: SubscriptionPlan[] = [
       'Advanced export capabilities',
       'Custom themes',
       'Full API access',
-      'Priority queue'
-    ]
-  }
+      'Priority queue',
+    ],
+  },
 ];
 
 const MOCK_BILLING_HISTORY: BillingHistory[] = [
@@ -111,35 +109,35 @@ const MOCK_BILLING_HISTORY: BillingHistory[] = [
     date: '2024-12-01',
     amount: 0,
     status: 'paid',
-    description: 'Free Plan - December 2024'
+    description: 'Free Plan - December 2024',
   },
   {
     id: '2',
     date: '2024-11-01',
     amount: 0,
     status: 'paid',
-    description: 'Free Plan - November 2024'
+    description: 'Free Plan - November 2024',
   },
   {
     id: '3',
     date: '2024-10-01',
     amount: 0,
     status: 'paid',
-    description: 'Free Plan - October 2024'
-  }
+    description: 'Free Plan - October 2024',
+  },
 ];
 
 export default function ManageSubscription() {
-  const { user } = useAuth();
+  const { user, role } = useAuth();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [showCancelModal, setShowCancelModal] = useState(false);
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
-  const [selectedPlan, setSelectedPlan] = useState<SubscriptionPlan | null>(null);
+  const [selectedPlan, setSelectedPlan] = useState<SubscriptionPlan | null>(
+    null,
+  );
   const [billingHistory] = useState<BillingHistory[]>(MOCK_BILLING_HISTORY);
-
-  const isJudgeAccount = user?.email === 'judgeacc90@gmail.com';
-  const currentPlan = isJudgeAccount ? 'Ultra' : 'Free';
+  const currentPlan = role === 'dev' ? 'Dev' : 'Free';
   const nextBillingDate = new Date();
   nextBillingDate.setMonth(nextBillingDate.getMonth() + 1);
 
@@ -161,7 +159,7 @@ export default function ManageSubscription() {
   const confirmCancellation = async () => {
     setLoading(true);
     // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 2000));
+    await new Promise((resolve) => setTimeout(resolve, 2000));
     setLoading(false);
     setShowCancelModal(false);
     // Show success message or redirect
@@ -170,7 +168,7 @@ export default function ManageSubscription() {
   const confirmUpgrade = async () => {
     setLoading(true);
     // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 2000));
+    await new Promise((resolve) => setTimeout(resolve, 2000));
     setLoading(false);
     setShowUpgradeModal(false);
     // Show success message or redirect
@@ -214,8 +212,8 @@ export default function ManageSubscription() {
         <div className="container mx-auto px-4">
           <div className="max-w-6xl mx-auto">
             <div className="mb-8">
-              <Link 
-                to="/profile" 
+              <Link
+                to="/profile"
                 className="inline-flex items-center bg-yellow-500 hover:bg-yellow-400 text-black px-4 py-3 rounded-lg transition-colors shadow-lg font-medium"
               >
                 <ArrowLeft className="w-5 h-5 mr-2" />
@@ -223,7 +221,9 @@ export default function ManageSubscription() {
               </Link>
             </div>
             <h1 className="text-4xl font-bold mb-2">Manage Subscription</h1>
-            <p className="text-gray-300">Manage your MindRender subscription and billing</p>
+            <p className="text-gray-300">
+              Manage your MindRender subscription and billing
+            </p>
           </div>
         </div>
       </div>
@@ -237,24 +237,32 @@ export default function ManageSubscription() {
               <div className="grid md:grid-cols-3 gap-6">
                 <div className="bg-gray-700 rounded-lg p-4">
                   <div className="flex items-center mb-2">
-                    {React.createElement(getPlanIcon(currentPlan), { className: "w-6 h-6 text-yellow-500 mr-2" })}
-                    <h3 className="text-lg font-semibold">{currentPlan} Plan</h3>
+                    {React.createElement(getPlanIcon(currentPlan), {
+                      className: 'w-6 h-6 text-yellow-500 mr-2',
+                    })}
+                    <h3 className="text-lg font-semibold">
+                      {currentPlan} Plan
+                    </h3>
                   </div>
                   <p className="text-gray-300">
-                    {isJudgeAccount ? '1,000,000 tokens per month' : '10,000 tokens per month'}
+                    {role === 'dev'
+                      ? '1,000,000 tokens per month'
+                      : '10,000 tokens per month'}
                   </p>
                 </div>
-                
+
                 <div className="bg-gray-700 rounded-lg p-4">
                   <div className="flex items-center mb-2">
                     <Calendar className="w-6 h-6 text-blue-500 mr-2" />
                     <h3 className="text-lg font-semibold">Next Billing</h3>
                   </div>
                   <p className="text-gray-300">
-                    {isJudgeAccount ? 'No billing required' : nextBillingDate.toLocaleDateString()}
+                    {role === 'dev'
+                      ? 'No billing required'
+                      : nextBillingDate.toLocaleDateString()}
                   </p>
                 </div>
-                
+
                 <div className="bg-gray-700 rounded-lg p-4">
                   <div className="flex items-center mb-2">
                     <CheckCircle className="w-6 h-6 text-green-500 mr-2" />
@@ -269,11 +277,13 @@ export default function ManageSubscription() {
       </section>
 
       {/* Available Plans */}
-      {!isJudgeAccount && (
+      {role !== 'dev' && (
         <section className="py-8">
           <div className="container mx-auto px-4">
             <div className="max-w-6xl mx-auto">
-              <h2 className="text-3xl font-bold mb-8 text-center">Available Plans</h2>
+              <h2 className="text-3xl font-bold mb-8 text-center">
+                Available Plans
+              </h2>
               <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
                 {SUBSCRIPTION_PLANS.map((plan) => (
                   <motion.div
@@ -298,26 +308,34 @@ export default function ManageSubscription() {
                         </span>
                       </div>
                     )}
-                    
+
                     <div className="text-center mb-6">
-                      {React.createElement(getPlanIcon(plan.name), { className: "w-12 h-12 text-yellow-500 mx-auto mb-4" })}
+                      {React.createElement(getPlanIcon(plan.name), {
+                        className: 'w-12 h-12 text-yellow-500 mx-auto mb-4',
+                      })}
                       <h3 className="text-2xl font-bold mb-2">{plan.name}</h3>
                       <div className="text-3xl font-bold mb-1">
                         ${plan.price}
-                        <span className="text-lg text-gray-400">/{plan.interval}</span>
+                        <span className="text-lg text-gray-400">
+                          /{plan.interval}
+                        </span>
                       </div>
-                      <div className="text-sm text-yellow-400 font-medium">{plan.tokens}</div>
+                      <div className="text-sm text-yellow-400 font-medium">
+                        {plan.tokens}
+                      </div>
                     </div>
-                    
+
                     <ul className="space-y-3 mb-6 flex-grow">
                       {plan.features.map((feature, index) => (
                         <li key={index} className="flex items-center">
                           <CheckCircle className="w-5 h-5 text-green-500 mr-3 flex-shrink-0" />
-                          <span className="text-gray-300 text-sm">{feature}</span>
+                          <span className="text-gray-300 text-sm">
+                            {feature}
+                          </span>
                         </li>
                       ))}
                     </ul>
-                    
+
                     {!plan.current && (
                       <div className="mt-auto">
                         <button
@@ -331,7 +349,7 @@ export default function ManageSubscription() {
                   </motion.div>
                 ))}
               </div>
-              
+
               {/* Warning Text */}
               <div className="text-center">
                 <p className="text-red-400 text-lg font-medium">
@@ -351,10 +369,12 @@ export default function ManageSubscription() {
               {/* Payment Method */}
               <div className="bg-gray-800 rounded-xl p-6">
                 <h2 className="text-2xl font-bold mb-6">Payment Method</h2>
-                {isJudgeAccount ? (
+                {role === 'dev' ? (
                   <div className="text-center py-8">
                     <Crown className="w-12 h-12 text-yellow-500 mx-auto mb-4" />
-                    <p className="text-gray-300">No payment method required for Ultra account</p>
+                    <p className="text-gray-300">
+                      No payment method required for Ultra account
+                    </p>
                   </div>
                 ) : (
                   <>
@@ -364,7 +384,9 @@ export default function ManageSubscription() {
                           <CreditCard className="w-6 h-6 text-blue-500 mr-3" />
                           <div>
                             <p className="font-semibold">No payment method</p>
-                            <p className="text-sm text-gray-400">Add a payment method to upgrade</p>
+                            <p className="text-sm text-gray-400">
+                              Add a payment method to upgrade
+                            </p>
                           </div>
                         </div>
                         <button className="text-yellow-500 hover:text-yellow-400 transition-colors">
@@ -391,8 +413,8 @@ export default function ManageSubscription() {
                     <Edit3 className="w-5 h-5 mr-2" />
                     Update Billing Info
                   </button>
-                  {!isJudgeAccount && (
-                    <button 
+                  {role !== 'dev' && (
+                    <button
                       onClick={handleCancelSubscription}
                       className="w-full bg-red-600 hover:bg-red-500 text-white py-3 rounded-lg font-semibold transition-colors flex items-center justify-center"
                     >
@@ -448,7 +470,9 @@ export default function ManageSubscription() {
                           ${item.amount.toFixed(2)}
                         </td>
                         <td className="py-3 px-4">
-                          <span className={`capitalize ${getStatusColor(item.status)}`}>
+                          <span
+                            className={`capitalize ${getStatusColor(item.status)}`}
+                          >
                             {item.status}
                           </span>
                         </td>
@@ -476,13 +500,13 @@ export default function ManageSubscription() {
             className="bg-gray-800 rounded-xl p-6 max-w-md w-full"
           >
             <h3 className="text-2xl font-bold mb-4">
-              {selectedPlan.price === 0 ? 'Downgrade' : 'Upgrade'} to {selectedPlan.name}
+              {selectedPlan.price === 0 ? 'Downgrade' : 'Upgrade'} to{' '}
+              {selectedPlan.name}
             </h3>
             <p className="text-gray-300 mb-6">
-              {selectedPlan.price === 0 
+              {selectedPlan.price === 0
                 ? 'Are you sure you want to downgrade to the Free plan? You will lose access to premium features.'
-                : `Upgrade to ${selectedPlan.name} for ${selectedPlan.price}/${selectedPlan.interval} and unlock ${selectedPlan.tokens}.`
-              }
+                : `Upgrade to ${selectedPlan.name} for ${selectedPlan.price}/${selectedPlan.interval} and unlock ${selectedPlan.tokens}.`}
             </p>
             <div className="flex space-x-4">
               <button
@@ -515,7 +539,9 @@ export default function ManageSubscription() {
               <AlertTriangle className="w-12 h-12 text-red-500 mx-auto mb-4" />
               <h3 className="text-2xl font-bold mb-2">Cancel Subscription</h3>
               <p className="text-gray-300">
-                Are you sure you want to cancel your subscription? You'll lose access to premium features at the end of your billing period.
+                Are you sure you want to cancel your subscription? You&apos;ll
+                lose access to premium features at the end of your billing
+                period.
               </p>
             </div>
             <div className="flex space-x-4">

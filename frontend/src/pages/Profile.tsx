@@ -2,7 +2,15 @@ import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { TOKEN_LIMIT } from '../constants';
-import { User, Play, BookOpen, Clock, Settings, LogOut, Sparkles, TrendingUp, Award, CreditCard } from 'lucide-react';
+import {
+  User,
+  Play,
+  Clock,
+  LogOut,
+  Sparkles,
+  Award,
+  CreditCard,
+} from 'lucide-react';
 import { useAuth } from '../contexts/AuthProvider';
 import { supabase } from '../lib/supabaseClient';
 
@@ -15,15 +23,17 @@ interface TokenUsage {
   }>;
 }
 
-
 export default function Profile() {
-  const { user, loading: authLoading, signOut, withValidSession } = useAuth();
+  const { user, loading: authLoading, signOut, withValidSession, role } = useAuth();
   const navigate = useNavigate();
-  const [tokenUsage, setTokenUsage] = useState<TokenUsage>({ total_tokens: 0, recent_activity: [] });
+  const [tokenUsage, setTokenUsage] = useState<TokenUsage>({
+    total_tokens: 0,
+    recent_activity: [],
+  });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const isJudgeAccount = user?.email === 'judgeacc90@gmail.com';
+  const isDev = role === 'dev';
   const tokensUsed = tokenUsage.total_tokens;
   const tokensRemaining = Math.max(0, TOKEN_LIMIT - tokensUsed);
   const usagePercentage = Math.min((tokensUsed / TOKEN_LIMIT) * 100, 100);
@@ -36,21 +46,22 @@ export default function Profile() {
     }
 
     const fetchUserData = async () => {
-      if (!user || isJudgeAccount) {
+      if (!user || isDev) {
         setLoading(false);
         return;
       }
 
       try {
         await withValidSession(async () => {
-          const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
-          
+          const { data: sessionData, error: sessionError } =
+            await supabase.auth.getSession();
+
           if (sessionError) {
             console.error('Session error:', sessionError);
             setError('Failed to get session');
             return;
           }
-          
+
           if (!sessionData?.session?.access_token) {
             console.error('No valid session or access token');
             setError('No valid session found');
@@ -63,23 +74,26 @@ export default function Profile() {
               method: 'POST',
               headers: {
                 'Content-Type': 'application/json',
-                'Authorization': `Bearer ${sessionData.session.access_token}`,
+                Authorization: `Bearer ${sessionData.session.access_token}`,
               },
               body: JSON.stringify({ user_id: user.id }),
-            }
+            },
           );
 
           if (response.ok) {
             const data = await response.json();
-            console.log('Token usage data:', data);
             setTokenUsage({
               total_tokens: data.total_tokens || 0,
-              recent_activity: data.recent_activity || []
+              recent_activity: data.recent_activity || [],
             });
             setError(null);
           } else {
             const errorText = await response.text();
-            console.error('Failed to fetch token usage:', response.status, errorText);
+            console.error(
+              'Failed to fetch token usage:',
+              response.status,
+              errorText,
+            );
             setError(`Failed to fetch usage data: ${response.status}`);
             throw new Error(`Failed to fetch usage data: ${response.status}`);
           }
@@ -95,7 +109,7 @@ export default function Profile() {
     if (user) {
       fetchUserData();
     }
-  }, [user, authLoading, navigate, isJudgeAccount, withValidSession]);
+  }, [user, authLoading, navigate, isDev, withValidSession]);
 
   const handleSignOut = async () => {
     try {
@@ -122,17 +136,17 @@ export default function Profile() {
 
   const stats = [
     {
-      label: "Simulations Created",
+      label: 'Simulations Created',
       value: tokenUsage.recent_activity.length,
       icon: Sparkles,
-      color: "text-yellow-500"
+      color: 'text-yellow-500',
     },
     {
-      label: "Account Status",
-      value: isJudgeAccount ? "Premium" : "Standard",
+      label: 'Account Status',
+      value: isDev ? 'Dev' : 'Standard',
       icon: Award,
-      color: isJudgeAccount ? "text-purple-500" : "text-blue-500"
-    }
+      color: isDev ? 'text-purple-500' : 'text-blue-500',
+    },
   ];
 
   return (
@@ -142,18 +156,21 @@ export default function Profile() {
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <Link to="/" className="flex items-center">
-              <img 
-                src="/image copy copy copy.png" 
-                alt="MindRender Logo" 
+              <img
+                src="/image copy copy copy.png"
+                alt="MindRender Logo"
                 className="h-12 w-auto transition-transform hover:scale-105"
               />
             </Link>
-            
+
             <div className="flex items-center space-x-4">
-              <Link to="/demo" className="text-gray-300 hover:text-white transition-colors">
+              <Link
+                to="/demo"
+                className="text-gray-300 hover:text-white transition-colors"
+              >
                 Try Demo
               </Link>
-              <button 
+              <button
                 onClick={handleSignOut}
                 className="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-400 transition-colors flex items-center space-x-2"
               >
@@ -184,7 +201,7 @@ export default function Profile() {
                 </h1>
                 <p className="text-lg text-gray-300">{user.email}</p>
                 <p className="text-sm text-gray-400 mt-1">
-                  Plan: {isJudgeAccount ? "Premium" : "Standard"}
+                  Plan: {isDev ? 'Dev' : 'Standard'}
                 </p>
               </div>
             </motion.div>
@@ -213,9 +230,11 @@ export default function Profile() {
             <div className="max-w-2xl mx-auto">
               <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-4">
                 <div className="text-red-400 text-center">
-                  <div className="text-lg font-semibold mb-2">Data Loading Error</div>
+                  <div className="text-lg font-semibold mb-2">
+                    Data Loading Error
+                  </div>
                   <div className="text-sm mb-4">{error}</div>
-                  <button 
+                  <button
                     onClick={() => window.location.reload()}
                     className="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-400 transition-colors text-sm"
                   >
@@ -249,14 +268,16 @@ export default function Profile() {
         </div>
       </section>
 
-      {/* Usage Progress (for non-judge accounts) - Keep prompts, tokens, and plan tier */}
-      {!isJudgeAccount && (
+      {/* Usage Progress (hidden for dev users) */}
+      {role !== 'dev' && (
         <section className="py-8">
           <div className="container mx-auto px-4">
             <div className="max-w-2xl mx-auto">
               <div className="bg-gray-800 rounded-xl p-6">
                 <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-lg font-semibold">Token Usage Progress</h3>
+                  <h3 className="text-lg font-semibold">
+                    Token Usage Progress
+                  </h3>
                   <span className="text-sm text-gray-400">
                     {tokensUsed} / {TOKEN_LIMIT} tokens used
                   </span>
@@ -264,17 +285,19 @@ export default function Profile() {
                 <div className="w-full bg-gray-700 rounded-full h-3 mb-2">
                   <div
                     className={`h-3 rounded-full transition-all duration-300 ${
-                      usagePercentage >= 90 ? 'bg-red-500' :
-                      usagePercentage >= 70 ? 'bg-yellow-500' : 'bg-green-500'
+                      usagePercentage >= 90
+                        ? 'bg-red-500'
+                        : usagePercentage >= 70
+                          ? 'bg-yellow-500'
+                          : 'bg-green-500'
                     }`}
                     style={{ width: `${usagePercentage}%` }}
                   ></div>
                 </div>
                 <p className="text-sm text-gray-400">
-                  {tokensRemaining > 0 
+                  {tokensRemaining > 0
                     ? `${tokensRemaining} tokens remaining`
-                    : "Token limit reached - contact support to continue"
-                  }
+                    : 'Token limit reached - contact support to continue'}
                 </p>
               </div>
             </div>
@@ -293,8 +316,12 @@ export default function Profile() {
               className="bg-yellow-500 hover:bg-yellow-400 text-black p-6 rounded-xl transition-all duration-200 hover:scale-105 hover:shadow-lg text-center max-w-sm w-full"
             >
               <Play className="w-10 h-10 mb-3 mx-auto" />
-              <h3 className="text-xl font-semibold mb-2">Start New Simulation</h3>
-              <p className="text-base opacity-90">Create an interactive visualization</p>
+              <h3 className="text-xl font-semibold mb-2">
+                Start New Simulation
+              </h3>
+              <p className="text-base opacity-90">
+                Create an interactive visualization
+              </p>
             </motion.button>
           </div>
         </div>
@@ -304,26 +331,37 @@ export default function Profile() {
       {tokenUsage.recent_activity.length > 0 && (
         <section className="py-12 bg-gray-900/50">
           <div className="container mx-auto px-4">
-            <h2 className="text-3xl font-bold text-center mb-8">Recent Activity</h2>
+            <h2 className="text-3xl font-bold text-center mb-8">
+              Recent Activity
+            </h2>
             <div className="max-w-4xl mx-auto">
               <div className="bg-gray-800 rounded-xl p-6">
                 <div className="space-y-4">
-                  {tokenUsage.recent_activity.slice(0, 5).map((activity, index) => (
-                    <div key={index} className="flex items-start space-x-4 p-4 bg-gray-700 rounded-lg">
-                      <Clock className="w-5 h-5 text-gray-400 mt-1 flex-shrink-0" />
-                      <div className="flex-1">
-                        <p className="text-white font-medium truncate">{activity.prompt}</p>
-                        <div className="flex items-center justify-between mt-2">
-                          <span className="text-sm text-gray-400">
-                            {new Date(activity.created_at).toLocaleDateString()}
-                          </span>
-                          <span className="text-sm text-yellow-500">
-                            {activity.tokens_used} tokens
-                          </span>
+                  {tokenUsage.recent_activity
+                    .slice(0, 5)
+                    .map((activity, index) => (
+                      <div
+                        key={index}
+                        className="flex items-start space-x-4 p-4 bg-gray-700 rounded-lg"
+                      >
+                        <Clock className="w-5 h-5 text-gray-400 mt-1 flex-shrink-0" />
+                        <div className="flex-1">
+                          <p className="text-white font-medium truncate">
+                            {activity.prompt}
+                          </p>
+                          <div className="flex items-center justify-between mt-2">
+                            <span className="text-sm text-gray-400">
+                              {new Date(
+                                activity.created_at,
+                              ).toLocaleDateString()}
+                            </span>
+                            <span className="text-sm text-yellow-500">
+                              {activity.tokens_used} tokens
+                            </span>
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  ))}
+                    ))}
                 </div>
               </div>
             </div>

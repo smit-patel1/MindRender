@@ -1,5 +1,11 @@
 import React, { useEffect } from 'react';
-import { BrowserRouter as Router, Routes, Route, useNavigate, useLocation } from 'react-router-dom';
+import {
+  BrowserRouter as Router,
+  Routes,
+  Route,
+  useNavigate,
+  useLocation,
+} from 'react-router-dom';
 import { AuthProvider } from './contexts/AuthProvider';
 import ErrorBoundary from './components/ErrorBoundary';
 import { useAuth } from './contexts/AuthProvider';
@@ -25,18 +31,20 @@ function AppContent() {
     const currentPath = location.pathname;
     const isPublicRoute = ['/'].includes(currentPath);
     const isAuthRoute = currentPath === '/auth';
-    const isProtectedRoute = ['/demo', '/profile', '/manage-subscription'].includes(currentPath);
+    const isProtectedRoute = [
+      '/demo',
+      '/profile',
+      '/manage-subscription',
+    ].includes(currentPath);
 
     if (user) {
       // Authenticated user accessing public-only routes should go to profile
       if (isPublicRoute || isAuthRoute) {
-        console.log('Redirecting authenticated user from', currentPath, 'to /profile');
         navigate('/profile', { replace: true });
       }
     } else {
       // Unauthenticated user accessing protected routes should go to auth
       if (isProtectedRoute) {
-        console.log('Redirecting unauthenticated user from', currentPath, 'to /auth');
         navigate('/auth', { replace: true });
       }
     }
