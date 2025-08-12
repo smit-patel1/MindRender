@@ -8,10 +8,10 @@ const app = new Hono();
 app.use(
   '*',
   cors({
-    origin: ['http://localhost:3000', 'http://localhost:5173'],
-    allowMethods: ['POST', 'GET', 'OPTIONS'],
-    allowHeaders: ['Authorization', 'Content-Type']
-  })
+      origin: (process.env.ALLOWED_ORIGINS || 'http://localhost:3000,http://localhost:5173').split(','),
+      allowMethods: ['POST', 'GET', 'OPTIONS'],
+      allowHeaders: ['Authorization', 'Content-Type']
+    })
 );
 
 app.post('/simulate', simulateHandler);

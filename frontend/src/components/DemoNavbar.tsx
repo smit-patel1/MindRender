@@ -3,25 +3,25 @@ import { useNavigate } from 'react-router-dom';
 import { LogOut, Menu, X, User } from 'lucide-react';
 import TokenDisplay from './TokenDisplay';
 
-interface DemoNavbarProps {
-  user: { email: string | undefined; id: string };
-  isJudgeAccount: boolean;
-  tokenUsage: number;
-  isTokenLimitReached: boolean;
-  mobileMenuOpen: boolean;
-  toggleMobileMenu: () => void;
-  handleSignOut: () => Promise<void>;
-}
+  interface DemoNavbarProps {
+    user: { email: string | undefined; id: string };
+    isDevAccount: boolean;
+    tokenUsage: number;
+    isTokenLimitReached: boolean;
+    mobileMenuOpen: boolean;
+    toggleMobileMenu: () => void;
+    handleSignOut: () => Promise<void>;
+  }
 
-export default function DemoNavbar({
-  user,
-  isJudgeAccount,
-  tokenUsage,
-  isTokenLimitReached,
-  mobileMenuOpen,
-  toggleMobileMenu,
-  handleSignOut
-}: DemoNavbarProps) {
+  export default function DemoNavbar({
+    user,
+    isDevAccount,
+    tokenUsage,
+    isTokenLimitReached,
+    mobileMenuOpen,
+    toggleMobileMenu,
+    handleSignOut
+  }: DemoNavbarProps) {
   const navigate = useNavigate();
 
   const handleProfileClick = () => {
@@ -40,11 +40,11 @@ export default function DemoNavbar({
         </div>
         
         <div className="flex items-center space-x-2 sm:space-x-4">
-          <TokenDisplay 
-            isJudgeAccount={isJudgeAccount}
-            tokenUsage={tokenUsage}
-            isTokenLimitReached={isTokenLimitReached}
-          />
+            <TokenDisplay
+              isDevAccount={isDevAccount}
+              tokenUsage={tokenUsage}
+              isTokenLimitReached={isTokenLimitReached}
+            />
           
           <button
             onClick={toggleMobileMenu}

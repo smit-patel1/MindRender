@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import DOMPurify from 'dompurify';
 import { useAuth } from '../contexts/AuthProvider';
 import { supabase } from '../lib/supabaseClient';
 import { TOKEN_LIMIT } from '../constants';
@@ -19,9 +20,8 @@ interface SimulationResponse {
 interface User {
   email: string | undefined;
   id: string;
+  user_metadata?: { role?: string };
 }
-
-const JUDGE_EMAIL = 'judgeacc90@gmail.com';
 
 const SUBJECTS = ['Physics', 'Biology', 'Computer Science'] as const;
 type SubjectType = typeof SUBJECTS[number];
@@ -148,12 +148,12 @@ const FormattedExplanation = React.memo(({ explanation }: { explanation: string 
     const words = explanation.split(' ');
     const wordLimit = 60;
     const needsTruncation = words.length > wordLimit;
-    
+
     const truncatedText = needsTruncation ? words.slice(0, wordLimit).join(' ') + '...' : explanation;
-    
+
     return {
-      truncatedContent: formatContent(truncatedText),
-      fullContent: formatContent(explanation),
+      truncatedContent: DOMPurify.sanitize(formatContent(truncatedText)),
+      fullContent: DOMPurify.sanitize(formatContent(explanation)),
       needsTruncation
     };
   }, [explanation]);
@@ -286,6 +286,7 @@ const SimulationIframe = React.memo(({ simulationData }: { simulationData: Simul
     <head>
       <meta charset="UTF-8">
       <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline'; img-src data:; connect-src 'none';">
       <title>MindRender Simulation</title>
       <style>
         * {
@@ -465,10 +466,10 @@ const SimulationIframe = React.memo(({ simulationData }: { simulationData: Simul
     <iframe
       className="w-full h-full border-0"
       title="Interactive Simulation"
-      sandbox="allow-scripts allow-same-origin"
+      sandbox="allow-scripts"
       scrolling="no"
       srcDoc={iframeContent}
-      style={{ 
+      style={{
         overflow: 'hidden',
         border: 'none',
         width: '100%',
@@ -491,12 +492,12 @@ export default function Demo(): JSX.Element {
   const [showContentWarning, setShowContentWarning] = useState<boolean>(false);
   const [contentWarningMessage, setContentWarningMessage] = useState<string>('');
 
-  const isJudgeAccount = useMemo(() => user?.email === JUDGE_EMAIL, [user?.email]);
-  const isTokenLimitReached = useMemo(() => !isJudgeAccount && tokenUsage >= TOKEN_LIMIT, [isJudgeAccount, tokenUsage]);
+  const isDevAccount = useMemo(() => user?.user_metadata?.role === 'developer', [user?.user_metadata?.role]);
+  const isTokenLimitReached = useMemo(() => !isDevAccount && tokenUsage >= TOKEN_LIMIT, [isDevAccount, tokenUsage]);
   const tokensRemaining = useMemo(() => Math.max(0, TOKEN_LIMIT - tokenUsage), [tokenUsage]);
 
   const fetchTokenUsage = useCallback(async () => {
-    if (!user || isJudgeAccount) return;
+    if (!user || isDevAccount) return;
 
     try {
       const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
@@ -506,7 +507,7 @@ export default function Demo(): JSX.Element {
       }
 
       const response = await fetch(
-        'https://zurfhydnztcxlomdyqds.supabase.co/functions/v1/get_token_total',
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/get_token_total`,
         {
           method: 'POST',
           headers: {
@@ -533,7 +534,7 @@ export default function Demo(): JSX.Element {
       console.warn('Failed to fetch token usage:', error);
       setTokenUsage(0);
     }
-  }, [user, isJudgeAccount]);
+  }, [user, isDevAccount]);
 
   useEffect(() => {
     if (user && !authLoading) {
@@ -574,7 +575,7 @@ export default function Demo(): JSX.Element {
       };
 
       const response = await fetch(
-        'https://zurfhydnztcxlomdyqds.supabase.co/functions/v1/simulate',
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/simulate`,
         {
           method: 'POST',
           headers: {
@@ -627,7 +628,7 @@ export default function Demo(): JSX.Element {
     } finally {
       setLoading(false);
     }
-  }, [prompt, subject, isTokenLimitReached, tokenUsage, isJudgeAccount, fetchTokenUsage]);
+  }, [prompt, subject, isTokenLimitReached, tokenUsage, isDevAccount, fetchTokenUsage]);
 
   const handleFollowUpSubmit = useCallback(async (): Promise<void> => {
     if (!followUpPrompt.trim()) return;
@@ -702,8 +703,8 @@ export default function Demo(): JSX.Element {
         <div className="text-center bg-gray-800 rounded-xl p-6 sm:p-8 max-w-md mx-4">
           <div className="text-white text-lg sm:text-xl font-semibold mb-4">Access Required</div>
           <div className="text-gray-300 mb-6 text-sm sm:text-base">Please log in to access the MindRender demo</div>
-          <a 
-            href="/auth" 
+          <a
+            href="/login"
             className="inline-flex items-center bg-yellow-500 text-black px-4 sm:px-6 py-2 sm:py-3 rounded-lg hover:bg-yellow-400 transition-colors font-medium text-sm sm:text-base"
           >
             <LogOut className="w-4 h-4 mr-2" />
@@ -725,7 +726,7 @@ export default function Demo(): JSX.Element {
       <div className="h-screen bg-gray-900 text-white overflow-hidden flex flex-col">
         <DemoNavbar
           user={demoUser}
-          isJudgeAccount={isJudgeAccount}
+          isDevAccount={isDevAccount}
           tokenUsage={tokenUsage}
           isTokenLimitReached={isTokenLimitReached}
           mobileMenuOpen={mobileMenuOpen}
@@ -734,8 +735,8 @@ export default function Demo(): JSX.Element {
         />
 
         <main className="flex-1 overflow-hidden">
-          <div className="hidden md:grid md:grid-cols-12 h-full">
-            <aside className="md:col-span-2 lg:col-span-2 xl:col-span-2 bg-gray-800 border-r border-gray-700 flex flex-col h-full">
+          <div className="grid grid-cols-1 md:grid-cols-12 h-full">
+            <aside className="order-1 md:order-none md:col-span-2 lg:col-span-2 xl:col-span-2 bg-gray-800 border-b md:border-b-0 md:border-r border-gray-700 flex flex-col h-full">
               <div className="p-3 space-y-3 flex-1 overflow-y-auto">
                 <div className="flex items-center space-x-2 pb-2 border-b border-gray-700">
                   <Monitor className="w-4 h-4 text-yellow-500" />
@@ -749,7 +750,7 @@ export default function Demo(): JSX.Element {
                   />
                 )}
 
-                {!isJudgeAccount && isTokenLimitReached && (
+                {!isDevAccount && isTokenLimitReached && (
                   <div className="bg-red-500/10 border border-red-500/20 rounded-lg p-2">
                     <div className="flex items-center space-x-1 mb-1">
                       <AlertTriangle className="w-3 h-3 text-red-400" />
@@ -761,7 +762,7 @@ export default function Demo(): JSX.Element {
                   </div>
                 )}
 
-                {!isJudgeAccount && !isTokenLimitReached && tokenUsage > TOKEN_LIMIT * 0.8 && (
+                {!isDevAccount && !isTokenLimitReached && tokenUsage > TOKEN_LIMIT * 0.8 && (
                   <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-lg p-2">
                     <div className="flex items-center space-x-1 mb-1">
                       <AlertTriangle className="w-3 h-3 text-yellow-400" />
@@ -879,7 +880,7 @@ export default function Demo(): JSX.Element {
               </div>
             </aside>
 
-            <section className="md:col-span-7 lg:col-span-7 xl:col-span-7 bg-white border-r border-gray-300 flex flex-col h-full">
+            <section className="order-2 md:order-none md:col-span-7 lg:col-span-7 xl:col-span-7 bg-white border-b md:border-b-0 md:border-r border-gray-300 flex flex-col h-full">
               <div className="bg-gray-50 border-b border-gray-200 px-4 py-3 flex-shrink-0">
                 <div className="flex items-center space-x-2">
                   <Monitor className="w-5 h-5 text-gray-600" />
@@ -936,7 +937,7 @@ export default function Demo(): JSX.Element {
               </div>
             </section>
 
-            <aside className="md:col-span-3 lg:col-span-3 xl:col-span-3 bg-gray-50 flex flex-col h-full">
+            <aside className="order-3 md:order-none md:col-span-3 lg:col-span-3 xl:col-span-3 bg-gray-50 flex flex-col h-full">
               <div className="bg-white border-b border-gray-200 px-3 py-3 flex-shrink-0">
                 <div className="flex items-center space-x-2">
                   <BookOpen className="w-4 h-4 text-blue-600" />

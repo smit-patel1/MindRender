@@ -39,7 +39,7 @@ export default function Hero() {
           transition={{ delay: 0.4 }}
           className="flex flex-col sm:flex-row gap-4 justify-center"
         >
-          <Link to="/auth">
+            <Link to="/login">
             <button className="bg-yellow-500 text-black hover:bg-yellow-400 px-8 py-6 rounded-2xl text-lg font-semibold shadow-lg flex items-center">
               Try Demo <Sparkles className="ml-2 w-5 h-5" />
             </button>

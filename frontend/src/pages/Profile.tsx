@@ -17,29 +17,29 @@ interface TokenUsage {
 
 
 export default function Profile() {
-  const { user, loading: authLoading, signOut, withValidSession } = useAuth();
+    const { user, loading: authLoading, signOut, withValidSession } = useAuth();
   const navigate = useNavigate();
   const [tokenUsage, setTokenUsage] = useState<TokenUsage>({ total_tokens: 0, recent_activity: [] });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const isJudgeAccount = user?.email === 'judgeacc90@gmail.com';
-  const tokensUsed = tokenUsage.total_tokens;
-  const tokensRemaining = Math.max(0, TOKEN_LIMIT - tokensUsed);
-  const usagePercentage = Math.min((tokensUsed / TOKEN_LIMIT) * 100, 100);
+    const isDevAccount = user?.user_metadata?.role === 'developer';
+    const tokensUsed = tokenUsage.total_tokens;
+    const tokensRemaining = Math.max(0, TOKEN_LIMIT - tokensUsed);
+    const usagePercentage = Math.min((tokensUsed / TOKEN_LIMIT) * 100, 100);
 
   useEffect(() => {
     // Only redirect if we're sure there's no user and auth is not loading
-    if (!authLoading && !user) {
-      navigate('/auth');
-      return;
-    }
-
-    const fetchUserData = async () => {
-      if (!user || isJudgeAccount) {
-        setLoading(false);
+      if (!authLoading && !user) {
+        navigate(`/login?redirectTo=${encodeURIComponent('/profile')}`);
         return;
       }
+
+    const fetchUserData = async () => {
+        if (!user || isDevAccount) {
+          setLoading(false);
+          return;
+        }
 
       try {
         await withValidSession(async () => {
@@ -57,17 +57,17 @@ export default function Profile() {
             return;
           }
 
-          const response = await fetch(
-            'https://zurfhydnztcxlomdyqds.supabase.co/functions/v1/get_token_total',
-            {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${sessionData.session.access_token}`,
-              },
-              body: JSON.stringify({ user_id: user.id }),
-            }
-          );
+            const response = await fetch(
+              `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/get_token_total`,
+              {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'Authorization': `Bearer ${sessionData.session.access_token}`,
+                },
+                body: JSON.stringify({ user_id: user.id }),
+              }
+            );
 
           if (response.ok) {
             const data = await response.json();
@@ -95,7 +95,7 @@ export default function Profile() {
     if (user) {
       fetchUserData();
     }
-  }, [user, authLoading, navigate, isJudgeAccount, withValidSession]);
+    }, [user, authLoading, navigate, isDevAccount, withValidSession]);
 
   const handleSignOut = async () => {
     try {
@@ -129,9 +129,9 @@ export default function Profile() {
     },
     {
       label: "Account Status",
-      value: isJudgeAccount ? "Premium" : "Standard",
+      value: isDevAccount ? "Premium" : "Standard",
       icon: Award,
-      color: isJudgeAccount ? "text-purple-500" : "text-blue-500"
+      color: isDevAccount ? "text-purple-500" : "text-blue-500"
     }
   ];
 
@@ -184,7 +184,7 @@ export default function Profile() {
                 </h1>
                 <p className="text-lg text-gray-300">{user.email}</p>
                 <p className="text-sm text-gray-400 mt-1">
-                  Plan: {isJudgeAccount ? "Premium" : "Standard"}
+                  Plan: {isDevAccount ? "Premium" : "Standard"}
                 </p>
               </div>
             </motion.div>
@@ -250,7 +250,7 @@ export default function Profile() {
       </section>
 
       {/* Usage Progress (for non-judge accounts) - Keep prompts, tokens, and plan tier */}
-      {!isJudgeAccount && (
+        {!isDevAccount && (
         <section className="py-8">
           <div className="container mx-auto px-4">
             <div className="max-w-2xl mx-auto">

@@ -1,10 +1,11 @@
 import React, { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { Loader2, AlertCircle, CheckCircle } from 'lucide-react';
 import { useAuth } from '../contexts/AuthProvider';
 
 export default function AuthCallback() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { user, loading: authLoading } = useAuth();
   const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading');
   const [error, setError] = useState<string | null>(null);
@@ -20,10 +21,13 @@ export default function AuthCallback() {
       console.log('AuthCallback: Authentication successful for user:', user.email);
       setStatus('success');
       
-      // Navigate to profile after a brief delay to show success state
-      setTimeout(() => {
-        navigate('/profile', { replace: true });
-      }, 1500);
+        const params = new URLSearchParams(location.search);
+        const redirectTo = params.get('redirectTo') || '/profile';
+
+        // Navigate to original route after a brief delay to show success state
+        setTimeout(() => {
+          navigate(redirectTo, { replace: true });
+        }, 1500);
       
       return;
     }
@@ -35,10 +39,10 @@ export default function AuthCallback() {
     
     // Redirect to auth page after showing error
     setTimeout(() => {
-      navigate('/auth', { replace: true });
+        navigate('/login', { replace: true });
     }, 3000);
 
-  }, [user, authLoading, navigate]);
+    }, [user, authLoading, navigate, location.search]);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-950 to-gray-900 flex items-center justify-center p-4">
