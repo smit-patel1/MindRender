@@ -3,11 +3,12 @@ import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Mail, Lock, User, Loader2, AlertCircle, LogIn } from 'lucide-react';
 import { supabase } from '@/lib/supabaseClient';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import Navbar from '../components/Navbar';
 
 export default function Auth() {
   const navigate = useNavigate();
+  const location = useLocation();
   const [isLogin, setIsLogin] = useState(true);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -49,6 +50,9 @@ export default function Auth() {
     return !Object.values(newErrors).some(error => error !== '');
   };
 
+  const params = new URLSearchParams(location.search);
+  const redirectTo = params.get('redirectTo') || '/profile';
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!validateForm()) return;
@@ -66,19 +70,19 @@ export default function Auth() {
 
         if (signInError) throw signInError;
 
-        if (data.session) {
-          navigate('/profile');
-        }
+          if (data.session) {
+            navigate(redirectTo);
+          }
       } else {
-        const { data, error: signUpError } = await supabase.auth.signUp({
-          email: trimmedEmail,
-          password: formData.password,
-          options: {
-            data: {
-              username: formData.username,
-            },
-          },
-        });
+            const { data, error: signUpError } = await supabase.auth.signUp({
+              email: trimmedEmail,
+              password: formData.password,
+              options: {
+                data: {
+                  username: formData.username,
+                },
+              },
+            });
 
         if (signUpError) throw signUpError;
 
@@ -98,15 +102,15 @@ export default function Auth() {
     try {
       setError('');
       
-      const { data, error } = await supabase.auth.signInWithOAuth({
-        provider: 'google',
-        options: {
-          redirectTo: `${window.location.origin}/auth/callback`,
-          queryParams: {
-            prompt: 'select_account'
-          }
-        },
-      });
+        const { data, error } = await supabase.auth.signInWithOAuth({
+          provider: 'google',
+          options: {
+            redirectTo: `${window.location.origin}/auth/callback?redirectTo=${encodeURIComponent(redirectTo)}`,
+            queryParams: {
+              prompt: 'select_account'
+            }
+          },
+        });
       
       if (error) {
         throw error;

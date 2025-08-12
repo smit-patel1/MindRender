@@ -14,7 +14,7 @@ export default function CallToAction() {
       >
         <h2 className="text-4xl md:text-5xl font-bold mb-6">Transform Your Ideas Into Reality</h2>
         <p className="text-xl mb-12">Begin creating interactive simulations from your concepts today.</p>
-        <Link to="/auth">
+        <Link to="/login">
           <button className="bg-white text-blue-600 hover:bg-gray-100 px-8 py-6 rounded-2xl text-lg font-semibold shadow-lg flex items-center">
             Get Started Now
             <ArrowRight className="ml-2 w-5 h-5" />

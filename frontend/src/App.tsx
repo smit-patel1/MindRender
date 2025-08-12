@@ -14,7 +14,7 @@ import ManageSubscription from './pages/ManageSubscription';
 function AppContent() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { user, loading } = useAuth();
+    const { user, loading } = useAuth();
 
   useEffect(() => {
     // Don't redirect while auth is loading or during auth callback
@@ -22,25 +22,23 @@ function AppContent() {
       return;
     }
 
-    const currentPath = location.pathname;
-    const isPublicRoute = ['/'].includes(currentPath);
-    const isAuthRoute = currentPath === '/auth';
-    const isProtectedRoute = ['/demo', '/profile', '/manage-subscription'].includes(currentPath);
+      const currentPath = location.pathname;
+      const isPublicRoute = ['/'].includes(currentPath);
+      const isAuthRoute = ['/auth', '/login'].includes(currentPath);
+      const isProtectedRoute = ['/demo', '/profile', '/manage-subscription'].includes(currentPath);
 
     if (user) {
       // Authenticated user accessing public-only routes should go to profile
-      if (isPublicRoute || isAuthRoute) {
-        console.log('Redirecting authenticated user from', currentPath, 'to /profile');
-        navigate('/profile', { replace: true });
+        if (isPublicRoute || isAuthRoute) {
+          navigate('/profile', { replace: true });
+        }
+      } else {
+        // Unauthenticated user accessing protected routes should go to auth
+        if (isProtectedRoute) {
+          navigate(`/login?redirectTo=${encodeURIComponent(currentPath)}`, { replace: true });
+        }
       }
-    } else {
-      // Unauthenticated user accessing protected routes should go to auth
-      if (isProtectedRoute) {
-        console.log('Redirecting unauthenticated user from', currentPath, 'to /auth');
-        navigate('/auth', { replace: true });
-      }
-    }
-  }, [user, loading, location.pathname, navigate]);
+    }, [user, loading, location.pathname, navigate]);
 
   return (
     <div className="min-h-screen">
@@ -51,7 +49,8 @@ function AppContent() {
           <Route path="/profile" element={<Profile />} />
           <Route path="/manage-subscription" element={<ManageSubscription />} />
           <Route path="/learn" element={<LearnMore />} />
-          <Route path="/auth" element={<Auth />} />
+            <Route path="/login" element={<Auth />} />
+            <Route path="/auth" element={<Auth />} />
           <Route path="/auth/callback" element={<AuthCallback />} />
         </Routes>
       </ErrorBoundary>

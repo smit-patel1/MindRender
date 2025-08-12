@@ -2,17 +2,17 @@ import React from 'react';
 import { TOKEN_LIMIT } from '../constants';
 
 interface TokenDisplayProps {
-  isJudgeAccount: boolean;
+  isDevAccount: boolean;
   tokenUsage: number;
   isTokenLimitReached: boolean;
 }
 
 const TokenDisplay = React.memo(({ 
-  isJudgeAccount, 
-  tokenUsage, 
-  isTokenLimitReached 
+  isDevAccount,
+  tokenUsage,
+  isTokenLimitReached
 }: TokenDisplayProps) => {
-  if (isJudgeAccount) {
+  if (isDevAccount) {
     return (
       <div className="rounded-lg px-3 py-1 text-sm bg-green-500/20 border border-green-500/30">
         <span className="text-green-400 font-semibold">Unlimited</span>
