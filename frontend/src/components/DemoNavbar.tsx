@@ -29,7 +29,7 @@ import TokenDisplay from './TokenDisplay';
   };
 
   return (
-    <header className="border-b border-gray-700 bg-gray-800/50 backdrop-blur-sm flex-shrink-0">
+    <header className="border-b border-gray-700 bg-gray-800/50 backdrop-blur-sm flex-shrink-0 sticky top-0 z-50">
       <div className="flex justify-between items-center px-3 sm:px-6 py-3 sm:py-4">
         <div className="flex items-center space-x-2 sm:space-x-4">
           <h1 className="text-lg sm:text-2xl font-bold text-white">MindRender</h1>
@@ -40,11 +40,13 @@ import TokenDisplay from './TokenDisplay';
         </div>
         
         <div className="flex items-center space-x-2 sm:space-x-4">
+          <div className="hidden sm:block">
             <TokenDisplay
               isDevAccount={isDevAccount}
               tokenUsage={tokenUsage}
               isTokenLimitReached={isTokenLimitReached}
             />
+          </div>
           
           <button
             onClick={toggleMobileMenu}

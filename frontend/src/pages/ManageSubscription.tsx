@@ -210,7 +210,7 @@ export default function ManageSubscription() {
     <div className="min-h-screen bg-gradient-to-br from-blue-950 to-gray-900 text-white">
       <Navbar />
       {/* Header */}
-      <div className="pt-32 pb-8">
+      <div className="pt-24 md:pt-32 pb-8">
         <div className="container mx-auto px-4">
           <div className="max-w-6xl mx-auto">
             <div className="mb-8">

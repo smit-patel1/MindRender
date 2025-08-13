@@ -140,20 +140,20 @@ export default function Profile() {
       {/* Custom Header for Profile Page */}
       <header className="fixed w-full bg-gray-900 z-50 border-b border-gray-700">
         <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-wrap items-center justify-between gap-y-2">
             <Link to="/" className="flex items-center">
-              <img 
-                src="/image copy copy copy.png" 
-                alt="MindRender Logo" 
-                className="h-12 w-auto transition-transform hover:scale-105"
+              <img
+                src="/image copy copy copy.png"
+                alt="MindRender Logo"
+                className="h-10 w-auto sm:h-12 transition-transform hover:scale-105"
               />
             </Link>
-            
-            <div className="flex items-center space-x-4">
+
+            <div className="flex flex-wrap items-center justify-end w-full sm:w-auto gap-2 sm:gap-4">
               <Link to="/demo" className="text-gray-300 hover:text-white transition-colors">
                 Try Demo
               </Link>
-              <button 
+              <button
                 onClick={handleSignOut}
                 className="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-400 transition-colors flex items-center space-x-2"
               >

@@ -723,7 +723,7 @@ export default function Demo(): JSX.Element {
 
   return (
     <ErrorBoundary fallback={<div className="text-red-500 p-4">Something went wrong. Please refresh the page.</div>}>
-      <div className="h-screen bg-gray-900 text-white overflow-hidden flex flex-col">
+      <div className="min-h-[100dvh] bg-gray-900 text-white flex flex-col">
         <DemoNavbar
           user={demoUser}
           isDevAccount={isDevAccount}
@@ -734,10 +734,10 @@ export default function Demo(): JSX.Element {
           handleSignOut={handleSignOut}
         />
 
-        <main className="flex-1 overflow-hidden">
+        <main className="flex-1 overflow-y-auto md:overflow-hidden">
           <div className="grid grid-cols-1 md:grid-cols-12 h-full">
-            <aside className="order-1 md:order-none md:col-span-2 lg:col-span-2 xl:col-span-2 bg-gray-800 border-b md:border-b-0 md:border-r border-gray-700 flex flex-col h-full">
-              <div className="p-3 space-y-3 flex-1 overflow-y-auto">
+            <aside className="order-1 md:order-none md:col-span-2 bg-gray-800 border-r border-gray-700 flex flex-col">
+              <div className="p-3 space-y-3 md:flex-1 md:overflow-y-auto">
                 <div className="flex items-center space-x-2 pb-2 border-b border-gray-700">
                   <Monitor className="w-4 h-4 text-yellow-500" />
                   <h2 className="text-xs font-semibold">Controls</h2>
@@ -880,7 +880,7 @@ export default function Demo(): JSX.Element {
               </div>
             </aside>
 
-            <section className="order-2 md:order-none md:col-span-7 lg:col-span-7 xl:col-span-7 bg-white border-b md:border-b-0 md:border-r border-gray-300 flex flex-col h-full">
+            <section className="order-2 md:order-none md:col-span-7 bg-white border-b md:border-b-0 md:border-r border-gray-300 flex flex-col min-h-[60vh] md:h-full">
               <div className="bg-gray-50 border-b border-gray-200 px-4 py-3 flex-shrink-0">
                 <div className="flex items-center space-x-2">
                   <Monitor className="w-5 h-5 text-gray-600" />
@@ -906,7 +906,7 @@ export default function Demo(): JSX.Element {
               
               <div className="flex-1 relative overflow-hidden bg-gradient-to-br from-gray-50 to-white">
                 {loading && (
-                  <div className="absolute inset-0 bg-white/95 flex items-center justify-center z-10 backdrop-blur-sm">
+                  <div className="absolute inset-0 bg-white/90 flex items-center justify-center z-10 backdrop-blur-sm">
                     <LoadingSpinner size="large" text={`Generating ${subject.toLowerCase()} simulation...`} />
                   </div>
                 )}
@@ -937,7 +937,7 @@ export default function Demo(): JSX.Element {
               </div>
             </section>
 
-            <aside className="order-3 md:order-none md:col-span-3 lg:col-span-3 xl:col-span-3 bg-gray-50 flex flex-col h-full">
+            <aside className="order-3 md:order-none md:col-span-3 bg-gray-50 flex flex-col min-h-[40vh] md:h-full">
               <div className="bg-white border-b border-gray-200 px-3 py-3 flex-shrink-0">
                 <div className="flex items-center space-x-2">
                   <BookOpen className="w-4 h-4 text-blue-600" />
@@ -952,7 +952,7 @@ export default function Demo(): JSX.Element {
                 </div>
               </div>
               
-              <div className="flex-1 overflow-hidden p-2">
+              <div className="md:flex-1 md:overflow-auto p-2">
                 {simulationData?.explanation && !showContentWarning ? (
                   <div className="bg-white rounded-lg p-3 shadow-sm border border-gray-200 h-full">
                     <FormattedExplanation explanation={simulationData.explanation} />
