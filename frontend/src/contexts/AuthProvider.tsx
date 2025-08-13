@@ -33,47 +33,52 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [roleSyncing, setRoleSyncing] = useState(false);
+const [roleSyncing, setRoleSyncing] = useState(false);
+const [isDeveloper, setIsDeveloper] = useState(false);
 
-  const syncDeveloperRole = useCallback(async (currentUser: User | null) => {
-    if (typeof window === 'undefined' || !currentUser?.email) return;
+const syncDeveloperRole = useCallback(async (currentUser: User | null) => {
+  if (typeof window === 'undefined' || !currentUser?.email) return;
 
-    setRoleSyncing(true);
-    try {
-      const { data, error } = await supabase
-        .from('developer_accounts')
-        .select('email')
-        .eq('email', currentUser.email)
-        .single();
+  setRoleSyncing(true);
+  try {
+    const { data, error } = await supabase
+      .from('developer_accounts')
+      .select('email')
+      .eq('email', currentUser.email)
+      .single();
 
-      const shouldBeDeveloper = !error && !!data;
-      const currentRole = currentUser.user_metadata?.role;
+    const shouldBeDeveloper = !error && !!data;
+    const currentRole = currentUser.user_metadata?.role;
 
-      if (shouldBeDeveloper && currentRole !== 'developer') {
-        const { error: updateError } = await supabase.auth.updateUser({ data: { role: 'developer' } });
-        if (!updateError) {
-          const { data: { user: refreshedUser }, error: refreshError } = await supabase.auth.getUser();
-          if (!refreshError && refreshedUser) {
-            setUser(refreshedUser);
-            setSession((prev) => (prev ? { ...prev, user: refreshedUser } : prev));
-          }
-        }
-      } else if (!shouldBeDeveloper && currentRole === 'developer') {
-        const { error: updateError } = await supabase.auth.updateUser({ data: { role: null } });
-        if (!updateError) {
-          const { data: { user: refreshedUser }, error: refreshError } = await supabase.auth.getUser();
-          if (!refreshError && refreshedUser) {
-            setUser(refreshedUser);
-            setSession((prev) => (prev ? { ...prev, user: refreshedUser } : prev));
-          }
+    setIsDeveloper(shouldBeDeveloper);
+
+    if (shouldBeDeveloper && currentRole !== 'developer') {
+      const { error: updateError } = await supabase.auth.updateUser({ data: { role: 'developer' } });
+      if (!updateError) {
+        const { data: { user: refreshedUser }, error: refreshError } = await supabase.auth.getUser();
+        if (!refreshError && refreshedUser) {
+          setUser(refreshedUser);
+          setSession((prev) => (prev ? { ...prev, user: refreshedUser } : prev));
         }
       }
-    } catch (err) {
-      console.error('AuthProvider: Developer role sync failed:', err);
-    } finally {
-      setRoleSyncing(false);
+    } else if (!shouldBeDeveloper && currentRole === 'developer') {
+      const { error: updateError } = await supabase.auth.updateUser({ data: { role: null } });
+      if (!updateError) {
+        const { data: { user: refreshedUser }, error: refreshError } = await supabase.auth.getUser();
+        if (!refreshError && refreshedUser) {
+          setUser(refreshedUser);
+          setSession((prev) => (prev ? { ...prev, user: refreshedUser } : prev));
+        }
+      }
     }
-  }, []);
+  } catch (err) {
+    console.error('AuthProvider: Developer role sync failed:', err);
+    setIsDeveloper(false);
+  } finally {
+    setRoleSyncing(false);
+  }
+}, []);
+
 
   // Force session refresh
   const refreshSession = useCallback(async (): Promise<boolean> => {
@@ -338,16 +343,21 @@ export function AuthProvider({ children }: AuthProviderProps) {
     };
   }, [validateSession, syncDeveloperRole]);
 
-  const value: AuthContextType = {
-    user,
-    session,
-    loading: loading || roleSyncing,
-    error,
-    withValidSession,
-    signOut,
-    refreshSession,
-    isDeveloper: user?.user_metadata?.role === 'developer'
-  };
+  useEffect(() => {
+    checkDeveloper(user?.email);
+  }, [user?.email, checkDeveloper]);
+
+const value: AuthContextType = {
+  user,
+  session,
+  loading: loading || roleSyncing, // if you don't have roleSyncing, just use `loading`
+  error,
+  withValidSession,
+  signOut,
+  refreshSession,
+  isDeveloper: user?.user_metadata?.role === 'developer'
+};
+
 
   console.log('AuthProvider: Rendering with state:', { 
     hasUser: !!user, 
