@@ -10,6 +10,7 @@ interface AuthContextType {
   withValidSession: (operation: () => Promise<any>) => Promise<any>;
   signOut: () => Promise<void>;
   refreshSession: () => Promise<boolean>;
+  isDeveloper: boolean;
 }
 
 export const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -32,6 +33,25 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isDeveloper, setIsDeveloper] = useState(false);
+
+  const checkDeveloper = useCallback(async (email: string | undefined) => {
+    if (!email) {
+      setIsDeveloper(false);
+      return;
+    }
+    try {
+      const { data } = await supabase
+        .from('developer_accounts')
+        .select('email')
+        .eq('email', email)
+        .single();
+      setIsDeveloper(!!data);
+    } catch (err) {
+      console.error('AuthProvider: Developer check failed:', err);
+      setIsDeveloper(false);
+    }
+  }, []);
 
   // Force session refresh
   const refreshSession = useCallback(async (): Promise<boolean> => {
@@ -294,6 +314,10 @@ export function AuthProvider({ children }: AuthProviderProps) {
     };
   }, [validateSession]);
 
+  useEffect(() => {
+    checkDeveloper(user?.email);
+  }, [user?.email, checkDeveloper]);
+
   const value: AuthContextType = {
     user,
     session,
@@ -301,7 +325,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
     error,
     withValidSession,
     signOut,
-    refreshSession
+    refreshSession,
+    isDeveloper
   };
 
   console.log('AuthProvider: Rendering with state:', { 

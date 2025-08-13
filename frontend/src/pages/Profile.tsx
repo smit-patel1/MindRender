@@ -17,13 +17,12 @@ interface TokenUsage {
 
 
 export default function Profile() {
-    const { user, loading: authLoading, signOut, withValidSession } = useAuth();
+    const { user, loading: authLoading, signOut, withValidSession, isDeveloper } = useAuth();
   const navigate = useNavigate();
   const [tokenUsage, setTokenUsage] = useState<TokenUsage>({ total_tokens: 0, recent_activity: [] });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-    const isDevAccount = user?.user_metadata?.role === 'developer';
     const tokensUsed = tokenUsage.total_tokens;
     const tokensRemaining = Math.max(0, TOKEN_LIMIT - tokensUsed);
     const usagePercentage = Math.min((tokensUsed / TOKEN_LIMIT) * 100, 100);
@@ -36,7 +35,7 @@ export default function Profile() {
       }
 
     const fetchUserData = async () => {
-        if (!user || isDevAccount) {
+        if (!user || isDeveloper) {
           setLoading(false);
           return;
         }
@@ -95,7 +94,7 @@ export default function Profile() {
     if (user) {
       fetchUserData();
     }
-    }, [user, authLoading, navigate, isDevAccount, withValidSession]);
+    }, [user, authLoading, navigate, isDeveloper, withValidSession]);
 
   const handleSignOut = async () => {
     try {
@@ -129,9 +128,9 @@ export default function Profile() {
     },
     {
       label: "Account Status",
-      value: isDevAccount ? "Premium" : "Standard",
+      value: isDeveloper ? "Premium" : "Standard",
       icon: Award,
-      color: isDevAccount ? "text-purple-500" : "text-blue-500"
+      color: isDeveloper ? "text-purple-500" : "text-blue-500"
     }
   ];
 
@@ -184,7 +183,7 @@ export default function Profile() {
                 </h1>
                 <p className="text-lg text-gray-300">{user.email}</p>
                 <p className="text-sm text-gray-400 mt-1">
-                  Plan: {isDevAccount ? "Premium" : "Standard"}
+                  Plan: {isDeveloper ? "Premium" : "Standard"}
                 </p>
               </div>
             </motion.div>
@@ -250,7 +249,7 @@ export default function Profile() {
       </section>
 
       {/* Usage Progress (for non-judge accounts) - Keep prompts, tokens, and plan tier */}
-        {!isDevAccount && (
+        {!isDeveloper && (
         <section className="py-8">
           <div className="container mx-auto px-4">
             <div className="max-w-2xl mx-auto">
