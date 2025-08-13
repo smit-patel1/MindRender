@@ -33,51 +33,67 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-const [roleSyncing, setRoleSyncing] = useState(false);
-const [isDeveloper, setIsDeveloper] = useState(false);
+  const [roleSyncing, setRoleSyncing] = useState(false);
+  const [isDeveloper, setIsDeveloper] = useState(false);
 
-const syncDeveloperRole = useCallback(async (currentUser: User | null) => {
-  if (typeof window === 'undefined' || !currentUser?.email) return;
+  const syncDeveloperRole = useCallback(
+    async (currentUser: User | null) => {
+      if (typeof window === 'undefined') return;
 
-  setRoleSyncing(true);
-  try {
-    const { data, error } = await supabase
-      .from('developer_accounts')
-      .select('email')
-      .eq('email', currentUser.email)
-      .single();
-
-    const shouldBeDeveloper = !error && !!data;
-    const currentRole = currentUser.user_metadata?.role;
-
-    setIsDeveloper(shouldBeDeveloper);
-
-    if (shouldBeDeveloper && currentRole !== 'developer') {
-      const { error: updateError } = await supabase.auth.updateUser({ data: { role: 'developer' } });
-      if (!updateError) {
-        const { data: { user: refreshedUser }, error: refreshError } = await supabase.auth.getUser();
-        if (!refreshError && refreshedUser) {
-          setUser(refreshedUser);
-          setSession((prev) => (prev ? { ...prev, user: refreshedUser } : prev));
-        }
+      if (!currentUser?.email) {
+        setIsDeveloper(false);
+        return;
       }
-    } else if (!shouldBeDeveloper && currentRole === 'developer') {
-      const { error: updateError } = await supabase.auth.updateUser({ data: { role: null } });
-      if (!updateError) {
-        const { data: { user: refreshedUser }, error: refreshError } = await supabase.auth.getUser();
-        if (!refreshError && refreshedUser) {
-          setUser(refreshedUser);
-          setSession((prev) => (prev ? { ...prev, user: refreshedUser } : prev));
+
+      if (roleSyncing) return;
+
+      setRoleSyncing(true);
+      try {
+        const { data, error } = await supabase
+          .from('developer_accounts')
+          .select('email')
+          .eq('email', currentUser.email)
+          .single();
+
+        const shouldBeDeveloper = !error && !!data;
+        const currentRole = currentUser.user_metadata?.role;
+
+        setIsDeveloper(shouldBeDeveloper);
+
+        if (shouldBeDeveloper && currentRole !== 'developer') {
+          const { error: updateError } = await supabase.auth.updateUser({ data: { role: 'developer' } });
+          if (!updateError) {
+            const {
+              data: { user: refreshedUser },
+              error: refreshError,
+            } = await supabase.auth.getUser();
+            if (!refreshError && refreshedUser) {
+              setUser(refreshedUser);
+              setSession((prev) => (prev ? { ...prev, user: refreshedUser } : prev));
+            }
+          }
+        } else if (!shouldBeDeveloper && currentRole === 'developer') {
+          const { error: updateError } = await supabase.auth.updateUser({ data: { role: null } });
+          if (!updateError) {
+            const {
+              data: { user: refreshedUser },
+              error: refreshError,
+            } = await supabase.auth.getUser();
+            if (!refreshError && refreshedUser) {
+              setUser(refreshedUser);
+              setSession((prev) => (prev ? { ...prev, user: refreshedUser } : prev));
+            }
+          }
         }
+      } catch (err) {
+        console.error('AuthProvider: Developer role sync failed:', err);
+        setIsDeveloper(false);
+      } finally {
+        setRoleSyncing(false);
       }
-    }
-  } catch (err) {
-    console.error('AuthProvider: Developer role sync failed:', err);
-    setIsDeveloper(false);
-  } finally {
-    setRoleSyncing(false);
-  }
-}, []);
+    },
+    [roleSyncing]
+  );
 
 
   // Force session refresh
@@ -344,8 +360,8 @@ const syncDeveloperRole = useCallback(async (currentUser: User | null) => {
   }, [validateSession, syncDeveloperRole]);
 
   useEffect(() => {
-    checkDeveloper(user?.email);
-  }, [user?.email, checkDeveloper]);
+    syncDeveloperRole(user);
+  }, [user, syncDeveloperRole]);
 
 const value: AuthContextType = {
   user,
@@ -355,7 +371,7 @@ const value: AuthContextType = {
   withValidSession,
   signOut,
   refreshSession,
-  isDeveloper: user?.user_metadata?.role === 'developer'
+  isDeveloper,
 };
 
 
