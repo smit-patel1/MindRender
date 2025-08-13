@@ -735,7 +735,7 @@ export default function Demo(): JSX.Element {
         />
 
 <main className="flex-1 overflow-y-auto md:overflow-hidden">
-  <div className="grid grid-cols-1 md:grid-cols-12 h-full md:min-h-[70vh]">
+  <div className="grid grid-cols-1 md:grid-cols-12 h-full">
     <aside className="hidden md:flex md:col-span-2 bg-gray-800 border-r border-gray-700 flex-col">
       <div className="p-3 space-y-3 flex-1 md:overflow-y-auto">
         <div className="flex items-center space-x-2 pb-2 border-b border-gray-700">
@@ -881,7 +881,7 @@ export default function Demo(): JSX.Element {
               </div>
             </aside>
 
-            <section className="order-2 md:order-none md:col-span-7 bg-white border-b md:border-b-0 md:border-r border-gray-300 flex flex-col min-h-[60vh] md:h-full">
+            <section className="order-2 md:order-none md:col-span-7 bg-white border-b md:border-b-0 md:border-r border-gray-300 flex flex-col md:h-full">
               <div className="bg-gray-50 border-b border-gray-200 px-4 py-3 flex-shrink-0">
                 <div className="flex items-center space-x-2">
                   <Monitor className="w-5 h-5 text-gray-600" />
@@ -938,7 +938,7 @@ export default function Demo(): JSX.Element {
               </div>
             </section>
 
-            <aside className="order-3 md:order-none md:col-span-3 bg-gray-50 flex flex-col min-h-[40vh] md:h-full">
+            <aside className="order-3 md:order-none md:col-span-3 bg-gray-50 flex flex-col md:h-full">
               <div className="bg-white border-b border-gray-200 px-3 py-3 flex-shrink-0">
                 <div className="flex items-center space-x-2">
                   <BookOpen className="w-4 h-4 text-blue-600" />
