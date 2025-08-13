@@ -130,7 +130,7 @@ const MOCK_BILLING_HISTORY: BillingHistory[] = [
 ];
 
 export default function ManageSubscription() {
-  const { user } = useAuth();
+  const { user, isDeveloper } = useAuth();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [showCancelModal, setShowCancelModal] = useState(false);
@@ -138,8 +138,7 @@ export default function ManageSubscription() {
   const [selectedPlan, setSelectedPlan] = useState<SubscriptionPlan | null>(null);
   const [billingHistory] = useState<BillingHistory[]>(MOCK_BILLING_HISTORY);
 
-  const isDevAccount = user?.user_metadata?.role === 'developer';
-  const currentPlan = isDevAccount ? 'Ultra' : 'Free';
+  const currentPlan = isDeveloper ? 'Ultra' : 'Free';
   const nextBillingDate = new Date();
   nextBillingDate.setMonth(nextBillingDate.getMonth() + 1);
 
@@ -241,7 +240,7 @@ export default function ManageSubscription() {
                     <h3 className="text-lg font-semibold">{currentPlan} Plan</h3>
                   </div>
                   <p className="text-gray-300">
-                    {isDevAccount ? '1,000,000 tokens per month' : '10,000 tokens per month'}
+                    {isDeveloper ? '1,000,000 tokens per month' : '10,000 tokens per month'}
                   </p>
                 </div>
                 
@@ -251,7 +250,7 @@ export default function ManageSubscription() {
                     <h3 className="text-lg font-semibold">Next Billing</h3>
                   </div>
                   <p className="text-gray-300">
-                    {isDevAccount ? 'No billing required' : nextBillingDate.toLocaleDateString()}
+                    {isDeveloper ? 'No billing required' : nextBillingDate.toLocaleDateString()}
                   </p>
                 </div>
                 
@@ -269,7 +268,7 @@ export default function ManageSubscription() {
       </section>
 
       {/* Available Plans */}
-      {!isDevAccount && (
+      {!isDeveloper && (
         <section className="py-8">
           <div className="container mx-auto px-4">
             <div className="max-w-6xl mx-auto">
@@ -351,7 +350,7 @@ export default function ManageSubscription() {
               {/* Payment Method */}
               <div className="bg-gray-800 rounded-xl p-6">
                 <h2 className="text-2xl font-bold mb-6">Payment Method</h2>
-                {isDevAccount ? (
+                {isDeveloper ? (
                   <div className="text-center py-8">
                     <Crown className="w-12 h-12 text-yellow-500 mx-auto mb-4" />
                     <p className="text-gray-300">No payment method required for Ultra account</p>
@@ -391,7 +390,7 @@ export default function ManageSubscription() {
                     <Edit3 className="w-5 h-5 mr-2" />
                     Update Billing Info
                   </button>
-                  {!isDevAccount && (
+                  {!isDeveloper && (
                     <button 
                       onClick={handleCancelSubscription}
                       className="w-full bg-red-600 hover:bg-red-500 text-white py-3 rounded-lg font-semibold transition-colors flex items-center justify-center"
