@@ -1,4 +1,12 @@
-import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
+import React, {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  useCallback,
+  useRef,
+  ReactNode,
+} from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '../lib/supabaseClient';
 
@@ -34,66 +42,66 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [roleSyncing, setRoleSyncing] = useState(false);
+  const roleSyncingRef = useRef(false);
   const [isDeveloper, setIsDeveloper] = useState(false);
 
-  const syncDeveloperRole = useCallback(
-    async (currentUser: User | null) => {
-      if (typeof window === 'undefined') return;
+  const syncDeveloperRole = useCallback(async (currentUser: User | null) => {
+    if (typeof window === 'undefined') return;
 
-      if (!currentUser?.email) {
-        setIsDeveloper(false);
-        return;
-      }
+    if (!currentUser?.email) {
+      setIsDeveloper(false);
+      return;
+    }
 
-      if (roleSyncing) return;
+    if (roleSyncingRef.current) return;
 
-      setRoleSyncing(true);
-      try {
-        const { data, error } = await supabase
-          .from('developer_accounts')
-          .select('email')
-          .eq('email', currentUser.email)
-          .single();
+    roleSyncingRef.current = true;
+    setRoleSyncing(true);
+    try {
+      const { data, error } = await supabase
+        .from('developer_accounts')
+        .select('email')
+        .eq('email', currentUser.email)
+        .single();
 
-        const shouldBeDeveloper = !error && !!data;
-        const currentRole = currentUser.user_metadata?.role;
+      const shouldBeDeveloper = !error && !!data;
+      const currentRole = currentUser.user_metadata?.role;
 
-        setIsDeveloper(shouldBeDeveloper);
+      setIsDeveloper(shouldBeDeveloper);
 
-        if (shouldBeDeveloper && currentRole !== 'developer') {
-          const { error: updateError } = await supabase.auth.updateUser({ data: { role: 'developer' } });
-          if (!updateError) {
-            const {
-              data: { user: refreshedUser },
-              error: refreshError,
-            } = await supabase.auth.getUser();
-            if (!refreshError && refreshedUser) {
-              setUser(refreshedUser);
-              setSession((prev) => (prev ? { ...prev, user: refreshedUser } : prev));
-            }
-          }
-        } else if (!shouldBeDeveloper && currentRole === 'developer') {
-          const { error: updateError } = await supabase.auth.updateUser({ data: { role: null } });
-          if (!updateError) {
-            const {
-              data: { user: refreshedUser },
-              error: refreshError,
-            } = await supabase.auth.getUser();
-            if (!refreshError && refreshedUser) {
-              setUser(refreshedUser);
-              setSession((prev) => (prev ? { ...prev, user: refreshedUser } : prev));
-            }
+      if (shouldBeDeveloper && currentRole !== 'developer') {
+        const { error: updateError } = await supabase.auth.updateUser({ data: { role: 'developer' } });
+        if (!updateError) {
+          const {
+            data: { user: refreshedUser },
+            error: refreshError,
+          } = await supabase.auth.getUser();
+          if (!refreshError && refreshedUser) {
+            setUser(refreshedUser);
+            setSession((prev) => (prev ? { ...prev, user: refreshedUser } : prev));
           }
         }
-      } catch (err) {
-        console.error('AuthProvider: Developer role sync failed:', err);
-        setIsDeveloper(false);
-      } finally {
-        setRoleSyncing(false);
+      } else if (!shouldBeDeveloper && currentRole === 'developer') {
+        const { error: updateError } = await supabase.auth.updateUser({ data: { role: null } });
+        if (!updateError) {
+          const {
+            data: { user: refreshedUser },
+            error: refreshError,
+          } = await supabase.auth.getUser();
+          if (!refreshError && refreshedUser) {
+            setUser(refreshedUser);
+            setSession((prev) => (prev ? { ...prev, user: refreshedUser } : prev));
+          }
+        }
       }
-    },
-    [roleSyncing]
-  );
+    } catch (err) {
+      console.error('AuthProvider: Developer role sync failed:', err);
+      setIsDeveloper(false);
+    } finally {
+      roleSyncingRef.current = false;
+      setRoleSyncing(false);
+    }
+  }, []);
 
 
   // Force session refresh
@@ -361,7 +369,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
   useEffect(() => {
     syncDeveloperRole(user);
-  }, [user, syncDeveloperRole]);
+  }, [user]);
 
 const value: AuthContextType = {
   user,
