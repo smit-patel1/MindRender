@@ -40,11 +40,13 @@ import TokenDisplay from './TokenDisplay';
         </div>
         
         <div className="flex items-center space-x-2 sm:space-x-4">
+          <div className="hidden sm:block">
             <TokenDisplay
               isDevAccount={isDevAccount}
               tokenUsage={tokenUsage}
               isTokenLimitReached={isTokenLimitReached}
             />
+          </div>
           
           <button
             onClick={toggleMobileMenu}
