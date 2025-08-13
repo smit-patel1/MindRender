@@ -6,7 +6,7 @@ import { motion } from 'framer-motion';
 export default function Hero() {
   return (
     <section className="bg-gradient-to-b from-gray-900 to-gray-800 text-white">
-      <div className="mx-auto max-w-5xl px-4 pt-24 pb-16 text-center sm:text-left">
+      <div className="mx-auto max-w-5xl lg:max-w-7xl px-4 pt-24 pb-16 lg:pt-20 lg:pb-14 text-center sm:text-left">
         <motion.h1
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -15,6 +15,7 @@ export default function Hero() {
         >
           Welcome to <span className="text-yellow-400">MindRender</span>
         </motion.h1>
+
         <motion.p
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -23,6 +24,7 @@ export default function Hero() {
         >
           An AI-powered simulation engine that transforms natural language into live, interactive simulations. Designed for learning, discovery, and exploration.
         </motion.p>
+
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}

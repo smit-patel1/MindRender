@@ -734,14 +734,15 @@ export default function Demo(): JSX.Element {
           handleSignOut={handleSignOut}
         />
 
-        <main className="flex-1 overflow-auto">
-          <div className="grid grid-cols-1 md:grid-cols-12 min-h-[70vh]">
-            <aside className="hidden md:flex md:col-span-2 bg-gray-800 border-r border-gray-700 flex-col">
-              <div className="p-3 space-y-3 flex-1 overflow-y-auto">
-                <div className="flex items-center space-x-2 pb-2 border-b border-gray-700">
-                  <Monitor className="w-4 h-4 text-yellow-500" />
-                  <h2 className="text-xs font-semibold">Controls</h2>
-                </div>
+<main className="flex-1 overflow-y-auto md:overflow-hidden">
+  <div className="grid grid-cols-1 md:grid-cols-12 h-full md:min-h-[70vh]">
+    <aside className="hidden md:flex md:col-span-2 bg-gray-800 border-r border-gray-700 flex-col">
+      <div className="p-3 space-y-3 flex-1 md:overflow-y-auto">
+        <div className="flex items-center space-x-2 pb-2 border-b border-gray-700">
+          <Monitor className="w-4 h-4 text-yellow-500" />
+          <h2 className="text-xs font-semibold">Controls</h2>
+        </div>
+
 
                 {showContentWarning && (
                   <ContentWarningDisplay 
@@ -952,7 +953,8 @@ export default function Demo(): JSX.Element {
                 </div>
               </div>
               
-              <div className="flex-1 overflow-auto p-2">
+                <div className="flex-1 md:overflow-y-auto p-2">
+
                 {simulationData?.explanation && !showContentWarning ? (
                   <div className="bg-white rounded-lg p-3 shadow-sm border border-gray-200 h-full">
                     <FormattedExplanation explanation={simulationData.explanation} />
