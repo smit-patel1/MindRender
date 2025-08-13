@@ -1,10 +1,31 @@
-import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
-import DOMPurify from 'dompurify';
-import { useAuth } from '../contexts/AuthProvider';
-import { supabase } from '../lib/supabaseClient';
-import { TOKEN_LIMIT } from '../constants';
-import { Play, LogOut, Send, Loader2, BookOpen, Monitor, MessageSquare, AlertTriangle, Menu, X, ShieldAlert, Cpu, Atom, Dna } from 'lucide-react';
-import DemoNavbar from '../components/DemoNavbar';
+import React, {
+  useState,
+  useEffect,
+  useRef,
+  useCallback,
+  useMemo,
+} from "react";
+import DOMPurify from "dompurify";
+import { useAuth } from "../contexts/AuthProvider";
+import { supabase } from "../lib/supabaseClient";
+import { TOKEN_LIMIT } from "../constants";
+import {
+  Play,
+  LogOut,
+  Send,
+  Loader2,
+  BookOpen,
+  Monitor,
+  MessageSquare,
+  AlertTriangle,
+  Menu,
+  X,
+  ShieldAlert,
+  Cpu,
+  Atom,
+  Dna,
+} from "lucide-react";
+import DemoNavbar from "../components/DemoNavbar";
 
 interface SimulationResponse {
   canvasHtml: string;
@@ -23,81 +44,126 @@ interface User {
   user_metadata?: { role?: string };
 }
 
-const SUBJECTS = ['Physics', 'Biology', 'Computer Science'] as const;
-type SubjectType = typeof SUBJECTS[number];
+const SUBJECTS = ["Physics", "Biology", "Computer Science"] as const;
+type SubjectType = (typeof SUBJECTS)[number];
 
-const SUBJECT_INFO: Record<SubjectType, {
-  icon: React.ComponentType<{ className?: string }>;
-  description: string;
-  examples: string[];
-}> = {
-  'Physics': {
-    icon: Atom,
-    description: 'Interactive physics simulations with real-time controls',
-    examples: ['pendulum motion', 'wave interference', 'electromagnetic fields', 'thermodynamics']
-  },
-  'Biology': {
-    icon: Dna,
-    description: 'Dynamic biological process visualizations',
-    examples: ['cell division', 'photosynthesis', 'genetic inheritance', 'ecosystem dynamics']
-  },
-  'Computer Science': {
-    icon: Cpu,
-    description: 'Algorithm and data structure visualizations',
-    examples: ['sorting algorithms', 'binary trees', 'pathfinding', 'recursive functions']
+const SUBJECT_INFO: Record<
+  SubjectType,
+  {
+    icon: React.ComponentType<{ className?: string }>;
+    description: string;
+    examples: string[];
   }
+> = {
+  Physics: {
+    icon: Atom,
+    description: "Interactive physics simulations with real-time controls",
+    examples: [
+      "pendulum motion",
+      "wave interference",
+      "electromagnetic fields",
+      "thermodynamics",
+    ],
+  },
+  Biology: {
+    icon: Dna,
+    description: "Dynamic biological process visualizations",
+    examples: [
+      "cell division",
+      "photosynthesis",
+      "genetic inheritance",
+      "ecosystem dynamics",
+    ],
+  },
+  "Computer Science": {
+    icon: Cpu,
+    description: "Algorithm and data structure visualizations",
+    examples: [
+      "sorting algorithms",
+      "binary trees",
+      "pathfinding",
+      "recursive functions",
+    ],
+  },
 };
 
-const validatePromptClient = (prompt: string, subject: string): { isValid: boolean; reason?: string } => {
+const validatePromptClient = (
+  prompt: string,
+  subject: string
+): { isValid: boolean; reason?: string } => {
   const STRICTLY_BLOCKED_KEYWORDS = [
-    'kiss', 'kissing', 'sexual', 'nude', 'naked', 'porn', 'sex', 'erotic', 'intimate', 'romance', 'dating',
-    'kill', 'murder', 'blood', 'death',
-    'hate', 'racist', 'terrorist', 'drug', 'alcohol', 'suicide'
+    "kiss",
+    "kissing",
+    "sexual",
+    "nude",
+    "naked",
+    "porn",
+    "sex",
+    "erotic",
+    "intimate",
+    "romance",
+    "dating",
+    "kill",
+    "murder",
+    "blood",
+    "death",
+    "hate",
+    "racist",
+    "terrorist",
+    "drug",
+    "alcohol",
+    "suicide",
   ];
 
-  const UNAVAILABLE_SUBJECTS = ['mathematics', 'chemistry', 'math', 'chem'];
+  const UNAVAILABLE_SUBJECTS = ["mathematics", "chemistry", "math", "chem"];
 
   const lowerPrompt = prompt.toLowerCase();
-  
-  const unavailableSubject = UNAVAILABLE_SUBJECTS.find(subj => 
-    lowerPrompt.includes(subj) && !lowerPrompt.includes(subject.toLowerCase())
+
+  const unavailableSubject = UNAVAILABLE_SUBJECTS.find(
+    (subj) =>
+      lowerPrompt.includes(subj) && !lowerPrompt.includes(subject.toLowerCase())
   );
-  
+
   if (unavailableSubject) {
-    return { 
-      isValid: false, 
-      reason: `${unavailableSubject.charAt(0).toUpperCase() + unavailableSubject.slice(1)} simulations will be available in future updates. Currently available: Physics, Biology, and Computer Science.`
+    return {
+      isValid: false,
+      reason: `${
+        unavailableSubject.charAt(0).toUpperCase() + unavailableSubject.slice(1)
+      } simulations will be available in future updates. Currently available: Physics, Biology, and Computer Science.`,
     };
   }
-  
-  const blockedWord = STRICTLY_BLOCKED_KEYWORDS.find(keyword => 
+
+  const blockedWord = STRICTLY_BLOCKED_KEYWORDS.find((keyword) =>
     lowerPrompt.includes(keyword.toLowerCase())
   );
-  
+
   if (blockedWord) {
-    return { 
-      isValid: false, 
-      reason: `Content not suitable for educational platform. Please focus on academic ${subject} topics.`
+    return {
+      isValid: false,
+      reason: `Content not suitable for educational platform. Please focus on academic ${subject} topics.`,
     };
   }
-  
+
   if (prompt.trim().length < 15) {
-    return { 
-      isValid: false, 
-      reason: `Please provide a more detailed educational prompt (minimum 15 characters).`
+    return {
+      isValid: false,
+      reason: `Please provide a more detailed educational prompt (minimum 15 characters).`,
     };
   }
-  
+
   return { isValid: true };
 };
 
-const ErrorBoundary: React.FC<{ children: React.ReactNode; fallback: React.ReactNode }> = ({ children, fallback }) => {
+const ErrorBoundary: React.FC<{
+  children: React.ReactNode;
+  fallback: React.ReactNode;
+}> = ({ children, fallback }) => {
   const [hasError, setHasError] = useState(false);
 
   useEffect(() => {
     const handleError = () => setHasError(true);
-    window.addEventListener('error', handleError);
-    return () => window.removeEventListener('error', handleError);
+    window.addEventListener("error", handleError);
+    return () => window.removeEventListener("error", handleError);
   }, []);
 
   if (hasError) {
@@ -107,60 +173,81 @@ const ErrorBoundary: React.FC<{ children: React.ReactNode; fallback: React.React
   return <>{children}</>;
 };
 
-const LoadingSpinner = React.memo(({ size = 'default', text }: { size?: 'small' | 'default' | 'large'; text?: string }) => {
-  const sizeClasses = {
-    small: 'w-4 h-4',
-    default: 'w-8 h-8',
-    large: 'w-12 h-12'
-  };
-
-  return (
-    <div className="flex flex-col items-center space-y-2">
-      <Loader2 className={`${sizeClasses[size]} text-blue-500 animate-spin`} />
-      {text && <div className="text-gray-700 font-medium text-sm">{text}</div>}
-    </div>
-  );
-});
-
-const FormattedExplanation = React.memo(({ explanation }: { explanation: string }) => {
-  const [isExpanded, setIsExpanded] = useState(false);
-  
-  const { truncatedContent, fullContent, needsTruncation } = useMemo(() => {
-    if (!explanation) return { truncatedContent: '', fullContent: '', needsTruncation: false };
-    
-    const formatContent = (text: string) => {
-      return text
-        .replace(/\*\*(.*?)\*\*/g, '<h3 class="explanation-heading">$1</h3>')
-        .replace(/^- (.*$)/gim, '<li class="explanation-bullet">$1</li>')
-        .replace(/^\* (.*$)/gim, '<li class="explanation-bullet">$1</li>')
-        .replace(/^• (.*$)/gim, '<li class="explanation-bullet">$1</li>')
-        .split('\n')
-        .map(line => {
-          const trimmed = line.trim();
-          if (trimmed.startsWith('<h3') || trimmed.startsWith('<li')) return trimmed;
-          if (trimmed) return `<p class="explanation-text">${trimmed}</p>`;
-          return '';
-        })
-        .filter(Boolean)
-        .join('');
+const LoadingSpinner = React.memo(
+  ({
+    size = "default",
+    text,
+  }: {
+    size?: "small" | "default" | "large";
+    text?: string;
+  }) => {
+    const sizeClasses = {
+      small: "w-4 h-4",
+      default: "w-8 h-8",
+      large: "w-12 h-12",
     };
 
-    const words = explanation.split(' ');
-    const wordLimit = 60;
-    const needsTruncation = words.length > wordLimit;
+    return (
+      <div className="flex flex-col items-center space-y-2">
+        <Loader2
+          className={`${sizeClasses[size]} text-blue-500 animate-spin`}
+        />
+        {text && (
+          <div className="text-gray-700 font-medium text-sm">{text}</div>
+        )}
+      </div>
+    );
+  }
+);
 
-    const truncatedText = needsTruncation ? words.slice(0, wordLimit).join(' ') + '...' : explanation;
+const FormattedExplanation = React.memo(
+  ({ explanation }: { explanation: string }) => {
+    const [isExpanded, setIsExpanded] = useState(false);
 
-    return {
-      truncatedContent: DOMPurify.sanitize(formatContent(truncatedText)),
-      fullContent: DOMPurify.sanitize(formatContent(explanation)),
-      needsTruncation
-    };
-  }, [explanation]);
+    const { truncatedContent, fullContent, needsTruncation } = useMemo(() => {
+      if (!explanation)
+        return {
+          truncatedContent: "",
+          fullContent: "",
+          needsTruncation: false,
+        };
 
-  return (
-    <div className="space-y-2 h-full overflow-y-auto">
-      <style>{`
+      const formatContent = (text: string) => {
+        return text
+          .replace(/\*\*(.*?)\*\*/g, '<h3 class="explanation-heading">$1</h3>')
+          .replace(/^- (.*$)/gim, '<li class="explanation-bullet">$1</li>')
+          .replace(/^\* (.*$)/gim, '<li class="explanation-bullet">$1</li>')
+          .replace(/^• (.*$)/gim, '<li class="explanation-bullet">$1</li>')
+          .split("\n")
+          .map((line) => {
+            const trimmed = line.trim();
+            if (trimmed.startsWith("<h3") || trimmed.startsWith("<li"))
+              return trimmed;
+            if (trimmed) return `<p class="explanation-text">${trimmed}</p>`;
+            return "";
+          })
+          .filter(Boolean)
+          .join("");
+      };
+
+      const words = explanation.split(" ");
+      const wordLimit = 60;
+      const needsTruncation = words.length > wordLimit;
+
+      const truncatedText = needsTruncation
+        ? words.slice(0, wordLimit).join(" ") + "..."
+        : explanation;
+
+      return {
+        truncatedContent: DOMPurify.sanitize(formatContent(truncatedText)),
+        fullContent: DOMPurify.sanitize(formatContent(explanation)),
+        needsTruncation,
+      };
+    }, [explanation]);
+
+    return (
+      <div className="space-y-2 h-full overflow-y-auto">
+        <style>{`
         .explanation-heading {
           font-size: 16px;
           font-weight: 700;
@@ -206,81 +293,110 @@ const FormattedExplanation = React.memo(({ explanation }: { explanation: string 
           hyphens: auto;
         }
       `}</style>
-      
-      <div 
-        className="explanation-content"
-        dangerouslySetInnerHTML={{ 
-          __html: isExpanded ? fullContent : truncatedContent 
-        }} 
-      />
-      
-      {needsTruncation && (
-        <div className="mt-2">
-          <button
-            onClick={() => setIsExpanded(!isExpanded)}
-            className="text-blue-600 hover:text-blue-800 text-xs font-medium underline focus:outline-none focus:ring-1 focus:ring-blue-500 focus:ring-opacity-50 rounded"
-          >
-            {isExpanded ? 'Show Less' : 'Read More'}
-          </button>
-        </div>
-      )}
-    </div>
-  );
-});
 
-const ContentWarningDisplay = React.memo(({ warningMessage, onDismiss }: { warningMessage: string; onDismiss: () => void }) => {
-  return (
-    <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mb-3">
-      <div className="flex items-start space-x-2">
-        <ShieldAlert className="w-4 h-4 text-yellow-600 mt-0.5 flex-shrink-0" />
-        <div className="flex-1">
-          <h4 className="text-xs font-semibold text-yellow-900 mb-1">Content Notice</h4>
-          <p className="text-xs text-yellow-700 mb-2">{warningMessage}</p>
-          <button
-            onClick={onDismiss}
-            className="text-xs bg-yellow-600 hover:bg-yellow-700 text-white px-2 py-1 rounded transition-colors"
-          >
-            Try Again
-          </button>
+        <div
+          className="explanation-content"
+          dangerouslySetInnerHTML={{
+            __html: isExpanded ? fullContent : truncatedContent,
+          }}
+        />
+
+        {needsTruncation && (
+          <div className="mt-2">
+            <button
+              onClick={() => setIsExpanded(!isExpanded)}
+              className="text-blue-600 hover:text-blue-800 text-xs font-medium underline focus:outline-none focus:ring-1 focus:ring-blue-500 focus:ring-opacity-50 rounded"
+            >
+              {isExpanded ? "Show Less" : "Read More"}
+            </button>
+          </div>
+        )}
+      </div>
+    );
+  }
+);
+
+const ContentWarningDisplay = React.memo(
+  ({
+    warningMessage,
+    onDismiss,
+  }: {
+    warningMessage: string;
+    onDismiss: () => void;
+  }) => {
+    return (
+      <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mb-3">
+        <div className="flex items-start space-x-2">
+          <ShieldAlert className="w-4 h-4 text-yellow-600 mt-0.5 flex-shrink-0" />
+          <div className="flex-1">
+            <h4 className="text-xs font-semibold text-yellow-900 mb-1">
+              Content Notice
+            </h4>
+            <p className="text-xs text-yellow-700 mb-2">{warningMessage}</p>
+            <button
+              onClick={onDismiss}
+              className="text-xs bg-yellow-600 hover:bg-yellow-700 text-white px-2 py-1 rounded transition-colors"
+            >
+              Try Again
+            </button>
+          </div>
         </div>
       </div>
-    </div>
-  );
-});
+    );
+  }
+);
 
-const SubjectSelector = React.memo(({ subject, onChange, disabled }: { subject: SubjectType; onChange: (value: SubjectType) => void; disabled: boolean }) => {
-  return (
-    <div>
-      <label className="block text-sm font-medium text-gray-300 mb-2">
-        Subject Area
-      </label>
-      <select
-        value={subject}
-        onChange={(e) => onChange(e.target.value as SubjectType)}
-        disabled={disabled}
-        className="w-full bg-gray-700 border border-gray-600 rounded-md px-2 py-2 text-white text-sm focus:ring-1 focus:ring-yellow-500 focus:border-transparent transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-      >
-        {SUBJECTS.map((subj) => (
-          <option key={subj} value={subj}>{subj}</option>
-        ))}
-      </select>
-      
-      <div className="mt-2 p-2 bg-gray-600/30 rounded-md">
-        <div className="flex items-center space-x-2 mb-1">
-          {React.createElement(SUBJECT_INFO[subject].icon, { className: "w-4 h-4 text-yellow-400" })}
-          <span className="text-xs font-medium text-gray-300">{subject}</span>
-        </div>
-        <p className="text-xs text-gray-400 mb-2">{SUBJECT_INFO[subject].description}</p>
-        <div className="text-xs text-gray-500">
-          <strong>Try:</strong> {SUBJECT_INFO[subject].examples.join(', ')}
+const SubjectSelector = React.memo(
+  ({
+    subject,
+    onChange,
+    disabled,
+  }: {
+    subject: SubjectType;
+    onChange: (value: SubjectType) => void;
+    disabled: boolean;
+  }) => {
+    return (
+      <div>
+        <label className="block text-sm font-medium text-gray-300 mb-2">
+          Subject Area
+        </label>
+        <select
+          value={subject}
+          onChange={(e) => onChange(e.target.value as SubjectType)}
+          disabled={disabled}
+          className="w-full bg-gray-700 border border-gray-600 rounded-md px-2 py-2 text-white text-sm focus:ring-1 focus:ring-yellow-500 focus:border-transparent transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          {SUBJECTS.map((subj) => (
+            <option key={subj} value={subj}>
+              {subj}
+            </option>
+          ))}
+        </select>
+
+        <div className="mt-2 p-2 bg-gray-600/30 rounded-md">
+          <div className="flex items-center space-x-2 mb-1">
+            {React.createElement(SUBJECT_INFO[subject].icon, {
+              className: "w-4 h-4 text-yellow-400",
+            })}
+            <span className="text-xs font-medium text-gray-300">{subject}</span>
+          </div>
+          <p className="text-xs text-gray-400 mb-2">
+            {SUBJECT_INFO[subject].description}
+          </p>
+          <div className="text-xs text-gray-500">
+            <strong>Try:</strong> {SUBJECT_INFO[subject].examples.join(", ")}
+          </div>
         </div>
       </div>
-    </div>
-  );
-});
+    );
+  }
+);
 
-const SimulationIframe = React.memo(({ simulationData }: { simulationData: SimulationResponse }) => {
-  const iframeContent = useMemo(() => `
+const SimulationIframe = React.memo(
+  ({ simulationData }: { simulationData: SimulationResponse }) => {
+    const iframeContent = useMemo(
+      () => `
     <!DOCTYPE html>
     <html lang="en">
     <head>
@@ -354,7 +470,11 @@ const SimulationIframe = React.memo(({ simulationData }: { simulationData: Simul
       </style>
     </head>
     <body>
-      <div class="status ${simulationData.contentWarning ? 'warning' : 'loading'}" id="status">${simulationData.contentWarning ? 'Content Notice' : 'Initializing...'}</div>
+      <div class="status ${
+        simulationData.contentWarning ? "warning" : "loading"
+      }" id="status">${
+        simulationData.contentWarning ? "Content Notice" : "Initializing..."
+      }</div>
       
       ${simulationData.canvasHtml}
       
@@ -433,7 +553,9 @@ const SimulationIframe = React.memo(({ simulationData }: { simulationData: Simul
           try {
             ${simulationData.jsCode}
             
-            ${!simulationData.contentWarning ? `
+            ${
+              !simulationData.contentWarning
+                ? `
             setTimeout(() => {
               if (statusEl) {
                 statusEl.className = 'status success';
@@ -443,7 +565,9 @@ const SimulationIframe = React.memo(({ simulationData }: { simulationData: Simul
                 }, 2000);
               }
             }, 1000);
-            ` : ''}
+            `
+                : ""
+            }
             
           } catch (error) {
             console.error('Execution Error:', error);
@@ -460,59 +584,80 @@ const SimulationIframe = React.memo(({ simulationData }: { simulationData: Simul
       </script>
     </body>
     </html>
-  `, [simulationData.canvasHtml, simulationData.jsCode, simulationData.contentWarning]);
+  `,
+      [
+        simulationData.canvasHtml,
+        simulationData.jsCode,
+        simulationData.contentWarning,
+      ]
+    );
 
-  return (
-    <iframe
-      className="w-full h-full border-0"
-      title="Interactive Simulation"
-      sandbox="allow-scripts"
-      scrolling="no"
-      srcDoc={iframeContent}
-      style={{
-        overflow: 'hidden',
-        border: 'none',
-        width: '100%',
-        height: '100%'
-      }}
-    />
-  );
-});
+    return (
+      <iframe
+        className="w-full h-full border-0"
+        title="Interactive Simulation"
+        sandbox="allow-scripts"
+        scrolling="no"
+        srcDoc={iframeContent}
+        style={{
+          overflow: "hidden",
+          border: "none",
+          width: "100%",
+          height: "100%",
+        }}
+      />
+    );
+  }
+);
 
 export default function Demo(): JSX.Element {
   const { user, loading: authLoading, error: authError, signOut } = useAuth();
-  const [subject, setSubject] = useState<SubjectType>('Physics');
-  const [prompt, setPrompt] = useState<string>('Show how a pendulum behaves under the influence of gravity and explain the energy transformations during its swing');
-  const [followUpPrompt, setFollowUpPrompt] = useState<string>('');
+  const [subject, setSubject] = useState<SubjectType>("Physics");
+  const [prompt, setPrompt] = useState<string>(
+    "Show how a pendulum behaves under the influence of gravity and explain the energy transformations during its swing"
+  );
+  const [followUpPrompt, setFollowUpPrompt] = useState<string>("");
   const [loading, setLoading] = useState<boolean>(false);
-  const [simulationData, setSimulationData] = useState<SimulationResponse | null>(null);
+  const [simulationData, setSimulationData] =
+    useState<SimulationResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [tokenUsage, setTokenUsage] = useState<number>(0);
   const [mobileMenuOpen, setMobileMenuOpen] = useState<boolean>(false);
   const [showContentWarning, setShowContentWarning] = useState<boolean>(false);
-  const [contentWarningMessage, setContentWarningMessage] = useState<string>('');
+  const [contentWarningMessage, setContentWarningMessage] =
+    useState<string>("");
 
-  const isDevAccount = useMemo(() => user?.user_metadata?.role === 'developer', [user?.user_metadata?.role]);
-  const isTokenLimitReached = useMemo(() => !isDevAccount && tokenUsage >= TOKEN_LIMIT, [isDevAccount, tokenUsage]);
-  const tokensRemaining = useMemo(() => Math.max(0, TOKEN_LIMIT - tokenUsage), [tokenUsage]);
+  const isDevAccount = useMemo(
+    () => user?.user_metadata?.role === "developer",
+    [user?.user_metadata?.role]
+  );
+  const isTokenLimitReached = useMemo(
+    () => !isDevAccount && tokenUsage >= TOKEN_LIMIT,
+    [isDevAccount, tokenUsage]
+  );
+  const tokensRemaining = useMemo(
+    () => Math.max(0, TOKEN_LIMIT - tokenUsage),
+    [tokenUsage]
+  );
 
   const fetchTokenUsage = useCallback(async () => {
     if (!user || isDevAccount) return;
 
     try {
-      const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
-      
+      const { data: sessionData, error: sessionError } =
+        await supabase.auth.getSession();
+
       if (sessionError || !sessionData?.session?.access_token) {
-        throw new Error('No valid session found');
+        throw new Error("No valid session found");
       }
 
       const response = await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/get_token_total`,
         {
-          method: 'POST',
+          method: "POST",
           headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${sessionData.session.access_token}`,
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${sessionData.session.access_token}`,
           },
           body: JSON.stringify({ user_id: user.id }),
         }
@@ -523,15 +668,14 @@ export default function Demo(): JSX.Element {
       }
 
       const data = await response.json();
-      
-      if (typeof data.total_tokens === 'number' && data.total_tokens >= 0) {
+
+      if (typeof data.total_tokens === "number" && data.total_tokens >= 0) {
         setTokenUsage(data.total_tokens);
       } else {
-        throw new Error('Invalid response format');
+        throw new Error("Invalid response format");
       }
-
     } catch (error) {
-      console.warn('Failed to fetch token usage:', error);
+      console.warn("Failed to fetch token usage:", error);
       setTokenUsage(0);
     }
   }, [user, isDevAccount]);
@@ -542,98 +686,119 @@ export default function Demo(): JSX.Element {
     }
   }, [user, authLoading, fetchTokenUsage]);
 
-  const handleRunSimulation = useCallback(async (inputPrompt?: string): Promise<void> => {
-    const currentPrompt = inputPrompt || prompt;
-    if (!currentPrompt.trim()) return;
-    
-    const clientValidation = validatePromptClient(currentPrompt, subject);
-    if (!clientValidation.isValid) {
-      setError(clientValidation.reason!);
-      return;
-    }
-    
-    if (isTokenLimitReached) {
-      setError(`Token limit reached (${tokenUsage}/${TOKEN_LIMIT}). Cannot run more simulations.`);
-      return;
-    }
-    
-    setLoading(true);
-    setError(null);
-    setShowContentWarning(false);
-    setMobileMenuOpen(false);
-    
-    try {
-      const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
-      
-      if (sessionError || !sessionData?.session?.access_token) {
-        throw new Error('No valid session found. Please log in again.');
-      }
+  const handleRunSimulation = useCallback(
+    async (inputPrompt?: string): Promise<void> => {
+      const currentPrompt = inputPrompt || prompt;
+      if (!currentPrompt.trim()) return;
 
-      const requestBody = {
-        prompt: currentPrompt.trim(),
-        subject: subject
-      };
-
-      const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/simulate`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${sessionData.session.access_token}`,
-          },
-          body: JSON.stringify(requestBody),
-        }
-      );
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`Simulation failed: ${response.status} ${response.statusText}`);
-      }
-
-      const contentType = response.headers.get('content-type');
-      if (!contentType?.includes('application/json')) {
-        const textResponse = await response.text();
-        throw new Error(`Expected JSON response, got: ${contentType}`);
-      }
-
-      const data: SimulationResponse = await response.json();
-
-      if (data.contentWarning) {
-        setShowContentWarning(true);
-        setContentWarningMessage(data.warningMessage || 'Content not suitable for educational platform');
-        setSimulationData(data);
+      const clientValidation = validatePromptClient(currentPrompt, subject);
+      if (!clientValidation.isValid) {
+        setError(clientValidation.reason!);
         return;
       }
 
-      if ((data as any).error) {
-        throw new Error(`Simulation error: ${(data as any).error}`);
+      if (isTokenLimitReached) {
+        setError(
+          `Token limit reached (${tokenUsage}/${TOKEN_LIMIT}). Cannot run more simulations.`
+        );
+        return;
       }
 
-      if (!data.canvasHtml || !data.jsCode) {
-        throw new Error('Invalid response format from simulation service');
+      setLoading(true);
+      setError(null);
+      setShowContentWarning(false);
+      setMobileMenuOpen(false);
+
+      try {
+        const { data: sessionData, error: sessionError } =
+          await supabase.auth.getSession();
+
+        if (sessionError || !sessionData?.session?.access_token) {
+          throw new Error("No valid session found. Please log in again.");
+        }
+
+        const requestBody = {
+          prompt: currentPrompt.trim(),
+          subject: subject,
+        };
+
+        const response = await fetch(
+          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/simulate`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${sessionData.session.access_token}`,
+            },
+            body: JSON.stringify(requestBody),
+          }
+        );
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          throw new Error(
+            `Simulation failed: ${response.status} ${response.statusText}`
+          );
+        }
+
+        const contentType = response.headers.get("content-type");
+        if (!contentType?.includes("application/json")) {
+          const textResponse = await response.text();
+          throw new Error(`Expected JSON response, got: ${contentType}`);
+        }
+
+        const data: SimulationResponse = await response.json();
+
+        if (data.contentWarning) {
+          setShowContentWarning(true);
+          setContentWarningMessage(
+            data.warningMessage ||
+              "Content not suitable for educational platform"
+          );
+          setSimulationData(data);
+          return;
+        }
+
+        if ((data as any).error) {
+          throw new Error(`Simulation error: ${(data as any).error}`);
+        }
+
+        if (!data.canvasHtml || !data.jsCode) {
+          throw new Error("Invalid response format from simulation service");
+        }
+
+        setSimulationData(data);
+
+        await fetchTokenUsage();
+
+        if (inputPrompt) {
+          setFollowUpPrompt("");
+        }
+      } catch (err: any) {
+        console.error("Simulation error:", err);
+        setError(
+          err.message || "An error occurred while generating the simulation"
+        );
+      } finally {
+        setLoading(false);
       }
-
-      setSimulationData(data);
-      
-      await fetchTokenUsage();
-
-      if (inputPrompt) {
-        setFollowUpPrompt('');
-      }
-
-    } catch (err: any) {
-      console.error('Simulation error:', err);
-      setError(err.message || 'An error occurred while generating the simulation');
-    } finally {
-      setLoading(false);
-    }
-  }, [prompt, subject, isTokenLimitReached, tokenUsage, isDevAccount, fetchTokenUsage]);
+    },
+    [
+      prompt,
+      subject,
+      isTokenLimitReached,
+      tokenUsage,
+      isDevAccount,
+      fetchTokenUsage,
+    ]
+  );
 
   const handleFollowUpSubmit = useCallback(async (): Promise<void> => {
     if (!followUpPrompt.trim()) return;
     if (isTokenLimitReached) {
-      setError(`Token limit reached (${tokenUsage}/${TOKEN_LIMIT}). Cannot run more simulations.`);
+      setError(
+        `Token limit reached (${tokenUsage}/${TOKEN_LIMIT}). Cannot run more simulations.`
+      );
       return;
     }
     await handleRunSimulation(followUpPrompt);
@@ -643,14 +808,14 @@ export default function Demo(): JSX.Element {
     try {
       await signOut();
     } catch (error) {
-      console.error('Sign out failed:', error);
+      console.error("Sign out failed:", error);
     }
   }, [signOut]);
 
   const handleNewSimulation = useCallback((): void => {
     setSimulationData(null);
-    setPrompt('');
-    setFollowUpPrompt('');
+    setPrompt("");
+    setFollowUpPrompt("");
     setError(null);
     setShowContentWarning(false);
     setMobileMenuOpen(false);
@@ -663,7 +828,7 @@ export default function Demo(): JSX.Element {
   }, []);
 
   const toggleMobileMenu = useCallback(() => {
-    setMobileMenuOpen(prev => !prev);
+    setMobileMenuOpen((prev) => !prev);
   }, []);
 
   const dismissError = useCallback(() => {
@@ -683,9 +848,11 @@ export default function Demo(): JSX.Element {
       <div className="min-h-screen bg-gray-900 flex items-center justify-center p-4">
         <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-6 sm:p-8 max-w-md mx-4">
           <div className="text-red-400 text-center">
-            <div className="text-lg sm:text-xl font-semibold mb-2">Authentication Error</div>
+            <div className="text-lg sm:text-xl font-semibold mb-2">
+              Authentication Error
+            </div>
             <div className="text-sm mb-4">{authError}</div>
-            <button 
+            <button
               onClick={() => window.location.reload()}
               className="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-400 transition-colors text-sm"
             >
@@ -701,8 +868,12 @@ export default function Demo(): JSX.Element {
     return (
       <div className="min-h-screen bg-gray-900 flex items-center justify-center p-4">
         <div className="text-center bg-gray-800 rounded-xl p-6 sm:p-8 max-w-md mx-4">
-          <div className="text-white text-lg sm:text-xl font-semibold mb-4">Access Required</div>
-          <div className="text-gray-300 mb-6 text-sm sm:text-base">Please log in to access the MindRender demo</div>
+          <div className="text-white text-lg sm:text-xl font-semibold mb-4">
+            Access Required
+          </div>
+          <div className="text-gray-300 mb-6 text-sm sm:text-base">
+            Please log in to access the MindRender demo
+          </div>
           <a
             href="/login"
             className="inline-flex items-center bg-yellow-500 text-black px-4 sm:px-6 py-2 sm:py-3 rounded-lg hover:bg-yellow-400 transition-colors font-medium text-sm sm:text-base"
@@ -718,11 +889,17 @@ export default function Demo(): JSX.Element {
   // Create a user object that matches the DemoNavbar interface
   const demoUser: User = {
     email: user.email,
-    id: user.id
+    id: user.id,
   };
 
   return (
-    <ErrorBoundary fallback={<div className="text-red-500 p-4">Something went wrong. Please refresh the page.</div>}>
+    <ErrorBoundary
+      fallback={
+        <div className="text-red-500 p-4">
+          Something went wrong. Please refresh the page.
+        </div>
+      }
+    >
       <div className="h-screen bg-gray-900 text-white overflow-hidden flex flex-col">
         <DemoNavbar
           user={demoUser}
@@ -744,7 +921,7 @@ export default function Demo(): JSX.Element {
                 </div>
 
                 {showContentWarning && (
-                  <ContentWarningDisplay 
+                  <ContentWarningDisplay
                     warningMessage={contentWarningMessage}
                     onDismiss={handleContentWarningDismiss}
                   />
@@ -754,7 +931,9 @@ export default function Demo(): JSX.Element {
                   <div className="bg-red-500/10 border border-red-500/20 rounded-lg p-2">
                     <div className="flex items-center space-x-1 mb-1">
                       <AlertTriangle className="w-3 h-3 text-red-400" />
-                      <div className="text-red-400 font-medium text-xs">Token Limit</div>
+                      <div className="text-red-400 font-medium text-xs">
+                        Token Limit
+                      </div>
                     </div>
                     <div className="text-red-300 text-xs">
                       Used {tokenUsage}/{TOKEN_LIMIT} tokens.
@@ -762,19 +941,23 @@ export default function Demo(): JSX.Element {
                   </div>
                 )}
 
-                {!isDevAccount && !isTokenLimitReached && tokenUsage > TOKEN_LIMIT * 0.8 && (
-                  <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-lg p-2">
-                    <div className="flex items-center space-x-1 mb-1">
-                      <AlertTriangle className="w-3 h-3 text-yellow-400" />
-                      <div className="text-yellow-400 font-medium text-xs">Warning</div>
+                {!isDevAccount &&
+                  !isTokenLimitReached &&
+                  tokenUsage > TOKEN_LIMIT * 0.8 && (
+                    <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-lg p-2">
+                      <div className="flex items-center space-x-1 mb-1">
+                        <AlertTriangle className="w-3 h-3 text-yellow-400" />
+                        <div className="text-yellow-400 font-medium text-xs">
+                          Warning
+                        </div>
+                      </div>
+                      <div className="text-yellow-300 text-xs">
+                        {tokensRemaining} tokens left.
+                      </div>
                     </div>
-                    <div className="text-yellow-300 text-xs">
-                      {tokensRemaining} tokens left.
-                    </div>
-                  </div>
-                )}
+                  )}
 
-                <SubjectSelector 
+                <SubjectSelector
                   subject={subject}
                   onChange={setSubject}
                   disabled={isTokenLimitReached}
@@ -819,37 +1002,41 @@ export default function Demo(): JSX.Element {
                   )}
                 </button>
 
-                {simulationData && !isTokenLimitReached && !showContentWarning && (
-                  <div className="pt-2 border-t border-gray-700">
-                    <div className="flex items-center space-x-1 mb-1">
-                      <MessageSquare className="w-3 h-3 text-blue-400" />
-                      <label className="text-xs font-medium text-gray-300">
-                        Follow-up
-                      </label>
+                {simulationData &&
+                  !isTokenLimitReached &&
+                  !showContentWarning && (
+                    <div className="pt-2 border-t border-gray-700">
+                      <div className="flex items-center space-x-1 mb-1">
+                        <MessageSquare className="w-3 h-3 text-blue-400" />
+                        <label className="text-xs font-medium text-gray-300">
+                          Follow-up
+                        </label>
+                      </div>
+                      <div className="flex space-x-1 mb-2">
+                        <input
+                          type="text"
+                          value={followUpPrompt}
+                          onChange={(e) => setFollowUpPrompt(e.target.value)}
+                          placeholder="Feature coming soon..."
+                          disabled={true}
+                          className="flex-1 bg-gray-700 border border-gray-600 rounded-md px-2 py-1 text-white text-xs focus:ring-1 focus:ring-blue-500 focus:border-transparent transition-colors placeholder-gray-400 disabled:opacity-50 disabled:cursor-not-allowed"
+                          onKeyPress={(e) =>
+                            e.key === "Enter" && handleFollowUpSubmit()
+                          }
+                        />
+                        <button
+                          onClick={handleFollowUpSubmit}
+                          disabled={true}
+                          className="bg-gray-600 text-white px-2 py-1 rounded-md transition-colors flex items-center disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          <Send className="w-3 h-3" />
+                        </button>
+                      </div>
+                      <p className="text-xs text-gray-500 italic">
+                        Follow-up feature is still being worked on
+                      </p>
                     </div>
-                    <div className="flex space-x-1 mb-2">
-                      <input
-                        type="text"
-                        value={followUpPrompt}
-                        onChange={(e) => setFollowUpPrompt(e.target.value)}
-                        placeholder="Feature coming soon..."
-                        disabled={true}
-                        className="flex-1 bg-gray-700 border border-gray-600 rounded-md px-2 py-1 text-white text-xs focus:ring-1 focus:ring-blue-500 focus:border-transparent transition-colors placeholder-gray-400 disabled:opacity-50 disabled:cursor-not-allowed"
-                        onKeyPress={(e) => e.key === 'Enter' && handleFollowUpSubmit()}
-                      />
-                      <button
-                        onClick={handleFollowUpSubmit}
-                        disabled={true}
-                        className="bg-gray-600 text-white px-2 py-1 rounded-md transition-colors flex items-center disabled:opacity-50 disabled:cursor-not-allowed"
-                      >
-                        <Send className="w-3 h-3" />
-                      </button>
-                    </div>
-                    <p className="text-xs text-gray-500 italic">
-                      Follow-up feature is still being worked on
-                    </p>
-                  </div>
-                )}
+                  )}
 
                 {simulationData && (
                   <button
@@ -865,8 +1052,12 @@ export default function Demo(): JSX.Element {
                     <div className="flex items-start space-x-1">
                       <AlertTriangle className="w-3 h-3 text-red-400 mt-0.5 flex-shrink-0" />
                       <div className="flex-1">
-                        <div className="text-red-400 font-medium text-xs">Error</div>
-                        <div className="text-red-300 text-xs mt-1 break-words leading-tight">{error}</div>
+                        <div className="text-red-400 font-medium text-xs">
+                          Error
+                        </div>
+                        <div className="text-red-300 text-xs mt-1 break-words leading-tight">
+                          {error}
+                        </div>
                         <button
                           onClick={dismissError}
                           className="text-red-400 hover:text-red-300 text-xs mt-1 underline"
@@ -903,33 +1094,38 @@ export default function Demo(): JSX.Element {
                   )}
                 </div>
               </div>
-              
+
               <div className="flex-1 relative overflow-hidden bg-gradient-to-br from-gray-50 to-white">
                 {loading && (
                   <div className="absolute inset-0 bg-white/95 flex items-center justify-center z-10 backdrop-blur-sm">
-                    <LoadingSpinner size="large" text={`Generating ${subject.toLowerCase()} simulation...`} />
+                    <LoadingSpinner
+                      size="large"
+                      text={`Generating ${subject.toLowerCase()} simulation...`}
+                    />
                   </div>
                 )}
-                
+
                 {simulationData ? (
                   <SimulationIframe simulationData={simulationData} />
                 ) : (
                   <div className="h-full flex items-center justify-center p-6">
                     <div className="text-center max-w-md">
                       <div className="w-24 h-24 bg-gradient-to-br from-blue-100 to-blue-200 rounded-full flex items-center justify-center mx-auto mb-6">
-                        {React.createElement(SUBJECT_INFO[subject].icon, { className: "w-12 h-12 text-blue-600" })}
+                        {React.createElement(SUBJECT_INFO[subject].icon, {
+                          className: "w-12 h-12 text-blue-600",
+                        })}
                       </div>
                       <h3 className="text-2xl font-bold text-gray-800 mb-3">
                         Ready for {subject}
                       </h3>
                       <p className="text-gray-600 text-lg leading-relaxed mb-4">
-                        {isTokenLimitReached 
+                        {isTokenLimitReached
                           ? `Token limit reached (${tokenUsage}/${TOKEN_LIMIT}). Contact support to continue.`
-                          : `Describe a ${subject.toLowerCase()} concept you'd like to visualize and interact with.`
-                        }
+                          : `Describe a ${subject.toLowerCase()} concept you'd like to visualize and interact with.`}
                       </p>
                       <div className="text-sm text-gray-500">
-                        <strong>Examples:</strong> {SUBJECT_INFO[subject].examples.slice(0, 2).join(', ')}
+                        <strong>Examples:</strong>{" "}
+                        {SUBJECT_INFO[subject].examples.slice(0, 2).join(", ")}
                       </div>
                     </div>
                   </div>
@@ -941,7 +1137,9 @@ export default function Demo(): JSX.Element {
               <div className="bg-white border-b border-gray-200 px-3 py-3 flex-shrink-0">
                 <div className="flex items-center space-x-2">
                   <BookOpen className="w-4 h-4 text-blue-600" />
-                  <h2 className="text-sm font-semibold text-gray-800">Explanation</h2>
+                  <h2 className="text-sm font-semibold text-gray-800">
+                    Explanation
+                  </h2>
                   {simulationData?.explanation && !showContentWarning && (
                     <div className="ml-auto">
                       <span className="text-xs bg-blue-100 text-blue-800 px-1 py-0.5 rounded-full font-medium">
@@ -951,11 +1149,13 @@ export default function Demo(): JSX.Element {
                   )}
                 </div>
               </div>
-              
+
               <div className="flex-1 overflow-hidden p-2">
                 {simulationData?.explanation && !showContentWarning ? (
                   <div className="bg-white rounded-lg p-3 shadow-sm border border-gray-200 h-full">
-                    <FormattedExplanation explanation={simulationData.explanation} />
+                    <FormattedExplanation
+                      explanation={simulationData.explanation}
+                    />
                   </div>
                 ) : (
                   <div className="flex items-center justify-center h-full text-center">
@@ -965,7 +1165,9 @@ export default function Demo(): JSX.Element {
                         Explanation Ready
                       </h3>
                       <p className="text-gray-500 text-xs leading-relaxed">
-                        Generate a {subject.toLowerCase()} simulation to see a detailed explanation of the concepts and educational value.
+                        Generate a {subject.toLowerCase()} simulation to see a
+                        detailed explanation of the concepts and educational
+                        value.
                       </p>
                     </div>
                   </div>
