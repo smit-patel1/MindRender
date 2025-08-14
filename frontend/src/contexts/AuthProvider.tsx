@@ -1,4 +1,12 @@
-import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
+import React, {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  useCallback,
+  useRef,
+  ReactNode,
+} from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '../lib/supabaseClient';
 
@@ -34,66 +42,92 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [roleSyncing, setRoleSyncing] = useState(false);
+  const roleSyncingRef = useRef(false);
+  const lastRoleCheckRef = useRef<string | null>(null);
   const [isDeveloper, setIsDeveloper] = useState(false);
+  const userRef = useRef<User | null>(null);
+  const sessionRef = useRef<Session | null>(null);
 
-  const syncDeveloperRole = useCallback(
-    async (currentUser: User | null) => {
-      if (typeof window === 'undefined') return;
+  useEffect(() => {
+    userRef.current = user;
+  }, [user]);
 
-      if (!currentUser?.email) {
-        setIsDeveloper(false);
+  useEffect(() => {
+    sessionRef.current = session;
+  }, [session]);
+
+  const syncDeveloperRole = useCallback(async (currentUser: User | null) => {
+    if (typeof window === 'undefined') return;
+
+    if (!currentUser?.email) {
+      setIsDeveloper(false);
+      return;
+    }
+
+    // Avoid repeated checks for the same user
+    if (lastRoleCheckRef.current === currentUser.id) return;
+    lastRoleCheckRef.current = currentUser.id;
+
+    if (roleSyncingRef.current) return;
+
+    roleSyncingRef.current = true;
+    setRoleSyncing(true);
+    try {
+      const { data, error } = await supabase
+        .from('developer_accounts')
+        .select('email')
+        .eq('email', currentUser.email)
+        .maybeSingle();
+
+      // Treat missing rows or RLS failures as non-developer
+      if (error) {
+        if (error.code === '406' || error.code === '404') {
+          setIsDeveloper(false);
+        } else {
+          console.error('AuthProvider: Developer role check failed:', error);
+          setIsDeveloper(false);
+        }
         return;
       }
 
-      if (roleSyncing) return;
+      const shouldBeDeveloper = !!data;
+      const currentRole = currentUser.user_metadata?.role;
 
-      setRoleSyncing(true);
-      try {
-        const { data, error } = await supabase
-          .from('developer_accounts')
-          .select('email')
-          .eq('email', currentUser.email)
-          .single();
+      setIsDeveloper(shouldBeDeveloper);
 
-        const shouldBeDeveloper = !error && !!data;
-        const currentRole = currentUser.user_metadata?.role;
-
-        setIsDeveloper(shouldBeDeveloper);
-
-        if (shouldBeDeveloper && currentRole !== 'developer') {
-          const { error: updateError } = await supabase.auth.updateUser({ data: { role: 'developer' } });
-          if (!updateError) {
-            const {
-              data: { user: refreshedUser },
-              error: refreshError,
-            } = await supabase.auth.getUser();
-            if (!refreshError && refreshedUser) {
-              setUser(refreshedUser);
-              setSession((prev) => (prev ? { ...prev, user: refreshedUser } : prev));
-            }
-          }
-        } else if (!shouldBeDeveloper && currentRole === 'developer') {
-          const { error: updateError } = await supabase.auth.updateUser({ data: { role: null } });
-          if (!updateError) {
-            const {
-              data: { user: refreshedUser },
-              error: refreshError,
-            } = await supabase.auth.getUser();
-            if (!refreshError && refreshedUser) {
-              setUser(refreshedUser);
-              setSession((prev) => (prev ? { ...prev, user: refreshedUser } : prev));
-            }
+      if (shouldBeDeveloper && currentRole !== 'developer') {
+        const { error: updateError } = await supabase.auth.updateUser({ data: { role: 'developer' } });
+        if (!updateError) {
+          const {
+            data: { user: refreshedUser },
+            error: refreshError,
+          } = await supabase.auth.getUser();
+          if (!refreshError && refreshedUser) {
+            setUser(refreshedUser);
+            setSession((prev) => (prev ? { ...prev, user: refreshedUser } : prev));
           }
         }
-      } catch (err) {
-        console.error('AuthProvider: Developer role sync failed:', err);
-        setIsDeveloper(false);
-      } finally {
-        setRoleSyncing(false);
+      } else if (!shouldBeDeveloper && currentRole === 'developer') {
+        const { error: updateError } = await supabase.auth.updateUser({ data: { role: null } });
+        if (!updateError) {
+          const {
+            data: { user: refreshedUser },
+            error: refreshError,
+          } = await supabase.auth.getUser();
+          if (!refreshError && refreshedUser) {
+            setUser(refreshedUser);
+            setSession((prev) => (prev ? { ...prev, user: refreshedUser } : prev));
+          }
+        }
       }
-    },
-    [roleSyncing]
-  );
+    } catch (err) {
+      console.error('AuthProvider: Developer role sync failed:', err);
+      setIsDeveloper(false);
+    } finally {
+      roleSyncingRef.current = false;
+      setRoleSyncing(false);
+    }
+  }, []);
 
 
   // Force session refresh
@@ -129,17 +163,20 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const validateSession = useCallback(async (): Promise<boolean> => {
     try {
       console.log('AuthProvider: Validating current session...');
-      
+
       // First check if we have a session
-      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-      
+      const {
+        data: { session: currentSession },
+        error: sessionError,
+      } = await supabase.auth.getSession();
+
       if (sessionError) {
         console.error('AuthProvider: Session validation error:', sessionError.message);
         setError(sessionError.message);
         return false;
       }
 
-      if (!session) {
+      if (!currentSession) {
         console.log('AuthProvider: No session found during validation');
         setUser(null);
         setSession(null);
@@ -147,12 +184,12 @@ export function AuthProvider({ children }: AuthProviderProps) {
       }
 
       // Check if session is close to expiry
-      const expiresAt = session.expires_at;
+      const expiresAt = currentSession.expires_at;
       if (expiresAt !== undefined) {
         const now = Math.floor(Date.now() / 1000);
         const timeUntilExpiry = expiresAt - now;
-        
-        if (timeUntilExpiry < 300) { // Less than 5 minutes
+
+        if (timeUntilExpiry < 300) {
           console.log('AuthProvider: Session expiring soon, attempting refresh...');
           return await refreshSession();
         }
@@ -160,11 +197,14 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
       // Validate session with getUser
       try {
-        const { data: { user }, error: userError } = await supabase.auth.getUser();
-        
+        const {
+          data: { user: fetchedUser },
+          error: userError,
+        } = await supabase.auth.getUser();
+
         if (userError) {
           console.error('AuthProvider: User validation failed:', userError.message);
-          
+
           if (userError.message?.includes('Auth session missing')) {
             console.log('AuthProvider: Session missing, clearing auth state');
             await supabase.auth.signOut();
@@ -172,15 +212,23 @@ export function AuthProvider({ children }: AuthProviderProps) {
             setSession(null);
             return false;
           }
-          
+
           setError(userError.message);
           return false;
         }
 
-        if (user) {
-          console.log('AuthProvider: Session validated successfully for user:', user.email);
-          setUser(user);
-          setSession(session);
+        if (fetchedUser) {
+          console.log('AuthProvider: Session validated successfully for user:', fetchedUser.email);
+
+          if (!userRef.current || userRef.current.id !== fetchedUser.id ||
+              JSON.stringify(userRef.current.user_metadata) !== JSON.stringify(fetchedUser.user_metadata)) {
+            setUser(fetchedUser);
+          }
+
+          if (!sessionRef.current || sessionRef.current.access_token !== currentSession.access_token) {
+            setSession(currentSession);
+          }
+
           setError(null);
           return true;
         }
@@ -189,14 +237,14 @@ export function AuthProvider({ children }: AuthProviderProps) {
         return false;
       } catch (authError: any) {
         console.error('AuthProvider: Auth validation error:', authError);
-        
+
         if (authError.message?.includes('Auth session missing')) {
           console.log('AuthProvider: Auth session missing, signing out');
           await supabase.auth.signOut();
           setUser(null);
           setSession(null);
         }
-        
+
         setError('Authentication validation failed');
         return false;
       }
@@ -329,6 +377,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
           setUser(null);
           setSession(null);
           setError(null);
+          setIsDeveloper(false);
+          lastRoleCheckRef.current = null;
         } else if (event === 'SIGNED_IN' && session?.user) {
           console.log('AuthProvider: User signed in:', session.user.email);
           setUser(session.user);
@@ -358,10 +408,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
       subscription.unsubscribe();
     };
   }, [validateSession, syncDeveloperRole]);
-
-  useEffect(() => {
-    syncDeveloperRole(user);
-  }, [user, syncDeveloperRole]);
 
 const value: AuthContextType = {
   user,

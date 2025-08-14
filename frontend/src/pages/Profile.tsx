@@ -34,8 +34,13 @@ export default function Profile() {
         return;
       }
 
+    if (isDeveloper) {
+      setLoading(false);
+      return;
+    }
+
     const fetchUserData = async () => {
-        if (!user || isDeveloper) {
+        if (!user) {
           setLoading(false);
           return;
         }
