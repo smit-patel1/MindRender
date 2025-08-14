@@ -25,3 +25,15 @@ X-Frame-Options: SAMEORIGIN
 
 All other routes retain a restrictive CSP and `X-Frame-Options: DENY`, preventing
 embedding of the primary application.
+
+### CSP inheritance bug
+
+Originally the application also shipped a `<meta http-equiv="Content-Security-Policy">`
+tag inside `index.html`. Because Vercel rewrites every path to `index.html`, this meta
+policy combined with the route-specific headers. As a result the browser treated the
+iframe's document as `about:srcdoc` and enforced the main app's `script-src 'self'`
+directive, blocking the injected simulation script.
+
+The meta tag has been removed so that CSP is controlled exclusively by headers.
+This allows `/sim-frame` to execute inline scripts under its relaxed policy while
+the rest of the application remains locked down.
