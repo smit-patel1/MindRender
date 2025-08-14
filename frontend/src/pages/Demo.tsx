@@ -41,7 +41,6 @@ interface SimulationResponse {
 interface User {
   email: string | undefined;
   id: string;
-  user_metadata?: { role?: string };
 }
 
 const SUBJECTS = ["Physics", "Biology", "Computer Science"] as const;
@@ -611,7 +610,13 @@ const SimulationIframe = React.memo(
 );
 
 export default function Demo(): JSX.Element {
-  const { user, loading: authLoading, error: authError, signOut } = useAuth();
+  const {
+    user,
+    loading: authLoading,
+    error: authError,
+    signOut,
+    isDeveloper,
+  } = useAuth();
   const [subject, setSubject] = useState<SubjectType>("Physics");
   const [prompt, setPrompt] = useState<string>(
     "Show how a pendulum behaves under the influence of gravity and explain the energy transformations during its swing"
@@ -627,13 +632,9 @@ export default function Demo(): JSX.Element {
   const [contentWarningMessage, setContentWarningMessage] =
     useState<string>("");
 
-  const isDevAccount = useMemo(
-    () => user?.user_metadata?.role === "developer",
-    [user?.user_metadata?.role]
-  );
   const isTokenLimitReached = useMemo(
-    () => !isDevAccount && tokenUsage >= TOKEN_LIMIT,
-    [isDevAccount, tokenUsage]
+    () => !isDeveloper && tokenUsage >= TOKEN_LIMIT,
+    [isDeveloper, tokenUsage]
   );
   const tokensRemaining = useMemo(
     () => Math.max(0, TOKEN_LIMIT - tokenUsage),
@@ -641,7 +642,7 @@ export default function Demo(): JSX.Element {
   );
 
   const fetchTokenUsage = useCallback(async () => {
-    if (!user || isDevAccount) return;
+    if (!user || isDeveloper) return;
 
     try {
       const { data: sessionData, error: sessionError } =
@@ -678,7 +679,7 @@ export default function Demo(): JSX.Element {
       console.warn("Failed to fetch token usage:", error);
       setTokenUsage(0);
     }
-  }, [user, isDevAccount]);
+  }, [user, isDeveloper]);
 
   useEffect(() => {
     if (user && !authLoading) {
@@ -788,7 +789,7 @@ export default function Demo(): JSX.Element {
       subject,
       isTokenLimitReached,
       tokenUsage,
-      isDevAccount,
+      isDeveloper,
       fetchTokenUsage,
     ]
   );
@@ -903,7 +904,7 @@ export default function Demo(): JSX.Element {
       <div className="h-screen bg-gray-900 text-white overflow-hidden flex flex-col">
         <DemoNavbar
           user={demoUser}
-          isDevAccount={isDevAccount}
+          isDeveloper={isDeveloper}
           tokenUsage={tokenUsage}
           isTokenLimitReached={isTokenLimitReached}
           mobileMenuOpen={mobileMenuOpen}
@@ -927,7 +928,7 @@ export default function Demo(): JSX.Element {
                   />
                 )}
 
-                {!isDevAccount && isTokenLimitReached && (
+                {!isDeveloper && isTokenLimitReached && (
                   <div className="bg-red-500/10 border border-red-500/20 rounded-lg p-2">
                     <div className="flex items-center space-x-1 mb-1">
                       <AlertTriangle className="w-3 h-3 text-red-400" />
@@ -941,7 +942,7 @@ export default function Demo(): JSX.Element {
                   </div>
                 )}
 
-                {!isDevAccount &&
+                {!isDeveloper &&
                   !isTokenLimitReached &&
                   tokenUsage > TOKEN_LIMIT * 0.8 && (
                     <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-lg p-2">
