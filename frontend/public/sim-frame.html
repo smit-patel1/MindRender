@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Simulation Frame</title>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script>
+      window.addEventListener('message', (event) => {
+        const { canvasHtml, jsCode } = event.data || {};
+        if (typeof canvasHtml === 'string' && typeof jsCode === 'string') {
+          const root = document.getElementById('root');
+          if (root) {
+            root.innerHTML = canvasHtml;
+            const scriptEl = document.createElement('script');
+            scriptEl.type = 'text/javascript';
+            scriptEl.textContent = jsCode;
+            root.appendChild(scriptEl);
+          }
+        }
+      });
+    </script>
+  </body>
+</html>
