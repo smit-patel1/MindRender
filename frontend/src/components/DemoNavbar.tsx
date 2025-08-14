@@ -5,7 +5,7 @@ import TokenDisplay from './TokenDisplay';
 
   interface DemoNavbarProps {
     user: { email: string | undefined; id: string };
-    isDevAccount: boolean;
+    isDeveloper: boolean;
     tokenUsage: number;
     isTokenLimitReached: boolean;
     mobileMenuOpen: boolean;
@@ -15,7 +15,7 @@ import TokenDisplay from './TokenDisplay';
 
   export default function DemoNavbar({
     user,
-    isDevAccount,
+    isDeveloper,
     tokenUsage,
     isTokenLimitReached,
     mobileMenuOpen,
@@ -41,7 +41,7 @@ import TokenDisplay from './TokenDisplay';
         
         <div className="flex items-center space-x-2 sm:space-x-4">
             <TokenDisplay
-              isDevAccount={isDevAccount}
+              isDeveloper={isDeveloper}
               tokenUsage={tokenUsage}
               isTokenLimitReached={isTokenLimitReached}
             />
