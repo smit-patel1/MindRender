@@ -10,7 +10,6 @@ import LearnMore from './pages/LearnMore';
 import Auth from './pages/Auth';
 import AuthCallback from './pages/AuthCallback';
 import ManageSubscription from './pages/ManageSubscription';
-import SimFrame from './pages/SimFrame';
 
 function AppContent() {
   const navigate = useNavigate();
@@ -53,7 +52,6 @@ function AppContent() {
             <Route path="/login" element={<Auth />} />
             <Route path="/auth" element={<Auth />} />
           <Route path="/auth/callback" element={<AuthCallback />} />
-          <Route path="/sim-frame" element={<SimFrame />} />
         </Routes>
       </ErrorBoundary>
     </div>
