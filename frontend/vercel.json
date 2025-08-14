@@ -9,25 +9,38 @@
   ],
   "headers": [
     {
+      "source": "/sim-frame",
+      "headers": [
+        {
+          "key": "Content-Security-Policy",
+          "value": "default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src data:;"
+        },
+        {
+          "key": "X-Frame-Options",
+          "value": "SAMEORIGIN"
+        }
+      ]
+    },
+    {
       "source": "/(.*)",
-        "headers": [
-          {
-            "key": "X-Content-Type-Options",
-            "value": "nosniff"
-          },
-          {
-            "key": "X-Frame-Options",
-            "value": "DENY"
-          },
-          {
-            "key": "X-XSS-Protection",
-            "value": "1; mode=block"
-          },
-          {
-            "key": "Content-Security-Policy",
-            "value": "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self' https://*.supabase.co; frame-src 'self'; object-src 'none'"
-          }
-        ]
-      }
-    ]
-  }
+      "headers": [
+        {
+          "key": "X-Content-Type-Options",
+          "value": "nosniff"
+        },
+        {
+          "key": "X-Frame-Options",
+          "value": "DENY"
+        },
+        {
+          "key": "X-XSS-Protection",
+          "value": "1; mode=block"
+        },
+        {
+          "key": "Content-Security-Policy",
+          "value": "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self' https://*.supabase.co; frame-src 'self'; object-src 'none'"
+        }
+      ]
+    }
+  ]
+}
