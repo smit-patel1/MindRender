@@ -45,6 +45,16 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const roleSyncingRef = useRef(false);
   const lastRoleCheckRef = useRef<string | null>(null);
   const [isDeveloper, setIsDeveloper] = useState(false);
+  const userRef = useRef<User | null>(null);
+  const sessionRef = useRef<Session | null>(null);
+
+  useEffect(() => {
+    userRef.current = user;
+  }, [user]);
+
+  useEffect(() => {
+    sessionRef.current = session;
+  }, [session]);
 
   const syncDeveloperRole = useCallback(async (currentUser: User | null) => {
     if (typeof window === 'undefined') return;
@@ -210,12 +220,12 @@ export function AuthProvider({ children }: AuthProviderProps) {
         if (fetchedUser) {
           console.log('AuthProvider: Session validated successfully for user:', fetchedUser.email);
 
-          if (!user || user.id !== fetchedUser.id ||
-              JSON.stringify(user.user_metadata) !== JSON.stringify(fetchedUser.user_metadata)) {
+          if (!userRef.current || userRef.current.id !== fetchedUser.id ||
+              JSON.stringify(userRef.current.user_metadata) !== JSON.stringify(fetchedUser.user_metadata)) {
             setUser(fetchedUser);
           }
 
-          if (!session || session.access_token !== currentSession.access_token) {
+          if (!sessionRef.current || sessionRef.current.access_token !== currentSession.access_token) {
             setSession(currentSession);
           }
 
@@ -243,7 +253,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
       setError('Session validation failed');
       return false;
     }
-  }, [refreshSession, user, session]);
+  }, [refreshSession]);
 
   // Safe session operation wrapper
   const withValidSession = useCallback(async (operation: () => Promise<any>) => {
