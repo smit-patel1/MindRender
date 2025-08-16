@@ -411,14 +411,17 @@ const SimulationIframe = React.memo(
           box-sizing: border-box;
         }
         html, body {
-          height: 100%;
-          width: 100%;
+          height: 100vh;
+          width: 100vw;
           overflow: hidden;
           font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
           background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
           display: flex;
           align-items: center;
           justify-content: center;
+          margin: 0;
+          padding: 20px;
+          box-sizing: border-box;
         }
         
         canvas {
@@ -428,9 +431,11 @@ const SimulationIframe = React.memo(
           box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1);
           display: block !important;
           margin: 0 auto;
-          max-width: 100%;
-          max-height: 100%;
           cursor: pointer;
+          /* Remove max constraints to allow full sizing */
+          image-rendering: -webkit-optimize-contrast;
+          image-rendering: crisp-edges;
+          image-rendering: pixelated;
         }
         
         .status {
@@ -485,33 +490,70 @@ const SimulationIframe = React.memo(
           const canvas = document.querySelector('canvas');
           if (!canvas) return;
           
-          const originalWidth = canvas.width || 800;
-          const originalHeight = canvas.height || 600;
-          const aspectRatio = originalWidth / originalHeight;
+          // Get device pixel ratio for HiDPI support
+          const dpr = window.devicePixelRatio || 1;
           
-          const availableWidth = window.innerWidth * 0.92;
-          const availableHeight = window.innerHeight * 0.92;
+          // Get actual original dimensions from the canvas or use defaults
+          const originalWidth = canvas.getAttribute('data-original-width') || canvas.width || 800;
+          const originalHeight = canvas.getAttribute('data-original-height') || canvas.height || 600;
           
-          let newWidth, newHeight;
-          
-          if (availableWidth / aspectRatio <= availableHeight) {
-            newWidth = availableWidth;
-            newHeight = availableWidth / aspectRatio;
-          } else {
-            newHeight = availableHeight;
-            newWidth = availableHeight * aspectRatio;
+          // Store original dimensions for future reference
+          if (!canvas.getAttribute('data-original-width')) {
+            canvas.setAttribute('data-original-width', originalWidth);
+            canvas.setAttribute('data-original-height', originalHeight);
           }
           
-          newWidth = Math.max(newWidth, 400);
-          newHeight = Math.max(newHeight, 300);
+          const aspectRatio = originalWidth / originalHeight;
           
-          canvas.width = Math.floor(newWidth);
-          canvas.height = Math.floor(newHeight);
+          // Use full iframe dimensions minus padding
+          const availableWidth = window.innerWidth - 40; // 20px padding on each side
+          const availableHeight = window.innerHeight - 40; // 20px padding top/bottom
           
-          canvas.style.width = Math.floor(newWidth) + 'px';
-          canvas.style.height = Math.floor(newHeight) + 'px';
+          let displayWidth, displayHeight;
           
-          console.log('Canvas resized to:', Math.floor(newWidth) + 'x' + Math.floor(newHeight));
+          // Calculate display size while maintaining aspect ratio
+          if (availableWidth / aspectRatio <= availableHeight) {
+            displayWidth = availableWidth;
+            displayHeight = availableWidth / aspectRatio;
+          } else {
+            displayHeight = availableHeight;
+            displayWidth = availableHeight * aspectRatio;
+          }
+          
+          // Ensure minimum reasonable size
+          displayWidth = Math.max(displayWidth, 320);
+          displayHeight = Math.max(displayHeight, 240);
+          
+          // Set canvas internal resolution (for crisp rendering)
+          const canvasWidth = Math.floor(displayWidth * dpr);
+          const canvasHeight = Math.floor(displayHeight * dpr);
+          
+          canvas.width = canvasWidth;
+          canvas.height = canvasHeight;
+          
+          // Set CSS display size
+          canvas.style.width = Math.floor(displayWidth) + 'px';
+          canvas.style.height = Math.floor(displayHeight) + 'px';
+          
+          // Scale the drawing context to account for device pixel ratio
+          const ctx = canvas.getContext('2d');
+          if (ctx) {
+            ctx.scale(dpr, dpr);
+          }
+          
+          console.log('Canvas resized to:', Math.floor(displayWidth) + 'x' + Math.floor(displayHeight), 'at', dpr + 'x DPR');
+          
+          // Trigger canvas redraw if there's a global redraw function
+          if (typeof window.redrawCanvas === 'function') {
+            window.redrawCanvas();
+          }
+          
+          // Update interactive elements after resize
+          setTimeout(() => {
+            if (typeof window.updateInteractiveElements === 'function') {
+              window.updateInteractiveElements();
+            }
+          }, 50);
         }
         
         window.onerror = function(message, source, lineno, colno, error) {
@@ -528,6 +570,13 @@ const SimulationIframe = React.memo(
           if (canvas) {
             console.log('Canvas found, original size:', canvas.width + 'x' + canvas.height);
             
+            // Store the original dimensions before any resizing
+            if (!canvas.getAttribute('data-original-width')) {
+              canvas.setAttribute('data-original-width', canvas.width || 800);
+              canvas.setAttribute('data-original-height', canvas.height || 600);
+            }
+            
+            // Apply initial sizing
             resizeCanvas();
             
             canvas.style.display = 'block';
@@ -540,6 +589,11 @@ const SimulationIframe = React.memo(
             }
             
             executeSimulation();
+            
+            // Additional resize after simulation loads to ensure everything fits
+            setTimeout(() => {
+              resizeCanvas();
+            }, 500);
           } else {
             console.error('Canvas element not found');
             if (statusEl) {
@@ -549,9 +603,32 @@ const SimulationIframe = React.memo(
           }
         }, 100);
         
+        // Helper function to maintain interactive element coordinates after resize
+        window.updateInteractiveElements = function() {
+          const canvas = document.querySelector('canvas');
+          if (!canvas) return;
+          
+          // Get the canvas bounding rect for coordinate mapping
+          const rect = canvas.getBoundingClientRect();
+          const scaleX = canvas.width / rect.width;
+          const scaleY = canvas.height / rect.height;
+          
+          // Store scale factors globally for interactive elements to use
+          window.canvasScaleX = scaleX;
+          window.canvasScaleY = scaleY;
+          window.canvasRect = rect;
+          
+          console.log('Interactive elements updated - scaleX:', scaleX, 'scaleY:', scaleY);
+        };
+        
         function executeSimulation() {
           try {
             ${simulationData.jsCode}
+            
+            // Update interactive elements after simulation loads
+            setTimeout(() => {
+              window.updateInteractiveElements();
+            }, 100);
             
             ${
               !simulationData.contentWarning
@@ -578,8 +655,24 @@ const SimulationIframe = React.memo(
           }
         }
         
+        // Improved resize handling with debouncing
+        let resizeTimeout;
         window.addEventListener('resize', () => {
-          setTimeout(resizeCanvas, 100);
+          clearTimeout(resizeTimeout);
+          resizeTimeout = setTimeout(() => {
+            resizeCanvas();
+            // Ensure any animation loops or interactive handlers are rebound
+            if (typeof window.handleResize === 'function') {
+              window.handleResize();
+            }
+          }, 150);
+        });
+        
+        // Handle orientation changes on mobile
+        window.addEventListener('orientationchange', () => {
+          setTimeout(() => {
+            resizeCanvas();
+          }, 500);
         });
       </script>
     </body>
@@ -604,6 +697,8 @@ const SimulationIframe = React.memo(
           border: "none",
           width: "100%",
           height: "100%",
+          display: "block",
+          backgroundColor: "transparent",
         }}
       />
     );
@@ -1071,7 +1166,7 @@ export default function Demo(): JSX.Element {
               </div>
             </aside>
 
-            <section className="order-2 md:order-none md:col-span-7 lg:col-span-7 xl:col-span-7 bg-white border-b md:border-b-0 md:border-r border-gray-300 flex flex-col h-full">
+            <section className="order-2 md:order-none md:col-span-8 lg:col-span-8 xl:col-span-8 bg-white border-b md:border-b-0 md:border-r border-gray-300 flex flex-col h-full">
               <div className="bg-gray-50 border-b border-gray-200 px-4 py-3 flex-shrink-0">
                 <div className="flex items-center space-x-2">
                   <Monitor className="w-5 h-5 text-gray-600" />
@@ -1095,7 +1190,7 @@ export default function Demo(): JSX.Element {
                 </div>
               </div>
 
-              <div className="flex-1 relative overflow-hidden bg-gradient-to-br from-gray-50 to-white">
+              <div className="flex-1 relative overflow-hidden bg-gradient-to-br from-gray-50 to-white min-h-0">
                 {loading && (
                   <div className="absolute inset-0 bg-white/95 flex items-center justify-center z-10 backdrop-blur-sm">
                     <LoadingSpinner
@@ -1133,7 +1228,7 @@ export default function Demo(): JSX.Element {
               </div>
             </section>
 
-            <aside className="order-3 md:order-none md:col-span-3 lg:col-span-3 xl:col-span-3 bg-gray-50 flex flex-col h-full">
+            <aside className="order-3 md:order-none md:col-span-2 lg:col-span-2 xl:col-span-2 bg-gray-50 flex flex-col h-full">
               <div className="bg-white border-b border-gray-200 px-3 py-3 flex-shrink-0">
                 <div className="flex items-center space-x-2">
                   <BookOpen className="w-4 h-4 text-blue-600" />
