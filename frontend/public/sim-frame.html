@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Simulation Frame</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      html,
+      body,
+      #root {
+        width: 100vw;
+        height: 100vh;
+        margin: 0;
+        overflow: hidden;
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 20px;
+        box-sizing: border-box;
+      }
+      canvas {
+        border: 2px solid #e5e7eb;
+        border-radius: 12px;
+        background: white;
+        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1);
+        display: block !important;
+        margin: 0 auto;
+        cursor: pointer;
+        image-rendering: -webkit-optimize-contrast;
+        image-rendering: crisp-edges;
+        image-rendering: pixelated;
+      }
+      .status {
+        position: fixed;
+        top: 15px;
+        right: 15px;
+        padding: 6px 12px;
+        border-radius: 6px;
+        font-size: 11px;
+        font-weight: 600;
+        z-index: 1000;
+        backdrop-filter: blur(8px);
+        border: 1px solid rgba(255, 255, 255, 0.3);
+        transition: all 0.3s ease;
+        opacity: 0.9;
+        background: rgba(59, 130, 246, 0.15);
+        color: #1e40af;
+        border-color: rgba(59, 130, 246, 0.4);
+      }
+      .status.success {
+        background: rgba(16, 185, 129, 0.15);
+        color: #059669;
+        border-color: rgba(16, 185, 129, 0.4);
+      }
+      .status.error {
+        background: rgba(239, 68, 68, 0.15);
+        color: #dc2626;
+        border-color: rgba(239, 68, 68, 0.4);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="status" id="status">Initializing...</div>
+    <div id="root"></div>
+    <script>
+      const statusEl = document.getElementById('status');
+      
+      function resizeCanvas() {
+        const canvas = document.querySelector('canvas');
+        if (!canvas) return;
+        
+        // Get device pixel ratio for HiDPI support
+        const dpr = window.devicePixelRatio || 1;
+        
+        // Get actual original dimensions from the canvas or use defaults
+        const originalWidth = canvas.getAttribute('data-original-width') || canvas.width || 800;
+        const originalHeight = canvas.getAttribute('data-original-height') || canvas.height || 600;
+        
+        // Store original dimensions for future reference
+        if (!canvas.getAttribute('data-original-width')) {
+          canvas.setAttribute('data-original-width', originalWidth);
+          canvas.setAttribute('data-original-height', originalHeight);
+        }
+        
+        const aspectRatio = originalWidth / originalHeight;
+        
+        // Use full iframe dimensions minus padding
+        const availableWidth = window.innerWidth - 40; // 20px padding on each side
+        const availableHeight = window.innerHeight - 40; // 20px padding top/bottom
+        
+        let displayWidth, displayHeight;
+        
+        // Calculate display size while maintaining aspect ratio
+        if (availableWidth / aspectRatio <= availableHeight) {
+          displayWidth = availableWidth;
+          displayHeight = availableWidth / aspectRatio;
+        } else {
+          displayHeight = availableHeight;
+          displayWidth = availableHeight * aspectRatio;
+        }
+        
+        // Ensure minimum reasonable size
+        displayWidth = Math.max(displayWidth, 320);
+        displayHeight = Math.max(displayHeight, 240);
+        
+        // Set canvas internal resolution (for crisp rendering)
+        const canvasWidth = Math.floor(displayWidth * dpr);
+        const canvasHeight = Math.floor(displayHeight * dpr);
+        
+        canvas.width = canvasWidth;
+        canvas.height = canvasHeight;
+        
+        // Set CSS display size
+        canvas.style.width = Math.floor(displayWidth) + 'px';
+        canvas.style.height = Math.floor(displayHeight) + 'px';
+        
+        // Scale the drawing context to account for device pixel ratio
+        const ctx = canvas.getContext('2d');
+        if (ctx) {
+          ctx.scale(dpr, dpr);
+        }
+        
+        console.log('Canvas resized to:', Math.floor(displayWidth) + 'x' + Math.floor(displayHeight), 'at', dpr + 'x DPR');
+        
+        // Trigger canvas redraw if there's a global redraw function
+        if (typeof window.redrawCanvas === 'function') {
+          window.redrawCanvas();
+        }
+        
+        // Update interactive elements after resize
+        setTimeout(() => {
+          if (typeof window.updateInteractiveElements === 'function') {
+            window.updateInteractiveElements();
+          }
+        }, 50);
+      }
+      
+      // Helper function to maintain interactive element coordinates after resize
+      window.updateInteractiveElements = function() {
+        const canvas = document.querySelector('canvas');
+        if (!canvas) return;
+        
+        // Get the canvas bounding rect for coordinate mapping
+        const rect = canvas.getBoundingClientRect();
+        const scaleX = canvas.width / rect.width;
+        const scaleY = canvas.height / rect.height;
+        
+        // Store scale factors globally for interactive elements to use
+        window.canvasScaleX = scaleX;
+        window.canvasScaleY = scaleY;
+        window.canvasRect = rect;
+        
+        console.log('Interactive elements updated - scaleX:', scaleX, 'scaleY:', scaleY);
+      };
+      
+      // Improved resize handling with debouncing
+      let resizeTimeout;
+      window.addEventListener('resize', () => {
+        clearTimeout(resizeTimeout);
+        resizeTimeout = setTimeout(() => {
+          resizeCanvas();
+          // Ensure any animation loops or interactive handlers are rebound
+          if (typeof window.handleResize === 'function') {
+            window.handleResize();
+          }
+        }, 150);
+      });
+      
+      // Handle orientation changes on mobile
+      window.addEventListener('orientationchange', () => {
+        setTimeout(() => {
+          resizeCanvas();
+        }, 500);
+      });
+      
+      window.addEventListener('message', (event) => {
+        const { canvasHtml, jsCode, contentWarning } = event.data || {};
+        if (typeof canvasHtml === 'string' && typeof jsCode === 'string') {
+          const root = document.getElementById('root');
+          if (root) {
+            root.innerHTML = canvasHtml;
+            
+            setTimeout(() => {
+              const canvas = root.querySelector('canvas');
+              if (canvas) {
+                console.log('Canvas found, original size:', canvas.width + 'x' + canvas.height);
+                
+                // Store the original dimensions before any resizing
+                if (!canvas.getAttribute('data-original-width')) {
+                  canvas.setAttribute('data-original-width', canvas.width || 800);
+                  canvas.setAttribute('data-original-height', canvas.height || 600);
+                }
+                
+                // Apply initial sizing
+                resizeCanvas();
+                
+                canvas.style.display = 'block';
+                canvas.style.margin = '0 auto';
+                canvas.style.cursor = 'pointer';
+                
+                if (statusEl && !contentWarning) {
+                  statusEl.textContent = 'Loading simulation...';
+                }
+                
+                // Execute the simulation code
+                try {
+                  const scriptEl = document.createElement('script');
+                  scriptEl.type = 'text/javascript';
+                  scriptEl.textContent = jsCode + `
+                    // Update interactive elements after simulation loads
+                    setTimeout(() => {
+                      if (typeof window.updateInteractiveElements === 'function') {
+                        window.updateInteractiveElements();
+                      }
+                    }, 100);
+                  `;
+                  root.appendChild(scriptEl);
+                  
+                  // Additional resize after simulation loads to ensure everything fits
+                  setTimeout(() => {
+                    resizeCanvas();
+                    if (statusEl && !contentWarning) {
+                      statusEl.className = 'status success';
+                      statusEl.textContent = 'Interactive';
+                      setTimeout(() => {
+                        statusEl.style.opacity = '0.6';
+                      }, 2000);
+                    }
+                  }, 500);
+                } catch (error) {
+                  console.error('Execution Error:', error);
+                  if (statusEl) {
+                    statusEl.className = 'status error';
+                    statusEl.textContent = 'Error: ' + error.message;
+                  }
+                }
+              } else {
+                console.error('Canvas element not found');
+                if (statusEl) {
+                  statusEl.className = 'status error';
+                  statusEl.textContent = 'Canvas not found';
+                }
+              }
+            }, 100);
+          }
+        }
+      });
+      
+      window.onerror = function(message, source, lineno, colno, error) {
+        console.error('Simulation Error:', message, 'Line:', lineno);
+        if (statusEl) {
+          statusEl.className = 'status error';
+          statusEl.textContent = 'Script Error';
+        }
+        return true;
+      };
+    </script>
+  </body>
+</html>

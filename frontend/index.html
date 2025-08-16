@@ -3,7 +3,14 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self' https://*.supabase.co; frame-src 'self'; object-src 'none'" />
+    <!--
+      CSP is delivered via Vercel route-specific headers. A meta tag would be
+      applied to every route and combine with those headers, which previously
+      caused the /sim-frame iframe to inherit the main app's strict policy and
+      treat injected scripts as coming from about:srcdoc. Removing the meta tag
+      lets the relaxed CSP for /sim-frame take effect while keeping the rest of
+      the app locked down by headers alone.
+    -->
     <title>MindRender - AI-Powered Simulation Engine</title>
   </head>
   <body>
