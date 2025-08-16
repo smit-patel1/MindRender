@@ -32,7 +32,9 @@ const SimulationFrame: React.FC<SimulationFrameProps> = React.memo(({ simulation
         overflow: 'hidden',
         border: 'none',
         width: '100%',
-        height: '100%',\n        display: 'block',\n        backgroundColor: 'transparent',
+        height: '100%',
+        display: 'block',
+        backgroundColor: 'transparent',
       }}
     />
   );
