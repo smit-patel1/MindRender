@@ -17,7 +17,15 @@ const ExplanationPanel = React.memo(({ explanation }: ExplanationPanelProps) => 
       };
 
     const formatContent = (text: string) => {
-      return text
+      // Remove common fluff phrases and filler words
+      const cleanText = text
+        .replace(/\b(Let me explain|I'll explain|Here's what|As you can see|It's important to note|Basically|Essentially|In other words|Simply put|To put it simply)\b[.,]?\s*/gi, '')
+        .replace(/\b(This is|This shows|This demonstrates|This simulation shows)\b\s*/gi, '')
+        .replace(/\b(The simulation|The visualization|The model)\b/gi, 'This')
+        .replace(/\s{2,}/g, ' ') // Remove multiple spaces
+        .trim();
+      
+      return cleanText
         .replace(/\*\*(.*?)\*\*/g, '<h3 class="explanation-heading">$1</h3>')
         .replace(/^- (.*$)/gim, '<li class="explanation-bullet">$1</li>')
         .replace(/^\* (.*$)/gim, '<li class="explanation-bullet">$1</li>')
@@ -25,6 +33,7 @@ const ExplanationPanel = React.memo(({ explanation }: ExplanationPanelProps) => 
         .split("\n")
         .map((line) => {
           const trimmed = line.trim();
+          if (!trimmed) return ''; // Skip empty lines
           if (trimmed.startsWith("<h3") || trimmed.startsWith("<li")) return trimmed;
           if (trimmed) return `<p class="explanation-text">${trimmed}</p>`;
           return "";
@@ -33,23 +42,31 @@ const ExplanationPanel = React.memo(({ explanation }: ExplanationPanelProps) => 
         .join("");
     };
 
-    const words = explanation.split(" ");
-    const wordLimit = 60;
+    // Clean explanation first, then check truncation
+    const cleanExplanation = explanation
+      .replace(/\b(Let me explain|I'll explain|Here's what|As you can see|It's important to note|Basically|Essentially|In other words|Simply put|To put it simply)\b[.,]?\s*/gi, '')
+      .replace(/\b(This is|This shows|This demonstrates|This simulation shows)\b\s*/gi, '')
+      .replace(/\b(The simulation|The visualization|The model)\b/gi, 'This')
+      .replace(/\s{2,}/g, ' ')
+      .trim();
+    
+    const words = cleanExplanation.split(" ");
+    const wordLimit = 50; // Reduced for more concise display
     const needsTruncation = words.length > wordLimit;
 
     const truncatedText = needsTruncation
       ? words.slice(0, wordLimit).join(" ") + "..."
-      : explanation;
+      : cleanExplanation;
 
     return {
       truncatedContent: DOMPurify.sanitize(formatContent(truncatedText)),
-      fullContent: DOMPurify.sanitize(formatContent(explanation)),
+      fullContent: DOMPurify.sanitize(formatContent(cleanExplanation)),
       needsTruncation,
     };
   }, [explanation]);
 
   return (
-    <div className="space-y-2 h-full overflow-y-auto">
+    <div className="h-full overflow-y-auto flex flex-col">
       <style>{`
         .explanation-heading {
           font-size: 16px;
@@ -88,12 +105,19 @@ const ExplanationPanel = React.memo(({ explanation }: ExplanationPanelProps) => 
         }
         .explanation-text {
           margin: 3px 0;
-          line-height: 1.3;
+          line-height: 1.4;
           color: #4b5563;
           font-size: 14px;
           word-wrap: break-word;
           overflow-wrap: break-word;
           hyphens: auto;
+        }
+        .explanation-text:last-child {
+          margin-bottom: 0;
+        }
+        .explanation-content {
+          flex: 1;
+          padding-bottom: 8px;
         }
       `}</style>
 
@@ -105,10 +129,10 @@ const ExplanationPanel = React.memo(({ explanation }: ExplanationPanelProps) => 
       />
 
       {needsTruncation && (
-        <div className="mt-2">
+        <div className="mt-auto pt-2 border-t border-gray-200">
           <button
             onClick={() => setIsExpanded(!isExpanded)}
-            className="text-blue-600 hover:text-blue-800 text-xs font-medium underline focus:outline-none focus:ring-1 focus:ring-blue-500 focus:ring-opacity-50 rounded"
+            className="text-blue-600 hover:text-blue-800 text-xs font-medium underline focus:outline-none focus:ring-1 focus:ring-blue-500 focus:ring-opacity-50 rounded transition-colors"
           >
             {isExpanded ? "Show Less" : "Read More"}
           </button>

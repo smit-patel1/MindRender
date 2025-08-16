@@ -72,7 +72,7 @@ const SUBSCRIPTION_PLANS: SubscriptionPlan[] = [
   {
     id: 'pro',
     name: 'Pro',
-    price: 11.99,
+    price: 9.99,
     interval: 'month',
     tokens: '400,000 tokens',
     popular: true,
@@ -89,7 +89,7 @@ const SUBSCRIPTION_PLANS: SubscriptionPlan[] = [
   {
     id: 'ultra',
     name: 'Ultra',
-    price: 19.99,
+    price: 14.99,
     interval: 'month',
     tokens: '1,000,000 tokens',
     features: [
@@ -223,6 +223,16 @@ export default function ManageSubscription() {
             </div>
             <h1 className="text-4xl font-bold mb-2">Manage Subscription</h1>
             <p className="text-gray-300">Manage your MindRender subscription and billing</p>
+            
+            {/* Payment Integration Notice */}
+            <div className="bg-blue-900/50 border border-blue-500/30 rounded-lg p-4 mt-6">
+              <div className="flex items-center">
+                <AlertTriangle className="w-5 h-5 text-blue-400 mr-3 flex-shrink-0" />
+                <p className="text-blue-200">
+                  <strong>Note:</strong> Payment integration is still being worked on. Subscriptions cannot be purchased yet.
+                </p>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -331,12 +341,6 @@ export default function ManageSubscription() {
                 ))}
               </div>
               
-              {/* Warning Text */}
-              <div className="text-center">
-                <p className="text-red-400 text-lg font-medium">
-                  Purchase Plans Will Be Available in the Future.
-                </p>
-              </div>
             </div>
           </div>
         </section>
