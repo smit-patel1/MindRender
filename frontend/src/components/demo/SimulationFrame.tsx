@@ -1,23 +1,35 @@
-import React, { useRef } from 'react';
+import React, { useRef, useEffect } from 'react';
 import { SimulationResponse } from '../../types/demo';
 
 interface SimulationFrameProps {
   simulationData: SimulationResponse;
 }
 
-const SimulationFrame: React.FC<SimulationFrameProps> = React.memo(({ simulationData }) => {
+const SimulationFrame: React.FC<SimulationFrameProps> = ({ simulationData }) => {
   const iframeRef = useRef<HTMLIFrameElement>(null);
 
-  const handleLoad = () => {
-    iframeRef.current?.contentWindow?.postMessage(
-      {
-        canvasHtml: simulationData.canvasHtml,
-        jsCode: simulationData.jsCode,
-        contentWarning: simulationData.contentWarning,
-      },
-      '*'
-    );
+  const sendMessageToIframe = () => {
+    if (iframeRef.current?.contentWindow) {
+      iframeRef.current.contentWindow.postMessage(
+        {
+          canvasHtml: simulationData.canvasHtml,
+          jsCode: simulationData.jsCode,
+          contentWarning: simulationData.contentWarning,
+        },
+        '*'
+      );
+    }
   };
+
+  const handleLoad = () => {
+    // Send initial message when iframe loads
+    sendMessageToIframe();
+  };
+
+  // Send message whenever simulationData changes
+  useEffect(() => {
+    sendMessageToIframe();
+  }, [simulationData.canvasHtml, simulationData.jsCode, simulationData.contentWarning]);
 
   return (
     <iframe
@@ -38,6 +50,6 @@ const SimulationFrame: React.FC<SimulationFrameProps> = React.memo(({ simulation
       }}
     />
   );
-});
+};
 
 export default SimulationFrame;
