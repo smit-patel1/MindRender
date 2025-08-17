@@ -129,7 +129,7 @@ export default function Demo(): JSX.Element {
       }
 
       const response = await fetch(
-        `http://localhost:8787/get_token_total`,
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/get_token_total`,
         {
           method: "POST",
           headers: {
@@ -200,7 +200,7 @@ export default function Demo(): JSX.Element {
         };
 
         const response = await fetch(
-          `http://localhost:8787/simulate`,
+          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/simulate`,
           {
             method: "POST",
             headers: {
