@@ -182,8 +182,10 @@
       });
       
       window.addEventListener('message', (event) => {
+        console.log('Received message in iframe:', event.data);
         const { canvasHtml, jsCode, contentWarning } = event.data || {};
         if (typeof canvasHtml === 'string' && typeof jsCode === 'string') {
+          console.log('Processing simulation with canvas HTML length:', canvasHtml.length, 'JS code length:', jsCode.length);
           const root = document.getElementById('root');
           if (root) {
             root.innerHTML = canvasHtml;
@@ -212,9 +214,11 @@
                 
                 // Execute the simulation code
                 try {
+                  console.log('Executing simulation JavaScript code...');
                   const scriptEl = document.createElement('script');
                   scriptEl.type = 'text/javascript';
                   scriptEl.textContent = jsCode + `
+                    console.log('Simulation JavaScript executed successfully');
                     // Update interactive elements after simulation loads
                     setTimeout(() => {
                       if (typeof window.updateInteractiveElements === 'function') {
@@ -223,6 +227,7 @@
                     }, 100);
                   `;
                   root.appendChild(scriptEl);
+                  console.log('Script element added to DOM');
                   
                   // Additional resize after simulation loads to ensure everything fits
                   setTimeout(() => {

@@ -9,7 +9,13 @@ const SimulationFrame: React.FC<SimulationFrameProps> = ({ simulationData }) => 
   const iframeRef = useRef<HTMLIFrameElement>(null);
 
   const sendMessageToIframe = () => {
-    if (iframeRef.current?.contentWindow) {
+    if (iframeRef.current?.contentWindow && simulationData.canvasHtml && simulationData.jsCode) {
+      console.log('Sending message to iframe:', {
+        canvasHtmlLength: simulationData.canvasHtml.length,
+        jsCodeLength: simulationData.jsCode.length,
+        contentWarning: simulationData.contentWarning
+      });
+      
       iframeRef.current.contentWindow.postMessage(
         {
           canvasHtml: simulationData.canvasHtml,
@@ -18,6 +24,12 @@ const SimulationFrame: React.FC<SimulationFrameProps> = ({ simulationData }) => 
         },
         '*'
       );
+    } else {
+      console.warn('Cannot send message to iframe:', {
+        hasContentWindow: !!iframeRef.current?.contentWindow,
+        hasCanvasHtml: !!simulationData.canvasHtml,
+        hasJsCode: !!simulationData.jsCode
+      });
     }
   };
 
@@ -28,7 +40,14 @@ const SimulationFrame: React.FC<SimulationFrameProps> = ({ simulationData }) => 
 
   // Send message whenever simulationData changes
   useEffect(() => {
-    sendMessageToIframe();
+    if (simulationData.canvasHtml && simulationData.jsCode) {
+      // Small delay to ensure iframe is ready
+      const timer = setTimeout(() => {
+        sendMessageToIframe();
+      }, 100);
+      
+      return () => clearTimeout(timer);
+    }
   }, [simulationData.canvasHtml, simulationData.jsCode, simulationData.contentWarning]);
 
   return (
