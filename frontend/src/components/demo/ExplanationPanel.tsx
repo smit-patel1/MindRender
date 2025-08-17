@@ -66,7 +66,7 @@ const ExplanationPanel = React.memo(({ explanation }: ExplanationPanelProps) => 
   }, [explanation]);
 
   return (
-    <div className="space-y-2">
+    <div className={`space-y-2 ${isExpanded ? 'h-full flex flex-col' : ''}`}>
       <style>{`
         .explanation-heading {
           font-size: 16px;
@@ -118,6 +118,7 @@ const ExplanationPanel = React.memo(({ explanation }: ExplanationPanelProps) => 
       `}</style>
 
       <div
+        className={isExpanded ? 'flex-1 overflow-y-auto' : ''}
         dangerouslySetInnerHTML={{
           __html: isExpanded ? fullContent : truncatedContent,
         }}

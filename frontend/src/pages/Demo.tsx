@@ -129,7 +129,7 @@ export default function Demo(): JSX.Element {
       }
 
       const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/get_token_total`,
+        `http://localhost:8787/get_token_total`,
         {
           method: "POST",
           headers: {
@@ -200,7 +200,7 @@ export default function Demo(): JSX.Element {
         };
 
         const response = await fetch(
-          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/simulate`,
+          `http://localhost:8787/simulate`,
           {
             method: "POST",
             headers: {
@@ -536,8 +536,8 @@ export default function Demo(): JSX.Element {
 
               <div className="flex-1 p-2 overflow-y-auto">
                 {simulationData?.explanation && !showContentWarning ? (
-                  <div className="bg-white rounded-lg shadow-sm border border-gray-200">
-                    <div className="p-3">
+                  <div className="bg-white rounded-lg shadow-sm border border-gray-200 h-full flex flex-col">
+                    <div className="p-3 flex-1 overflow-y-auto">
                       <ExplanationPanel explanation={simulationData.explanation} />
                     </div>
                   </div>
