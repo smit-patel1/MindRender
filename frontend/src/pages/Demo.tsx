@@ -534,7 +534,7 @@ export default function Demo(): JSX.Element {
                 </div>
               </div>
 
-              <div className="overflow-auto p-2 flex flex-col">
+              <div className="flex-1 p-2 overflow-y-auto">
                 {simulationData?.explanation && !showContentWarning ? (
                   <div className="bg-white rounded-lg shadow-sm border border-gray-200">
                     <div className="p-3">
