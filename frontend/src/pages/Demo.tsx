@@ -534,12 +534,14 @@ export default function Demo(): JSX.Element {
                 </div>
               </div>
 
-              <div className="flex-1 overflow-hidden p-2">
+              <div className="flex-1 overflow-hidden p-2 flex flex-col">
                 {simulationData?.explanation && !showContentWarning ? (
-                  <div className="bg-white rounded-lg p-3 shadow-sm border border-gray-200 h-full">
-                    <ExplanationPanel
-                      explanation={simulationData.explanation}
-                    />
+                  <div className="bg-white rounded-lg shadow-sm border border-gray-200 flex-1 flex flex-col min-h-0">
+                    <div className="p-3 flex-1 flex flex-col min-h-0">
+                      <ExplanationPanel
+                        explanation={simulationData.explanation}
+                      />
+                    </div>
                   </div>
                 ) : (
                   <div className="flex items-center justify-center h-full text-center">

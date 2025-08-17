@@ -36,7 +36,7 @@ const SimulationFrame: React.FC<SimulationFrameProps> = ({ simulationData }) => 
       ref={iframeRef}
       className="w-full h-full border-0"
       title="Interactive Simulation"
-      sandbox="allow-scripts"
+      sandbox="allow-scripts allow-same-origin"
       scrolling="no"
       src="/sim-frame"
       onLoad={handleLoad}

@@ -66,7 +66,7 @@ const ExplanationPanel = React.memo(({ explanation }: ExplanationPanelProps) => 
   }, [explanation]);
 
   return (
-    <div className="h-full overflow-y-auto flex flex-col">
+    <div className="flex flex-col h-full">
       <style>{`
         .explanation-heading {
           font-size: 16px;
@@ -116,28 +116,36 @@ const ExplanationPanel = React.memo(({ explanation }: ExplanationPanelProps) => 
           margin-bottom: 0;
         }
         .explanation-content {
-          flex: 1;
-          padding-bottom: 8px;
+          flex: 1 1 0;
+          overflow-y: auto;
+          min-height: 0;
+        }
+        .explanation-panel {
+          height: 100%;
+          display: flex;
+          flex-direction: column;
         }
       `}</style>
 
-      <div
-        className="explanation-content"
-        dangerouslySetInnerHTML={{
-          __html: isExpanded ? fullContent : truncatedContent,
-        }}
-      />
+      <div className="explanation-panel">
+        <div
+          className="explanation-content"
+          dangerouslySetInnerHTML={{
+            __html: isExpanded ? fullContent : truncatedContent,
+          }}
+        />
 
-      {needsTruncation && (
-        <div className="mt-auto pt-2 border-t border-gray-200">
-          <button
-            onClick={() => setIsExpanded(!isExpanded)}
-            className="text-blue-600 hover:text-blue-800 text-xs font-medium underline focus:outline-none focus:ring-1 focus:ring-blue-500 focus:ring-opacity-50 rounded transition-colors"
-          >
-            {isExpanded ? "Show Less" : "Read More"}
-          </button>
-        </div>
-      )}
+        {needsTruncation && (
+          <div className="flex-shrink-0 pt-3 border-t border-gray-200 mt-2">
+            <button
+              onClick={() => setIsExpanded(!isExpanded)}
+              className="text-blue-600 hover:text-blue-800 text-xs font-medium underline focus:outline-none focus:ring-1 focus:ring-blue-500 focus:ring-opacity-50 rounded transition-colors"
+            >
+              {isExpanded ? "Show Less" : "Read More"}
+            </button>
+          </div>
+        )}
+      </div>
     </div>
   );
 });
