@@ -118,7 +118,6 @@ const ExplanationPanel = React.memo(({ explanation }: ExplanationPanelProps) => 
       `}</style>
 
       <div
-        className="overflow-auto"
         dangerouslySetInnerHTML={{
           __html: isExpanded ? fullContent : truncatedContent,
         }}
