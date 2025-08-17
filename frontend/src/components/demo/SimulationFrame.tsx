@@ -9,53 +9,57 @@ const SimulationFrame: React.FC<SimulationFrameProps> = ({ simulationData }) => 
   const iframeRef = useRef<HTMLIFrameElement>(null);
 
   const sendMessageToIframe = () => {
-    if (iframeRef.current?.contentWindow && simulationData.canvasHtml && simulationData.jsCode) {
-      console.log('Sending message to iframe:', {
-        canvasHtmlLength: simulationData.canvasHtml.length,
-        jsCodeLength: simulationData.jsCode.length,
-        contentWarning: simulationData.contentWarning
-      });
-      
+    if (
+      iframeRef.current?.contentWindow &&
+      simulationData.canvasHtml &&
+      simulationData.jsCode
+    ) {
       iframeRef.current.contentWindow.postMessage(
         {
+          type: 'MINDRENDER_SIM',
           canvasHtml: simulationData.canvasHtml,
           jsCode: simulationData.jsCode,
           contentWarning: simulationData.contentWarning,
         },
-        '*'
+        window.location.origin
       );
-    } else {
-      console.warn('Cannot send message to iframe:', {
-        hasContentWindow: !!iframeRef.current?.contentWindow,
-        hasCanvasHtml: !!simulationData.canvasHtml,
-        hasJsCode: !!simulationData.jsCode
-      });
     }
   };
 
+  useEffect(() => {
+    const handleMessage = (event: MessageEvent) => {
+      if (event.origin !== window.location.origin) return;
+      if (event.data?.type === 'MINDRENDER_SIM_READY') {
+        console.log('Simulation iframe ready');
+      }
+    };
+    window.addEventListener('message', handleMessage);
+    return () => window.removeEventListener('message', handleMessage);
+  }, []);
+
   const handleLoad = () => {
-    // Send initial message when iframe loads
     sendMessageToIframe();
   };
 
-  // Send message whenever simulationData changes
   useEffect(() => {
     if (simulationData.canvasHtml && simulationData.jsCode) {
-      // Small delay to ensure iframe is ready
       const timer = setTimeout(() => {
         sendMessageToIframe();
       }, 100);
-      
       return () => clearTimeout(timer);
     }
-  }, [simulationData.canvasHtml, simulationData.jsCode, simulationData.contentWarning]);
+  }, [
+    simulationData.canvasHtml,
+    simulationData.jsCode,
+    simulationData.contentWarning,
+  ]);
 
   return (
     <iframe
       ref={iframeRef}
       className="w-full h-full border-0"
       title="Interactive Simulation"
-      sandbox="allow-scripts allow-same-origin"
+      sandbox="allow-scripts"
       scrolling="no"
       src="/sim-frame"
       onLoad={handleLoad}
