@@ -31,7 +31,7 @@ export default function AuthCallback() {
       setTimeout(() => {
         navigate(redirectTo, { replace: true });
       }, 1500);
-1
+      1;
       return;
     }
 

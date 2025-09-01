@@ -26,6 +26,19 @@
       ]
     },
     {
+      "source": "/sim-frame.js",
+      "headers": [
+        {
+          "key": "Access-Control-Allow-Origin",
+          "value": "*"
+        },
+        {
+          "key": "Content-Type",
+          "value": "application/javascript; charset=utf-8"
+        }
+      ]
+    },
+    {
       "source": "/((?!sim-frame).*)",
       "headers": [
         {

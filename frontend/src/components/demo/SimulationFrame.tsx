@@ -61,7 +61,7 @@ const SimulationFrame: React.FC<SimulationFrameProps> = ({ simulationData }) => 
       title="Interactive Simulation"
       sandbox="allow-scripts"
       scrolling="no"
-      src="/sim-frame"
+      src="/sim-frame.html"
       onLoad={handleLoad}
       style={{
         overflow: 'hidden',
