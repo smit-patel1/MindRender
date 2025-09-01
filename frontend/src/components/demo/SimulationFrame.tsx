@@ -21,14 +21,14 @@ const SimulationFrame: React.FC<SimulationFrameProps> = ({ simulationData }) => 
           jsCode: simulationData.jsCode,
           contentWarning: simulationData.contentWarning,
         },
-        window.location.origin
+        '*'
       );
     }
   };
 
   useEffect(() => {
     const handleMessage = (event: MessageEvent) => {
-      if (event.origin !== window.location.origin) return;
+      if (event.origin !== window.location.origin && event.origin !== 'null') return;
       if (event.data?.type === 'MINDRENDER_SIM_READY') {
         console.log('Simulation iframe ready');
       }
