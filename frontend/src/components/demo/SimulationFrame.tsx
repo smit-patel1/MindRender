@@ -21,14 +21,14 @@ const SimulationFrame: React.FC<SimulationFrameProps> = ({ simulationData }) => 
           jsCode: simulationData.jsCode,
           contentWarning: simulationData.contentWarning,
         },
-        '*'
+        window.location.origin
       );
     }
   };
 
   useEffect(() => {
     const handleMessage = (event: MessageEvent) => {
-      if (event.origin !== window.location.origin && event.origin !== 'null') return;
+      if (event.origin !== window.location.origin) return;
       if (event.data?.type === 'MINDRENDER_SIM_READY') {
         console.log('Simulation iframe ready');
       }
@@ -59,7 +59,7 @@ const SimulationFrame: React.FC<SimulationFrameProps> = ({ simulationData }) => 
       ref={iframeRef}
       className="w-full h-full border-0"
       title="Interactive Simulation"
-      sandbox="allow-scripts"
+      sandbox="allow-scripts allow-same-origin"
       scrolling="no"
       src="/sim-frame.html"
       onLoad={handleLoad}
