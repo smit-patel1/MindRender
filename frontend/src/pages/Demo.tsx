@@ -314,7 +314,7 @@ export default function Demo(): JSX.Element {
 
   if (authLoading) {
     return (
-      <div className="min-h-screen bg-gray-900 flex items-center justify-center p-4">
+      <div className="min-h-screen h-[100dvh] bg-gray-900 flex items-center justify-center p-4">
         <LoadingSpinner size="large" text="Loading authentication..." />
       </div>
     );
@@ -322,7 +322,7 @@ export default function Demo(): JSX.Element {
 
   if (authError) {
     return (
-      <div className="min-h-screen bg-gray-900 flex items-center justify-center p-4">
+      <div className="min-h-screen h-[100dvh] bg-gray-900 flex items-center justify-center p-4">
         <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-6 sm:p-8 max-w-md mx-4">
           <div className="text-red-400 text-center">
             <div className="text-lg sm:text-xl font-semibold mb-2">
@@ -343,7 +343,7 @@ export default function Demo(): JSX.Element {
 
   if (!user) {
     return (
-      <div className="min-h-screen bg-gray-900 flex items-center justify-center p-4">
+      <div className="min-h-screen h-[100dvh] bg-gray-900 flex items-center justify-center p-4">
         <div className="text-center bg-gray-800 rounded-xl p-6 sm:p-8 max-w-md mx-4">
           <div className="text-white text-lg sm:text-xl font-semibold mb-4">
             Access Required
@@ -377,7 +377,7 @@ export default function Demo(): JSX.Element {
         </div>
       }
     >
-      <div className="h-screen bg-gray-900 text-white overflow-hidden flex flex-col">
+      <div className="min-h-screen h-[100dvh] bg-gray-900 text-white overflow-hidden flex flex-col">
         <DemoNavbar
           user={demoUser}
           isDeveloper={isDeveloper}
@@ -388,8 +388,8 @@ export default function Demo(): JSX.Element {
           handleSignOut={handleSignOut}
         />
 
-        <main className="flex-1 overflow-hidden">
-          <div className="grid grid-cols-1 md:grid-cols-12 h-full">
+        <main className="flex-1 overflow-hidden min-h-0">
+          <div className="grid grid-cols-1 md:grid-cols-12 h-full min-h-0">
             <aside className="order-1 md:order-none md:col-span-2 lg:col-span-2 xl:col-span-2 bg-gray-800 border-b md:border-b-0 md:border-r border-gray-700 flex flex-col h-full">
               <div className="p-3 space-y-3 flex-1 overflow-y-auto">
                 <div className="flex items-center space-x-2 pb-2 border-b border-gray-700">
@@ -451,7 +451,9 @@ export default function Demo(): JSX.Element {
                   </button>
                 )}
 
-                {error && <ErrorBanner error={error} onDismiss={dismissError} />}
+                {error && (
+                  <ErrorBanner error={error} onDismiss={dismissError} />
+                )}
               </div>
             </aside>
 
@@ -517,7 +519,7 @@ export default function Demo(): JSX.Element {
               </div>
             </section>
 
-            <aside className="order-3 md:order-none md:col-span-2 lg:col-span-2 xl:col-span-2 bg-gray-50 flex flex-col h-full">
+            <aside className="order-3 md:order-none md:col-span-2 lg:col-span-2 xl:col-span-2 bg-gray-50 flex flex-col h-full min-h-0">
               <div className="bg-white border-b border-gray-200 px-3 py-3 flex-shrink-0">
                 <div className="flex items-center space-x-2">
                   <BookOpen className="w-4 h-4 text-blue-600" />
@@ -534,11 +536,13 @@ export default function Demo(): JSX.Element {
                 </div>
               </div>
 
-              <div className="flex-1 p-2 overflow-y-auto">
+              <div className="flex-1 px-2 pt-1 pb-2 min-h-0">
                 {simulationData?.explanation && !showContentWarning ? (
-                  <div className="bg-white rounded-lg shadow-sm border border-gray-200 h-full flex flex-col">
-                    <div className="p-3 flex-1 overflow-y-auto">
-                      <ExplanationPanel explanation={simulationData.explanation} />
+                  <div className="bg-white rounded-lg shadow-sm border border-gray-200 h-full min-h-0 flex flex-col">
+                    <div className="p-3 flex-1 min-h-0">
+                      <ExplanationPanel
+                        explanation={simulationData.explanation}
+                      />
                     </div>
                   </div>
                 ) : (

@@ -66,7 +66,7 @@ const ExplanationPanel = React.memo(({ explanation }: ExplanationPanelProps) => 
   }, [explanation]);
 
   return (
-    <div className={`space-y-2 ${isExpanded ? 'h-full flex flex-col' : ''}`}>
+    <div className={"space-y-2 h-full flex flex-col min-h-0"}>
       <style>{`
         .explanation-heading {
           font-size: 16px;
@@ -115,10 +115,19 @@ const ExplanationPanel = React.memo(({ explanation }: ExplanationPanelProps) => 
         .explanation-text:last-child {
           margin-bottom: 0;
         }
+        /* Ensure backend-provided wrapper doesn't impose its own scrollbar */
+        .explanation-content > div {
+          max-height: none !important;
+          overflow: visible !important;
+        }
+        .explanation-content > div * {
+          max-height: none !important;
+          overflow: visible !important;
+        }
       `}</style>
 
       <div
-        className={isExpanded ? 'flex-1 overflow-y-auto' : ''}
+        className={'flex-1 overflow-y-auto min-h-0 explanation-content'}
         dangerouslySetInnerHTML={{
           __html: isExpanded ? fullContent : truncatedContent,
         }}
