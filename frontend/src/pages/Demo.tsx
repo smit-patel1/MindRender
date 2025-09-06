@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo } from "react";
+import React, { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { useAuth } from "../contexts/AuthProvider";
 import { supabase } from "../lib/supabaseClient";
 import { TOKEN_LIMIT } from "../constants";
@@ -107,6 +107,11 @@ export default function Demo(): JSX.Element {
   const [showContentWarning, setShowContentWarning] = useState<boolean>(false);
   const [contentWarningMessage, setContentWarningMessage] =
     useState<string>("");
+  
+  // Request ID for preventing duplicate submissions
+  const requestIdRef = useRef<number>(0);
+  // In-session cache for identical prompts
+  const cacheRef = useRef<Map<string, SimulationResponse>>(new Map());
 
   const isTokenLimitReached = useMemo(
     () => !isDeveloper && tokenUsage >= TOKEN_LIMIT,
@@ -181,6 +186,20 @@ export default function Demo(): JSX.Element {
         return;
       }
 
+      // Check session cache first
+      const cacheKey = subject + ':' + currentPrompt.trim();
+      const cachedResult = cacheRef.current.get(cacheKey);
+      if (cachedResult) {
+        setSimulationData(cachedResult);
+        setError(null);
+        setShowContentWarning(false);
+        setMobileMenuOpen(false);
+        return;
+      }
+
+      // Increment request ID and track current request
+      const currentRequestId = ++requestIdRef.current;
+
       setLoading(true);
       setError(null);
       setShowContentWarning(false);
@@ -226,6 +245,11 @@ export default function Demo(): JSX.Element {
 
         const data: SimulationResponse = await response.json();
 
+        // Ignore response if this is not the latest request
+        if (currentRequestId !== requestIdRef.current) {
+          return;
+        }
+
         if (data.contentWarning) {
           setShowContentWarning(true);
           setContentWarningMessage(
@@ -243,6 +267,9 @@ export default function Demo(): JSX.Element {
         if (!data.canvasHtml || !data.jsCode) {
           throw new Error("Invalid response format from simulation service");
         }
+
+        // Cache successful result
+        cacheRef.current.set(cacheKey, data);
 
         setSimulationData(data);
 
@@ -489,7 +516,9 @@ export default function Demo(): JSX.Element {
                   </div>
                 )}
 
-                {simulationData ? (
+                {loading ? (
+                  <SimulationFrame simulationData={null} />
+                ) : simulationData ? (
                   <SimulationFrame simulationData={simulationData} />
                 ) : (
                   <div className="h-full flex items-center justify-center p-6">

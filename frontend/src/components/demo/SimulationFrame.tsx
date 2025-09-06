@@ -2,7 +2,7 @@ import React, { useRef, useEffect } from 'react';
 import { SimulationResponse } from '../../types/demo';
 
 interface SimulationFrameProps {
-  simulationData: SimulationResponse;
+  simulationData: SimulationResponse | null;
 }
 
 const SimulationFrame: React.FC<SimulationFrameProps> = ({ simulationData }) => {
@@ -11,8 +11,8 @@ const SimulationFrame: React.FC<SimulationFrameProps> = ({ simulationData }) => 
   const sendMessageToIframe = () => {
     if (
       iframeRef.current?.contentWindow &&
-      simulationData.canvasHtml &&
-      simulationData.jsCode
+      simulationData?.canvasHtml &&
+      simulationData?.jsCode
     ) {
       iframeRef.current.contentWindow.postMessage(
         {
@@ -42,17 +42,35 @@ const SimulationFrame: React.FC<SimulationFrameProps> = ({ simulationData }) => 
   };
 
   useEffect(() => {
-    if (simulationData.canvasHtml && simulationData.jsCode) {
+    if (simulationData?.canvasHtml && simulationData?.jsCode) {
       const timer = setTimeout(() => {
         sendMessageToIframe();
       }, 100);
       return () => clearTimeout(timer);
     }
   }, [
-    simulationData.canvasHtml,
-    simulationData.jsCode,
-    simulationData.contentWarning,
+    simulationData?.canvasHtml,
+    simulationData?.jsCode,
+    simulationData?.contentWarning,
   ]);
+
+  // Show skeleton if no simulation data
+  if (!simulationData) {
+    return (
+      <div className="w-full h-full flex items-center justify-center bg-gray-50 border border-gray-200 rounded-lg">
+        <div className="text-center space-y-4">
+          <div className="w-full h-64 bg-gray-100 border-2 border-dashed border-gray-300 rounded-lg flex items-center justify-center">
+            <div className="text-gray-500 font-medium">
+              Compiling simulation...
+            </div>
+          </div>
+          <div className="text-sm text-gray-500">
+            Preparing interactive canvas
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <iframe

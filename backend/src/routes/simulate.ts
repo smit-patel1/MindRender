@@ -86,48 +86,102 @@ function validatePrompt(prompt: string, subject?: string) {
 }
 
 async function callClaude(messages: any[]) {
-  const res = await fetch('https://api.anthropic.com/v1/messages', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'x-api-key': ANTHROPIC_API_KEY,
-      'anthropic-version': '2023-06-01'
-    },
-    body: JSON.stringify({
-      model: 'claude-sonnet-4-20250514',
-      max_tokens: 10000,
-      temperature: 0.3,
-      messages
-    })
-  });
-  if (!res.ok) throw new Error(`Claude API returned ${res.status}`);
-  const data = await res.json();
-  return {
-    content: data.content[0]?.text ? [data.content[0].text] : data.content,
-    usage: data.usage
-  };
+  const timeoutMs = Number(process.env.ANTHROPIC_TIMEOUT_MS || 12000);
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': ANTHROPIC_API_KEY,
+        'anthropic-version': '2023-06-01'
+      },
+      body: JSON.stringify({
+        model: process.env.ANTHROPIC_FAST_MODEL || 'claude-3-5-sonnet-latest',
+        max_tokens: Number(process.env.ANTHROPIC_MAX_TOKENS || 2500),
+        temperature: 0.3,
+        messages
+      }),
+      signal: controller.signal
+    });
+    
+    clearTimeout(timeoutId);
+    
+    if (!res.ok) {
+      if (res.status >= 500) {
+        throw new Error(`Server error: ${res.status}`);
+      }
+      throw new Error(`Claude API returned ${res.status}`);
+    }
+    
+    const data = await res.json();
+    return {
+      content: data.content[0]?.text ? [data.content[0].text] : data.content,
+      usage: data.usage
+    };
+  } catch (error: any) {
+    clearTimeout(timeoutId);
+    
+    if (error.name === 'AbortError' || (error.message && error.message.includes('Server error'))) {
+      // Retry once with fallback model and reduced tokens
+      const fallbackController = new AbortController();
+      const fallbackTimeoutId = setTimeout(() => fallbackController.abort(), timeoutMs);
+      
+      try {
+        const fallbackRes = await fetch('https://api.anthropic.com/v1/messages', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-api-key': ANTHROPIC_API_KEY,
+            'anthropic-version': '2023-06-01'
+          },
+          body: JSON.stringify({
+            model: process.env.ANTHROPIC_FALLBACK_MODEL || 'claude-sonnet-4-20250514',
+            max_tokens: Number(process.env.ANTHROPIC_FALLBACK_MAX_TOKENS || 2200),
+            temperature: 0.3,
+            messages
+          }),
+          signal: fallbackController.signal
+        });
+        
+        clearTimeout(fallbackTimeoutId);
+        
+        if (!fallbackRes.ok) throw new Error(`Fallback Claude API returned ${fallbackRes.status}`);
+        
+        const fallbackData = await fallbackRes.json();
+        return {
+          content: fallbackData.content[0]?.text ? [fallbackData.content[0].text] : fallbackData.content,
+          usage: fallbackData.usage
+        };
+      } catch (fallbackError) {
+        clearTimeout(fallbackTimeoutId);
+        throw fallbackError;
+      }
+    }
+    
+    throw error;
+  }
 }
 
 function createSimulationPrompt(prompt: string, subject: string) {
-  return `You are an expert JavaScript engineer. Create a clean, runnable interactive ${subject} simulation without any assumptions. Output must follow this format:
-\n\n\`\`\`
+  return `Create an interactive ${subject} simulation. Output exactly and only the three sections with these markers. Do not add extra sections, markdown fences, or commentary outside them.
+
 ---CANVAS---
 <canvas id="sim" width="800" height="600"></canvas>
 
 ---SCRIPT---
-// 1. SETUP: grab canvas, get context, init data & listeners, console.log('initialized')
-// 2. ANIMATE: function animate(){ update; clear; draw; requestAnimationFrame(animate);} animate();
-// 3. HELPERS: optional helper functions
+// Essential JavaScript only
 ---EXPLANATION---
-[Explain how this simulation demonstrates the ${subject} concepts]
+[Max 120 words explaining the ${subject} concepts]
 
-> Prompt: "${prompt}"
-\`\`\`
+Prompt: "${prompt}"
 
 Requirements:
-- Draw all controls inside the canvas.
-- Use a coherent color palette and legible on-canvas text.
-- Keep complexity balanced—only essential math and interactivity.`;
+- Keep the JavaScript succinct and only include essential math and interactivity.
+- No external libraries; no network calls.
+- Draw all controls inside the canvas.`;
 }
 
 function extractCode(content: string) {
@@ -140,6 +194,27 @@ function extractCode(content: string) {
     content.match(/<script[^>]*>([\s\S]*?)<\/script>/i)?.[1]?.trim() ||
     null;
   return { canvas, js };
+}
+
+// Simple SHA-256 hash function
+async function generateHash(input: string): Promise<string> {
+  if (typeof crypto !== 'undefined' && crypto.subtle) {
+    // Use Web Crypto API if available
+    const encoder = new TextEncoder();
+    const data = encoder.encode(input);
+    const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+    const hashArray = Array.from(new Uint8Array(hashBuffer));
+    return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+  } else {
+    // Fallback: simple hash function (not cryptographically secure)
+    let hash = 0;
+    for (let i = 0; i < input.length; i++) {
+      const char = input.charCodeAt(i);
+      hash = ((hash << 5) - hash) + char;
+      hash = hash & hash; // Convert to 32bit integer
+    }
+    return Math.abs(hash).toString(16);
+  }
 }
 
 export const simulateHandler = async (c: Context) => {
@@ -155,6 +230,41 @@ export const simulateHandler = async (c: Context) => {
 
     const { isValid, reason } = validatePrompt(prompt, subject);
     if (!isValid) throw new Error(reason);
+
+    // Check for streaming request
+    const isStreamingEnabled = process.env.STREAMING_ENABLED === 'true';
+    const acceptsStreaming = c.req.header('accept')?.includes('text/event-stream') || 
+                           c.req.query('stream') === '1';
+    
+    if (isStreamingEnabled && acceptsStreaming) {
+      // Streaming path structure - early return for now
+      return c.json({ error: 'Streaming not yet implemented' }, 501);
+    }
+
+    // Generate cache key
+    const cacheKey = `${subject}:${prompt}`;
+    const promptHash = await generateHash(cacheKey);
+
+    // Check cache first
+    const { data: cacheHit } = await supabase
+      .from('sim_cache')
+      .select('canvas_html, js_code, explanation')
+      .eq('user_id', user.id)
+      .eq('subject', subject)
+      .eq('prompt_hash', promptHash)
+      .single();
+
+    if (cacheHit) {
+      return c.json(
+        {
+          canvasHtml: cacheHit.canvas_html,
+          jsCode: cacheHit.js_code,
+          explanation: cacheHit.explanation,
+          usage: { totalTokens: 0, cacheHit: true }
+        },
+        200
+      );
+    }
 
     const systemPrompt = createSimulationPrompt(prompt, subject);
     const claudeResp = await callClaude([{ role: 'user', content: systemPrompt }]);
@@ -190,18 +300,48 @@ export const simulateHandler = async (c: Context) => {
 })();
 `;
 
-    await supabase.from('token_usage').insert({
-      user_id: user.id,
-      prompt: `${subject}: ${prompt}`,
-      subject,
-      tokens_used: totalTokens,
-      created_at: new Date().toISOString()
-    });
+    // Non-blocking token logging
+    const tokenLogPromise = (async () => {
+      try {
+        await supabase.from('token_usage').insert({
+          user_id: user.id,
+          prompt: `${subject}: ${prompt}`,
+          tokens_used: totalTokens,
+          created_at: new Date().toISOString()
+        });
+      } catch (err) {
+        console.error('Token logging failed:', err);
+      }
+    })();
+    
+    if ((c as any).executionCtx?.waitUntil) {
+      (c as any).executionCtx.waitUntil(tokenLogPromise);
+    }
 
     const rawExp = raw.split('---EXPLANATION---')[1]?.trim() || '';
     const safeExp = `<div style="color:#222; max-height:60vh; overflow-y:auto; padding-right:8px;">
       ${rawExp}
     </div>`;
+
+    // Non-blocking cache write
+    const cacheWritePromise = (async () => {
+      try {
+        await supabase.from('sim_cache').insert({
+          user_id: user.id,
+          subject,
+          prompt_hash: promptHash,
+          canvas_html: styledCanvas,
+          js_code: wrappedJs,
+          explanation: safeExp
+        });
+      } catch (err) {
+        console.error('Cache write failed:', err);
+      }
+    })();
+    
+    if ((c as any).executionCtx?.waitUntil) {
+      (c as any).executionCtx.waitUntil(cacheWritePromise);
+    }
 
     return c.json(
       {
