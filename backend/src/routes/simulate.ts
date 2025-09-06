@@ -79,8 +79,8 @@ function validatePrompt(prompt: string, subject?: string) {
   if (prompt.trim().length < 10) {
     return { isValid: false, reason: 'Please provide more detail (≥ 10 characters).' };
   }
-  if (prompt.length > 500) {
-    return { isValid: false, reason: 'Please keep your prompt under 500 characters.' };
+  if (prompt.length > 1000) {
+    return { isValid: false, reason: 'Please keep your prompt under 1000 characters.' };
   }
   return { isValid: true };
 }
