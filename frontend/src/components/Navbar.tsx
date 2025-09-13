@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import { Link, useNavigate } from 'react-router-dom';
-import { Github, LogIn, LogOut, User, Menu, X } from 'lucide-react';
+import { LogIn, LogOut, User, Menu, X } from 'lucide-react';
 import { useAuth } from '../contexts/AuthProvider';
 
 export default function Navbar() {
@@ -71,14 +71,7 @@ export default function Navbar() {
               <Link to="/learn" className="text-gray-300 hover:text-white transition-colors">
                 Learn More
               </Link>
-              <a
-                href="https://github.com/smit-patel1/MindRender"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-gray-300 hover:text-white transition-colors"
-              >
-                <Github className="w-5 h-5" />
-              </a>
+              {/* GitHub link removed as requested */}
 
               {loading ? (
                 <div className="w-20 h-10 bg-gray-700 rounded-lg animate-pulse"></div>
@@ -141,15 +134,7 @@ export default function Navbar() {
               >
                 Learn More
               </Link>
-              <a
-                href="https://github.com/smit-patel1/MindRender"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="block text-gray-300 hover:text-white"
-                onClick={() => setMenuOpen(false)}
-              >
-                GitHub
-              </a>
+              {/* GitHub link removed from mobile menu */}
 
               {loading ? (
                 <div className="w-full h-10 bg-gray-700 rounded-lg animate-pulse"></div>

@@ -12,7 +12,7 @@ export default function Home() {
   return (
     <div className="overflow-x-hidden">
       <Navbar />
-      <div className="pt-24">
+      <div>
         <Hero />
         <Mission />
         <Problem />

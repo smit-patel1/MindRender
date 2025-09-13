@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { Github } from 'lucide-react';
+// GitHub icon removed
 
 const quickLinks = [
   { name: "Home", to: "/" },
@@ -12,7 +12,7 @@ export default function Footer() {
   return (
     <footer className="bg-gray-900 text-white py-12">
       <div className="container mx-auto px-4">
-        <div className="grid md:grid-cols-3 gap-8 max-w-4xl mx-auto">
+        <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto">
           <div>
             <h3 className="text-2xl font-bold mb-4">MindRender</h3>
             <p className="text-gray-400">Transform your ideas into interactive simulations.</p>
@@ -31,18 +31,7 @@ export default function Footer() {
             </ul>
           </div>
           
-          <div>
-            <h4 className="text-lg font-semibold mb-4">GitHub</h4>
-            <a
-              href="https://github.com/smit-patel1/MindRender"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-gray-400 hover:text-white transition-colors inline-flex items-center"
-            >
-              <Github className="w-6 h-6" />
-              <span className="ml-2">View Source</span>
-            </a>
-          </div>
+          {/* GitHub section removed as requested */}
         </div>
         
         {/* Built with Bolt Badge */}
